@@ -57,9 +57,9 @@ jobs:
           }
 
           save('pokedex', Pokedex);
-          save('moves', BattleMoves);
-          save('typechart', BattleTypeChart);
-          save('items', BattleItems);
+          save('moves', Moves);
+          save('typechart', TypeChart);
+          save('items', Items);
           " > extract.ts
 
           # 5. Run the script using tsx (handles the TS import magic)
