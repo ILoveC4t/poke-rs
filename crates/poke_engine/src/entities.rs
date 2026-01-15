@@ -116,7 +116,7 @@ impl PokemonConfig {
         for ev in &mut self.evs.iter_mut().zip(evs.iter()) {
             let clamped = (*ev.1).min(252);
             let remaining = 510u16.saturating_sub(total);
-            *ev.0 = clamped.min(remaining as u8);
+            *ev.0 = (clamped as u16).min(remaining) as u8;
             total += *ev.0 as u16;
         }
         self
@@ -329,9 +329,9 @@ mod tests {
             assert_eq!(stats[0], 110, "Pikachu HP mismatch");
             
             // Speed with Timid (+10%) and 252 EVs:
-            // Raw = floor((2*90 + 31 + 63) * 50 / 100) + 5 = 137
-            // With Timid = floor(137 * 1.1) = 150
-            assert_eq!(stats[5], 150, "Pikachu Speed mismatch");
+            // Raw = floor((2*90 + 31 + 63) * 50 / 100) + 5 = 142
+            // With Timid = floor(142 * 1.1) = 156
+            assert_eq!(stats[5], 156, "Pikachu Speed mismatch");
             
             // Attack with Timid (-10%):
             // Raw = floor((2*55 + 31 + 0) * 50 / 100) + 5 = 75
