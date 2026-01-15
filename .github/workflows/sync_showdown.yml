@@ -1,0 +1,80 @@
+name: Sync Showdown Data
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 1' # Weekly
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch and Convert Data
+        run: |
+          # 1. Setup a temp extraction folder
+          mkdir -p extractor
+          cd extractor
+          
+          # 2. Initialize a minimal package to handle imports
+          npm init -y
+          npm install typescript tsx @types/node
+
+          # 3. Clone the Smogon repo specifically into a subfolder
+          git clone --depth 1 https://github.com/smogon/pokemon-showdown.git showdown-source
+
+          # 4. Create the extraction script
+          echo "
+          import { Pokedex } from './showdown-source/data/pokedex';
+          import { BattleMoves } from './showdown-source/data/moves';
+          import { BattleTypeChart } from './showdown-source/data/typechart';
+          import { BattleItems } from './showdown-source/data/items';
+          import * as fs from 'fs';
+          import * as path from 'path';
+
+          const OUTPUT_DIR = path.resolve('..', 'data');
+
+          // Helper to write JSON
+          const save = (name, data) => {
+              const file = path.join(OUTPUT_DIR, name + '.json');
+              fs.writeFileSync(file, JSON.stringify(data, null, 2));
+              console.log('Saved:', file);
+          };
+
+          // Ensure output directory exists
+          if (!fs.existsSync(OUTPUT_DIR)) {
+              fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+          }
+
+          save('pokedex', Pokedex);
+          save('moves', BattleMoves);
+          save('typechart', BattleTypeChart);
+          save('items', BattleItems);
+          " > extract.ts
+
+          # 5. Run the script using tsx (handles the TS import magic)
+          npx tsx extract.ts
+
+          # Cleanup
+          cd ..
+          rm -rf extractor
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(data): sync with smogon/pokemon-showdown"
+          title: "Update Battle Data"
+          body: "Updates JSON data from latest Smogon sources via direct TS import."
+          branch: data-sync-update
+          delete-branch: true
