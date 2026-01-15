@@ -1,61 +1,128 @@
-pub mod core_data;
+//! poke_engine - High-performance Pokemon battle simulation engine
+//!
+//! This library provides stack-allocated, cache-friendly data structures
+//! optimized for Monte Carlo and Minimax AI analysis.
 
-mod db {
-    #![allow(dead_code)] // Generated code might have unused variants
-    include!(concat!(env!("OUT_DIR"), "/generated_db.rs"));
+#![allow(clippy::transmute_int_to_non_zero)]
+
+/// Type definitions and type chart
+pub mod types {
+    include!(concat!(env!("OUT_DIR"), "/types.rs"));
 }
 
-pub use db::{MoveId, SpeciesId};
-pub use core_data::*;
-
-// We can expose the raw arrays if we want, or just accessors.
-// Exposing raw arrays allows O(1) access for the user too.
-pub use db::MOVES;
-pub use db::SPECIES;
-pub use db::TYPE_CHART;
-
-pub fn get_move_data(id: MoveId) -> &'static MoveData {
-    &MOVES[id as usize]
+/// Nature definitions and stat modifiers
+pub mod natures {
+    include!(concat!(env!("OUT_DIR"), "/natures.rs"));
 }
 
-pub fn get_species_data(id: SpeciesId) -> &'static SpeciesData {
-    &SPECIES[id as usize]
+/// Ability identifiers
+pub mod abilities {
+    include!(concat!(env!("OUT_DIR"), "/abilities.rs"));
 }
 
-pub fn get_type_effectiveness(attacker: Type, defender: Type) -> f32 {
-    let atk_idx = attacker as usize;
-    let def_idx = defender as usize;
-
-    // Safety check for Unknown types or logic errors
-    if atk_idx >= 19 || def_idx >= 19 {
-        return 1.0;
-    }
-
-    TYPE_CHART[atk_idx][def_idx]
+/// Species data and lookup
+pub mod species {
+    include!(concat!(env!("OUT_DIR"), "/species.rs"));
 }
+
+/// Move identifiers
+pub mod moves {
+    include!(concat!(env!("OUT_DIR"), "/moves.rs"));
+}
+
+/// Item identifiers
+pub mod items {
+    include!(concat!(env!("OUT_DIR"), "/items.rs"));
+}
+
+/// Battle state (SoA memory layout)
+pub mod state;
+
+/// Entity blueprints and spawning
+pub mod entities;
+
+// Re-export commonly used types
+pub use abilities::AbilityId;
+pub use entities::PokemonConfig;
+pub use items::ItemId;
+pub use moves::MoveId;
+pub use natures::{BattleStat, NatureId};
+pub use species::{Species, SpeciesId};
+pub use state::BattleState;
+pub use types::{Type, TypeEffectiveness, TypeImmunities};
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_move_data_access() {
-        let m = get_move_data(MoveId::Pound);
-        assert_eq!(m.name, "Pound");
-        assert_eq!(m.type_, Type::Normal);
-        assert!(m.flags.contains(MoveFlags::CONTACT));
+    fn test_type_lookup() {
+        assert_eq!(Type::from_str("fire"), Some(Type::Fire));
+        assert_eq!(Type::from_str("Fire"), Some(Type::Fire));
+        assert_eq!(Type::from_str("invalid"), None);
     }
 
     #[test]
-    fn test_species_data_access() {
-        let s = get_species_data(SpeciesId::Bulbasaur);
-        assert_eq!(s.name, "Bulbasaur");
-        assert!(s.types.contains(&Type::Grass));
+    fn test_type_effectiveness() {
+        use types::{type_effectiveness, TYPE_CHART};
+
+        // Fire vs Grass = 2x
+        assert_eq!(
+            TYPE_CHART[Type::Grass as usize][Type::Fire as usize],
+            TypeEffectiveness::SuperEffective
+        );
+
+        // Water vs Fire = 2x
+        assert_eq!(type_effectiveness(Type::Water, Type::Fire, None), 8);
+
+        // Ground vs Flying = 0x
+        assert_eq!(type_effectiveness(Type::Ground, Type::Flying, None), 0);
+
+        // Ice vs Grass/Flying = 4x
+        assert_eq!(
+            type_effectiveness(Type::Ice, Type::Grass, Some(Type::Flying)),
+            16
+        );
     }
 
     #[test]
-    fn test_type_chart() {
-        assert_eq!(get_type_effectiveness(Type::Water, Type::Fire), 2.0);
-        assert_eq!(get_type_effectiveness(Type::Normal, Type::Ghost), 0.0);
+    fn test_nature_modifiers() {
+        // Adamant: +Atk, -SpA
+        let adamant = NatureId::from_str("adamant").unwrap();
+        assert_eq!(adamant.stat_modifier(BattleStat::Atk), 11);
+        assert_eq!(adamant.stat_modifier(BattleStat::SpA), 9);
+        assert_eq!(adamant.stat_modifier(BattleStat::Spe), 10);
+        assert!(!adamant.is_neutral());
+
+        // Hardy: neutral
+        let hardy = NatureId::from_str("hardy").unwrap();
+        assert!(hardy.is_neutral());
+        assert_eq!(hardy.stat_modifier(BattleStat::Atk), 10);
+    }
+
+    #[test]
+    fn test_species_lookup() {
+        let pikachu = SpeciesId::from_str("pikachu").expect("pikachu should exist");
+        let data = pikachu.data();
+        assert_eq!(data.base_stats[0], 35); // HP
+        assert_eq!(data.primary_type(), Type::Electric);
+        assert!(data.secondary_type().is_none());
+    }
+
+    #[test]
+    fn test_form_base_species() {
+        let mega = SpeciesId::from_str("venusaurmega").expect("venusaurmega should exist");
+        let base = mega.base();
+        let base_direct = SpeciesId::from_str("venusaur").expect("venusaur should exist");
+        assert_eq!(base, base_direct);
+
+        // Base species returns itself
+        assert_eq!(base_direct.base(), base_direct);
+    }
+
+    #[test]
+    fn test_ability_lookup() {
+        let levitate = AbilityId::from_str("levitate").expect("levitate should exist");
+        assert_eq!(levitate, AbilityId::Levitate);
     }
 }
