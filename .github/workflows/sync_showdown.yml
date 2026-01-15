@@ -36,9 +36,9 @@ jobs:
           # 4. Create the extraction script
           echo "
           import { Pokedex } from './showdown-source/data/pokedex';
-          import { BattleMoves } from './showdown-source/data/moves';
-          import { BattleTypeChart } from './showdown-source/data/typechart';
-          import { BattleItems } from './showdown-source/data/items';
+          import { Moves } from './showdown-source/data/moves';
+          import { TypeChart } from './showdown-source/data/typechart';
+          import { Items } from './showdown-source/data/items';
           import * as fs from 'fs';
           import * as path from 'path';
 
