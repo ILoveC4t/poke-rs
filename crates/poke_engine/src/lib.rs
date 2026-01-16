@@ -133,4 +133,32 @@ mod tests {
         let data = ability_shield.data();
         assert_eq!(data.fling_power, 30);
     }
+
+    #[test]
+    fn test_move_data() {
+        // Earthquake: 100 BP, 100 Acc, Physical, Ground
+        let eq = MoveId::from_str("earthquake").expect("Earthquake should exist");
+        let data = eq.data();
+        assert_eq!(data.base_power, 100);
+        assert_eq!(data.accuracy, 100);
+        assert_eq!(data.category, moves::MoveCategory::Physical);
+        assert_eq!(data.move_type(), Type::Ground);
+        // Earthquake does not make contact
+        assert!(!data.flags.contains(moves::MoveFlags::CONTACT));
+
+        // Aerial Ace: 60 BP, always hits (Acc 0), Physical, Flying, Contact
+        let aa = MoveId::from_str("aerialace").expect("Aerial Ace should exist");
+        let data = aa.data();
+        assert_eq!(data.base_power, 60);
+        assert_eq!(data.accuracy, 0); // Always hits
+        assert_eq!(data.category, moves::MoveCategory::Physical);
+        assert_eq!(data.move_type(), Type::Flying);
+        assert!(data.flags.contains(moves::MoveFlags::CONTACT));
+
+        // Protect: Status, Normal, Priority 4
+        let protect = MoveId::from_str("protect").expect("Protect should exist");
+        let data = protect.data();
+        assert_eq!(data.category, moves::MoveCategory::Status);
+        assert_eq!(data.priority, 4);
+    }
 }

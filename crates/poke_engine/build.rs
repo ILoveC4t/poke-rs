@@ -828,6 +828,18 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
     let json = fs::read_to_string(data_dir.join("moves.json")).expect("moves.json");
     let moves: BTreeMap<String, MoveData> = serde_json::from_str(&json).expect("parse moves");
 
+    // Load typechart for type name -> index
+    let typechart_json =
+        fs::read_to_string(data_dir.join("typechart.json")).expect("typechart.json");
+    let typechart: BTreeMap<String, serde_json::Value> =
+        serde_json::from_str(&typechart_json).expect("parse typechart");
+    let type_names: Vec<&str> = typechart.keys().map(|s| s.as_str()).collect();
+    let type_to_idx: HashMap<&str, u8> = type_names
+        .iter()
+        .enumerate()
+        .map(|(i, name)| (*name, i as u8))
+        .collect();
+
     // Sort by num to get stable ordering, filter out invalid
     let mut move_list: Vec<(&String, &MoveData)> = moves.iter().collect();
     move_list.sort_by_key(|(_, data)| data.num);
@@ -858,16 +870,133 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
     }
     let phf_str = phf_map.build().to_string();
 
-    // FIXME: Generate move data array with base_power, accuracy, pp, priority, type, category, flags
-    // For now, just generate the enum
+    // Collect unique flags and categories
+    let mut flags_set: BTreeSet<String> = BTreeSet::new();
+    let mut categories_set: BTreeSet<String> = BTreeSet::new();
+
+    // Ensure basic categories exist
+    categories_set.insert("Physical".to_string());
+    categories_set.insert("Special".to_string());
+    categories_set.insert("Status".to_string());
+
+    for (_, data) in &valid_moves {
+        for flag in data.flags.keys() {
+            flags_set.insert(flag.clone());
+        }
+        if let Some(cat) = &data.category {
+            categories_set.insert(cat.clone());
+        }
+    }
+
+    // Generate MoveCategory enum
+    let category_variants: Vec<TokenStream> = categories_set
+        .iter()
+        .enumerate()
+        .map(|(i, cat)| {
+            let ident = format_ident!("{}", cat);
+            let idx = i as u8;
+            quote! { #ident = #idx }
+        })
+        .collect();
+
+    // Generate MoveFlags
+    let flag_consts: Vec<TokenStream> = flags_set
+        .iter()
+        .enumerate()
+        .map(|(i, flag)| {
+            let ident = format_ident!("{}", to_valid_ident(flag).to_uppercase());
+            let bit = 1u64 << i;
+            quote! { const #ident = #bit; }
+        })
+        .collect();
+
+    let flag_to_idx: HashMap<&str, usize> = flags_set
+        .iter()
+        .enumerate()
+        .map(|(i, flag)| (flag.as_str(), i))
+        .collect();
+
+    // Generate Move Data
+    let move_data_entries: Vec<TokenStream> = valid_moves
+        .iter()
+        .map(|(_, data)| {
+            let power = data.base_power.unwrap_or(0);
+
+            let accuracy = match &data.accuracy {
+                Some(serde_json::Value::Bool(true)) => 0,
+                Some(serde_json::Value::Number(n)) => n.as_u64().unwrap_or(0) as u8,
+                _ => 0,
+            };
+
+            let pp = data.pp.unwrap_or(0);
+            let priority = data.priority.unwrap_or(0);
+
+            let cat_str = data.category.as_deref().unwrap_or("Status");
+            let cat_ident = format_ident!("{}", cat_str);
+
+            let type_str = data.move_type.as_deref().unwrap_or("Normal");
+            let type_key = type_str.to_lowercase();
+            let type_idx = *type_to_idx
+                .get(type_key.as_str())
+                .unwrap_or_else(|| panic!("Unknown type '{}' for move '{}'", type_str, data.name));
+
+            let mut flag_bits: u64 = 0;
+            for flag in data.flags.keys() {
+                if let Some(&idx) = flag_to_idx.get(flag.as_str()) {
+                    flag_bits |= 1 << idx;
+                }
+            }
+
+            quote! {
+                Move {
+                    base_power: #power,
+                    accuracy: #accuracy,
+                    pp: #pp,
+                    priority: #priority,
+                    category: MoveCategory::#cat_ident,
+                    move_type: #type_idx,
+                    flags: MoveFlags::from_bits_truncate(#flag_bits),
+                }
+            }
+        })
+        .collect();
 
     let code = quote! {
+        use bitflags::bitflags;
+
         /// Move identifier (sorted by game index)
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
         #[repr(u16)]
         pub enum MoveId {
             #[default]
             #(#variants),*
+        }
+
+        /// Move Category (Physical, Special, Status)
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        #[repr(u8)]
+        pub enum MoveCategory {
+            #(#category_variants),*
+        }
+
+        bitflags! {
+            /// Move flags (contact, protect, etc.)
+            #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+            pub struct MoveFlags: u64 {
+                #(#flag_consts)*
+            }
+        }
+
+        /// Static move data
+        #[derive(Clone, Copy, Debug)]
+        pub struct Move {
+            pub base_power: u16,
+            pub accuracy: u8,
+            pub pp: u8,
+            pub priority: i8,
+            pub category: MoveCategory,
+            pub move_type: u8,
+            pub flags: MoveFlags,
         }
 
         impl MoveId {
@@ -880,8 +1009,25 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
                 MOVE_LOOKUP.get(s).copied()
             }
 
-            // FIXME: Add data() method to return MoveData struct with power, accuracy, etc.
+            /// Get move data
+            #[inline]
+            pub fn data(self) -> &'static Move {
+                &MOVES[self as usize]
+            }
         }
+
+        impl Move {
+            /// Get move type
+            #[inline]
+            pub fn move_type(&self) -> super::types::Type {
+                unsafe { core::mem::transmute(self.move_type) }
+            }
+        }
+
+        /// Static move data array
+        pub static MOVES: [Move; #count] = [
+            #(#move_data_entries),*
+        ];
     };
 
     let dest = out_dir.join("moves.rs");
