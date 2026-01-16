@@ -35,6 +35,11 @@ pub mod items {
     include!(concat!(env!("OUT_DIR"), "/items.rs"));
 }
 
+/// Terrain definitions
+pub mod terrains {
+    include!(concat!(env!("OUT_DIR"), "/terrains.rs"));
+}
+
 /// Battle state (SoA memory layout)
 pub mod state;
 
@@ -45,8 +50,9 @@ pub mod entities;
 pub use abilities::AbilityId;
 pub use entities::PokemonConfig;
 pub use items::ItemId;
-pub use moves::MoveId;
+pub use moves::{Move, MoveCategory, MoveFlags, MoveId};
 pub use natures::{BattleStat, NatureId};
+pub use terrains::TerrainId;
 pub use species::{Species, SpeciesId};
 pub use state::BattleState;
 pub use types::{Type, TypeEffectiveness, TypeImmunities};
@@ -132,5 +138,23 @@ mod tests {
             ItemId::from_str("abilityshield").expect("Ability Shield should exist");
         let data = ability_shield.data();
         assert_eq!(data.fling_power, 30);
+    }
+
+    #[test]
+    fn test_move_data_and_terrain() {
+        // Test Electric Terrain move
+        let et = MoveId::from_str("electricterrain").expect("electricterrain should exist");
+        let data = et.data();
+        assert_eq!(data.name, "Electric Terrain");
+        assert_eq!(data.terrain, TerrainId::Electric);
+        assert_eq!(data.category, MoveCategory::Status);
+
+        // Test normal move (Thunderbolt)
+        let tbolt = MoveId::from_str("thunderbolt").expect("thunderbolt should exist");
+        let tbolt_data = tbolt.data();
+        assert_eq!(tbolt_data.name, "Thunderbolt");
+        assert_eq!(tbolt_data.terrain, TerrainId::None);
+        assert_eq!(tbolt_data.category, MoveCategory::Special);
+        assert_eq!(tbolt_data.power, 90);
     }
 }
