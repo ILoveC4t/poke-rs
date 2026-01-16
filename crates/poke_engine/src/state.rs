@@ -239,17 +239,15 @@ impl BattleState {
             boosts: [[0; BOOST_STATS]; MAX_ENTITIES],
             types: [[Type::Normal, Type::Normal]; MAX_ENTITIES],
             abilities: [AbilityId::Noability; MAX_ENTITIES],
-            // SAFETY: ItemId and MoveId are repr(u16), so 0 is a valid representation
-            items: [unsafe { core::mem::transmute::<u16, ItemId>(0) }; MAX_ENTITIES],
-            moves: [[unsafe { core::mem::transmute::<u16, MoveId>(0) }; MAX_MOVES]; MAX_ENTITIES],
+            items: [ItemId::default(); MAX_ENTITIES],
+            moves: [[MoveId::default(); MAX_MOVES]; MAX_ENTITIES],
             pp: [[0; MAX_MOVES]; MAX_ENTITIES],
             max_pp: [[0; MAX_MOVES]; MAX_ENTITIES],
             status: [Status::NONE; MAX_ENTITIES],
             volatiles: [Volatiles::empty(); MAX_ENTITIES],
             status_counter: [0; MAX_ENTITIES],
             level: [0; MAX_ENTITIES],
-            // SAFETY: NatureId is repr(u8), so 0 is a valid representation (Hardy)
-            nature: [unsafe { core::mem::transmute::<u8, NatureId>(0) }; MAX_ENTITIES],
+            nature: [NatureId::default(); MAX_ENTITIES],
             
             side_conditions: [SideConditions::empty(); 2],
             side_counters: [[0; 6]; 2],
