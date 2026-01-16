@@ -96,6 +96,12 @@ struct MoveData {
 }
 
 #[derive(Deserialize)]
+struct Fling {
+    #[serde(rename = "basePower")]
+    base_power: u8,
+}
+
+#[derive(Deserialize)]
 struct ItemData {
     #[allow(dead_code)]
     name: String,
@@ -104,7 +110,7 @@ struct ItemData {
     gen: u8,
     #[serde(rename = "isNonstandard")]
     is_nonstandard: Option<String>,
-    // FIXME: Add more fields: fling power, effects, etc.
+    fling: Option<Fling>,
 }
 
 // ============================================================================
@@ -926,7 +932,17 @@ fn generate_items(out_dir: &Path, data_dir: &Path) {
     }
     let phf_str = phf_map.build().to_string();
 
-    // FIXME: Generate item data array with fling power, effects, etc.
+    let item_data: Vec<TokenStream> = item_list
+        .iter()
+        .map(|(_, data)| {
+            let fling_power = data.fling.as_ref().map(|f| f.base_power).unwrap_or(0);
+            quote! {
+                Item {
+                    fling_power: #fling_power,
+                }
+            }
+        })
+        .collect();
 
     let code = quote! {
         /// Item identifier (sorted by game index)
@@ -935,6 +951,13 @@ fn generate_items(out_dir: &Path, data_dir: &Path) {
         pub enum ItemId {
             #[default]
             #(#variants),*
+        }
+
+        /// Static item data
+        #[derive(Clone, Copy, Debug)]
+        pub struct Item {
+            /// Fling base power (0 = cannot be flung)
+            pub fling_power: u8,
         }
 
         impl ItemId {
@@ -947,8 +970,17 @@ fn generate_items(out_dir: &Path, data_dir: &Path) {
                 ITEM_LOOKUP.get(s).copied()
             }
 
-            // FIXME: Add data() method to return ItemData struct with effects, fling power, etc.
+            /// Get item data
+            #[inline]
+            pub fn data(self) -> &'static Item {
+                &ITEMS[self as usize]
+            }
         }
+
+        /// Static item data array
+        pub static ITEMS: [Item; #count] = [
+            #(#item_data),*
+        ];
     };
 
     let dest = out_dir.join("items.rs");
