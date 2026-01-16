@@ -669,6 +669,10 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
                 .map(|i| i + 1) // +1 so 0 means "is base species"
                 .unwrap_or(0);
 
+            // Flags
+            // Shedinja always has 1 HP (mechanics/stats.md)
+            let flags: u8 = if entry.name == "Shedinja" { 1 << 0 } else { 0 };
+
             quote! {
                 Species {
                     base_stats: [#hp, #atk, #def, #spa, #spd, #spe],
@@ -679,6 +683,7 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
                     ability1: #ability1,
                     hidden_ability: #hidden,
                     base_species: #base,
+                    flags: #flags,
                 }
             }
         })
@@ -709,7 +714,7 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
         #[repr(transparent)]
         pub struct SpeciesId(pub u16);
 
-        /// Static species data (16 bytes, cache-friendly)
+        /// Static species data
         #[derive(Clone, Copy, Debug)]
         #[repr(C)]
         pub struct Species {
@@ -729,7 +734,12 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
             pub hidden_ability: u16,
             /// Base species index + 1 for forms (0 = is base species)
             pub base_species: u16,
+            /// Species flags (e.g., Force 1 HP)
+            pub flags: u8,
         }
+
+        /// Flag: Shedinja's HP is always 1
+        pub const FLAG_FORCE_1_HP: u8 = 1 << 0;
 
         impl SpeciesId {
             /// Total number of species
