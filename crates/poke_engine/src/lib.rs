@@ -125,4 +125,12 @@ mod tests {
         let levitate = AbilityId::from_str("levitate").expect("levitate should exist");
         assert_eq!(levitate, AbilityId::Levitate);
     }
+
+    #[test]
+    fn test_item_lookup() {
+        let ability_shield =
+            ItemId::from_str("abilityshield").expect("Ability Shield should exist");
+        let data = ability_shield.data();
+        assert_eq!(data.fling_power, 30);
+    }
 }
