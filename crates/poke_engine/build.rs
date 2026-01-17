@@ -92,6 +92,7 @@ struct MoveData {
     move_type: Option<String>,
     #[serde(default)]
     flags: HashMap<String, u8>,
+    terrain: Option<String>,
     // FIXME: Add more fields: target, secondary effects, etc.
 }
 
@@ -143,6 +144,7 @@ fn main() {
     generate_species(out_path, &data_dir);
     generate_moves(out_path, &data_dir);
     generate_items(out_path, &data_dir);
+    generate_terrains(out_path, &data_dir);
 }
 
 /// Generate Type enum and type chart
@@ -839,7 +841,34 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
 
     let count = valid_moves.len();
 
-    // Generate enum variants
+    // 1. Collect Flags
+    let mut flag_names = BTreeSet::new();
+    for (_, data) in &valid_moves {
+        for flag in data.flags.keys() {
+            flag_names.insert(flag.clone());
+        }
+    }
+    let flag_count = flag_names.len();
+    let use_u64 = flag_count > 32;
+    let flags_repr = if use_u64 { quote!(u64) } else { quote!(u32) };
+
+    let flag_consts: Vec<TokenStream> = flag_names
+        .iter()
+        .enumerate()
+        .map(|(i, name)| {
+            let ident = format_ident!("{}", to_valid_ident(name).to_uppercase());
+            let val = if use_u64 {
+                let v = 1u64 << i;
+                quote! { #v }
+            } else {
+                let v = 1u32 << i;
+                quote! { #v }
+            };
+            quote! { const #ident = #val; }
+        })
+        .collect();
+
+    // 2. Generate Enum Variants
     let variants: Vec<TokenStream> = valid_moves
         .iter()
         .enumerate()
@@ -850,6 +879,63 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
         })
         .collect();
 
+    // 3. Generate Move Data Entries
+    let move_data_entries: Vec<TokenStream> = valid_moves.iter().map(|(_, data)| {
+         let name = &data.name;
+         let type_str = data.move_type.as_deref().unwrap_or("Normal");
+         let type_ident = format_ident!("{}", type_str);
+
+         let cat_str = data.category.as_deref().unwrap_or("Status");
+         let cat_ident = format_ident!("{}", cat_str);
+
+         let power = data.base_power.unwrap_or(0);
+
+         let accuracy = match &data.accuracy {
+             Some(serde_json::Value::Bool(true)) => 0,
+             Some(serde_json::Value::Number(n)) => n.as_u64().unwrap_or(0) as u8,
+             _ => 0,
+         };
+
+         let pp = data.pp.unwrap_or(0);
+         let priority = data.priority.unwrap_or(0);
+
+         // Flags
+         let mut flag_bits = 0u64;
+         for (flag_key, _) in &data.flags {
+             if let Some(pos) = flag_names.iter().position(|x| x == flag_key) {
+                 flag_bits |= 1 << pos;
+             }
+         }
+         let flag_bits_lit = if use_u64 {
+             quote! { #flag_bits }
+         } else {
+             let val = flag_bits as u32;
+             quote! { #val }
+         };
+
+         // Terrain
+         let terrain_ident = if let Some(t) = &data.terrain {
+             let t_ident = format_ident!("{}", t.replace("terrain", "").to_pascal_case());
+             quote! { TerrainId::#t_ident }
+         } else {
+             quote! { TerrainId::None }
+         };
+
+         quote! {
+             Move {
+                 name: #name,
+                 primary_type: Type::#type_ident,
+                 category: MoveCategory::#cat_ident,
+                 power: #power,
+                 accuracy: #accuracy,
+                 pp: #pp,
+                 priority: #priority,
+                 flags: MoveFlags::from_bits_truncate(#flag_bits_lit),
+                 terrain: #terrain_ident,
+             }
+         }
+    }).collect();
+
     // Generate phf map for string -> MoveId lookup
     let mut phf_map = phf_codegen::Map::new();
     for (key, _) in &valid_moves {
@@ -858,16 +944,46 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
     }
     let phf_str = phf_map.build().to_string();
 
-    // FIXME: Generate move data array with base_power, accuracy, pp, priority, type, category, flags
-    // For now, just generate the enum
-
     let code = quote! {
+        use super::types::Type;
+        use super::terrains::TerrainId;
+        use bitflags::bitflags;
+
         /// Move identifier (sorted by game index)
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
         #[repr(u16)]
         pub enum MoveId {
             #[default]
             #(#variants),*
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        #[repr(u8)]
+        pub enum MoveCategory {
+            Physical,
+            Special,
+            Status,
+        }
+
+        bitflags! {
+            #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+            pub struct MoveFlags: #flags_repr {
+                #(#flag_consts)*
+            }
+        }
+
+        /// Static move data
+        #[derive(Clone, Copy, Debug)]
+        pub struct Move {
+            pub name: &'static str,
+            pub primary_type: Type,
+            pub category: MoveCategory,
+            pub power: u16,
+            pub accuracy: u8, // 0 = always hits
+            pub pp: u8,
+            pub priority: i8,
+            pub flags: MoveFlags,
+            pub terrain: TerrainId,
         }
 
         impl MoveId {
@@ -880,8 +996,17 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
                 MOVE_LOOKUP.get(s).copied()
             }
 
-            // FIXME: Add data() method to return MoveData struct with power, accuracy, etc.
+            /// Get move data
+            #[inline]
+            pub fn data(self) -> &'static Move {
+                &MOVES[self as usize]
+            }
         }
+
+        /// Static move data array
+        pub static MOVES: [Move; #count] = [
+            #(#move_data_entries),*
+        ];
     };
 
     let dest = out_dir.join("moves.rs");
@@ -993,4 +1118,62 @@ fn generate_items(out_dir: &Path, data_dir: &Path) {
         phf_str
     )
     .unwrap();
+}
+
+/// Generate TerrainId enum
+fn generate_terrains(out_dir: &Path, data_dir: &Path) {
+    let json = fs::read_to_string(data_dir.join("moves.json")).expect("moves.json");
+    let moves: BTreeMap<String, MoveData> = serde_json::from_str(&json).expect("parse moves");
+
+    // Extract unique terrains
+    let mut terrains: BTreeSet<String> = BTreeSet::new();
+    for data in moves.values() {
+        if let Some(t) = &data.terrain {
+            terrains.insert(t.clone());
+        }
+    }
+
+    // Generate enum variants
+    // 0 is Default (None), others follow
+    let variants: Vec<TokenStream> = terrains
+        .iter()
+        .enumerate()
+        .map(|(i, name)| {
+            let ident = format_ident!("{}", name.replace("terrain", "").to_pascal_case());
+            let idx = (i + 1) as u8; // 0 reserved for None
+            quote! { #ident = #idx }
+        })
+        .collect();
+
+    let from_str_arms: Vec<TokenStream> = terrains
+        .iter()
+        .map(|name| {
+            let ident = format_ident!("{}", name.replace("terrain", "").to_pascal_case());
+            quote! { #name => Some(TerrainId::#ident) }
+        })
+        .collect();
+
+    let code = quote! {
+        /// Terrain Type
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
+        #[repr(u8)]
+        pub enum TerrainId {
+            #[default]
+            None = 0,
+            #(#variants),*
+        }
+
+        impl TerrainId {
+            /// Parse terrain from string (e.g., "electricterrain")
+            pub fn from_str(s: &str) -> Option<Self> {
+                match s {
+                    #(#from_str_arms,)*
+                    _ => None,
+                }
+            }
+        }
+    };
+
+    let dest = out_dir.join("terrains.rs");
+    fs::write(&dest, code.to_string()).expect("write terrains.rs");
 }
