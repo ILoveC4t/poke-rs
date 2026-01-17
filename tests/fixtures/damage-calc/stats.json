@@ -1,0 +1,86 @@
+{
+  "meta": {
+    "source": "smogon/damage-calc",
+    "calcPath": "/home/runner/work/poke-rs/poke-rs/fixtures-temp/damage-calc",
+    "generatedAt": "2026-01-17T14:48:46.481Z"
+  },
+  "cases": [
+    {
+      "id": "base100-adamant-hp",
+      "gen": 9,
+      "stat": "hp",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 404
+    },
+    {
+      "id": "base100-adamant-atk",
+      "gen": 9,
+      "stat": "atk",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 328
+    },
+    {
+      "id": "base100-adamant-def",
+      "gen": 9,
+      "stat": "def",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "base100-adamant-spa",
+      "gen": 9,
+      "stat": "spa",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 269
+    },
+    {
+      "id": "base100-adamant-spd",
+      "gen": 9,
+      "stat": "spd",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "base100-adamant-spe",
+      "gen": 9,
+      "stat": "spe",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "base35-timid-spe-50",
+      "gen": 9,
+      "stat": "spe",
+      "base": 90,
+      "iv": 31,
+      "ev": 252,
+      "level": 50,
+      "nature": "Timid",
+      "expected": 156
+    }
+  ]
+}
