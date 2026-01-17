@@ -8,9 +8,10 @@
 
 import fs from 'fs';
 import path from 'path';
-import { pathToFileURL } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
-const repoRoot = process.cwd();
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, '..');
 const calcRoot = process.env.DAMAGE_CALC_PATH || path.resolve(repoRoot, 'damage-calc');
 const outDir = path.resolve(repoRoot, 'tests/fixtures/damage-calc');
 
