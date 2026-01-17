@@ -32,7 +32,7 @@ jobs:
           npm pkg set type=module
           npm install tsx
           DAMAGE_CALC_PATH="${{ github.workspace }}/fixtures-temp/damage-calc" \
-            npx tsx "${{ github.workspace }}/scripts/generate_damage_calc_fixtures.ts"
+            npx tsx "${{ github.workspace }}/scripts/generate_damage_calc_fixtures.mts"
 
       - name: Cleanup
         run: |

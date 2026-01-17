@@ -1,7 +1,7 @@
 // Sync data from smogon/pokemon-showdown into local JSON files.
 //
 // Usage (from repo root):
-//   SHOWDOWN_PATH=/path/to/pokemon-showdown npx tsx scripts/sync_showdown_data.ts
+//   SHOWDOWN_PATH=/path/to/pokemon-showdown npx tsx scripts/sync_showdown_data.mts
 //
 // Output:
 //   data/*.json

@@ -1,7 +1,7 @@
 // Generates vendored JSON fixtures using smogon/damage-calc as the source of truth.
 //
 // Usage (from repo root):
-//   DAMAGE_CALC_PATH=/path/to/damage-calc npx tsx scripts/generate_damage_calc_fixtures.ts
+//   DAMAGE_CALC_PATH=/path/to/damage-calc npx tsx scripts/generate_damage_calc_fixtures.mts
 //
 // Output:
 //   tests/fixtures/damage-calc/stats.json
