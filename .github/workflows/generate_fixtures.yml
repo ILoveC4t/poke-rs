@@ -22,20 +22,20 @@ jobs:
 
       - name: Fetch damage-calc
         run: |
-          mkdir -p .fixtures-temp
-          git clone --depth 1 https://github.com/smogon/damage-calc.git .fixtures-temp/damage-calc
+          mkdir -p fixtures-temp
+          git clone --depth 1 https://github.com/smogon/damage-calc.git fixtures-temp/damage-calc
 
       - name: Generate fixtures
         run: |
-          cd .fixtures-temp
+          cd fixtures-temp
           npm init -y
           npm install tsx
-          DAMAGE_CALC_PATH="${{ github.workspace }}/.fixtures-temp/damage-calc" \
+          DAMAGE_CALC_PATH="${{ github.workspace }}/fixtures-temp/damage-calc" \
             npx tsx "${{ github.workspace }}/scripts/generate_damage_calc_fixtures.ts"
 
       - name: Cleanup
         run: |
-          rm -rf .fixtures-temp
+          rm -rf fixtures-temp
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
