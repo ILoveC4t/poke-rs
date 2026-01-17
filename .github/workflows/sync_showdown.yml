@@ -28,7 +28,7 @@ jobs:
       - name: Install tools
         run: |
           npm init -y
-          npm pkg set type module
+          npm pkg set type=module
           npm install tsx
 
       - name: Generate JSON data
