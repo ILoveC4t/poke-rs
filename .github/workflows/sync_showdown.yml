@@ -22,22 +22,23 @@ jobs:
 
       - name: Fetch Showdown
         run: |
-          mkdir -p .showdown-temp
-          git clone --depth 1 https://github.com/smogon/pokemon-showdown.git .showdown-temp/pokemon-showdown
+          mkdir -p showdown-temp
+          git clone --depth 1 https://github.com/smogon/pokemon-showdown.git showdown-temp/pokemon-showdown
 
       - name: Install tools
         run: |
           npm init -y
+          npm pkg set type module
           npm install tsx
 
       - name: Generate JSON data
         run: |
-          SHOWDOWN_PATH="${{ github.workspace }}/.showdown-temp/pokemon-showdown" \
+          SHOWDOWN_PATH="${{ github.workspace }}/showdown-temp/pokemon-showdown" \
             npx tsx "${{ github.workspace }}/scripts/sync_showdown_data.ts"
 
       - name: Cleanup
         run: |
-          rm -rf .showdown-temp
+          rm -rf showdown-temp
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
