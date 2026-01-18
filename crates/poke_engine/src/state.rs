@@ -104,6 +104,14 @@ bitflags::bitflags! {
 // Battle State
 // ============================================================================
 
+/// Battle format (Singles or Doubles)
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum BattleFormat {
+    #[default]
+    Singles,
+    Doubles,
+}
+
 /// Core battle state in Struct-of-Arrays layout.
 /// 
 /// Entity indices:
@@ -189,6 +197,9 @@ pub struct BattleState {
     // ------------------------------------------------------------------------
     /// Current turn number
     pub turn: u16,
+
+    /// Battle format
+    pub format: BattleFormat,
     
     /// Weather (0 = none, then encoded weather types)
     /// FIXME: Define Weather enum
@@ -253,6 +264,7 @@ impl BattleState {
             side_counters: [[0; 6]; 2],
             
             turn: 0,
+            format: BattleFormat::Singles,
             weather: 0,
             weather_turns: 0,
             terrain: 0,

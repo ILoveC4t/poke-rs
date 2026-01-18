@@ -262,8 +262,10 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
         // Screens (Reflect/Light Screen/Aurora Veil)
         // 0.5x in singles, 0.67x in doubles
         if !ctx.is_crit && ctx.has_screen(ctx.category == MoveCategory::Physical) {
-            ctx.apply_mod_to(&mut damage, 2048); // 0.5x for singles
-            // TODO: 2732 (0.67x) for doubles
+            match ctx.state.format {
+                crate::state::BattleFormat::Singles => ctx.apply_mod_to(&mut damage, 2048), // 0.5x
+                crate::state::BattleFormat::Doubles => ctx.apply_mod_to(&mut damage, 2732), // 0.67x
+            }
         }
         
         // Final modifiers
@@ -426,6 +428,60 @@ mod tests {
             let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
             compute_base_power(&mut ctx);
             assert_eq!(ctx.base_power, 70, "Facade BP should NOT double when asleep");
+        }
+    }
+
+    #[test]
+    fn test_screen_damage_reduction() {
+        use crate::state::{BattleState, SideConditions, BattleFormat};
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Setup attacker (0) and defender (6)
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[0] = [Type::Normal, Type::Normal];
+
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[6] = [Type::Normal, Type::Normal];
+
+        // Move: Tackle (Physical)
+        let move_id = MoveId::from_str("tackle").unwrap_or(MoveId::default());
+
+        // Base damage arbitrarily set to 1000 for easy percentage checks
+        let base_damage = 1000;
+
+        // Case 1: Singles + Reflect (0.5x)
+        {
+            state.format = BattleFormat::Singles;
+            // Set Reflect on defender side (Player 1 -> Index 1 for side conditions)
+            state.side_conditions[1] = SideConditions::REFLECT;
+
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            let rolls = compute_final_damage(&ctx, base_damage);
+            let max_damage = rolls[15]; // Max roll (100% of calculation)
+
+            // Expected: 1000 * 0.5 = 500.
+            // STAB (1.5x) = 750.
+            // Range check allowing for small rounding differences
+            assert!(max_damage >= 740 && max_damage <= 760, "Singles Reflect should halve damage (got {})", max_damage);
+        }
+
+        // Case 2: Doubles + Reflect (~0.67x)
+        {
+            state.format = BattleFormat::Doubles;
+            state.side_conditions[1] = SideConditions::REFLECT;
+
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            let rolls = compute_final_damage(&ctx, base_damage);
+            let max_damage = rolls[15];
+
+            // Expected: 1000 * (2732/4096) = 666.99...
+            // STAB (1.5x) = 1000.4... -> 1000
+            assert!(max_damage >= 990 && max_damage <= 1010, "Doubles Reflect should be ~0.67x (got {})", max_damage);
         }
     }
 }
