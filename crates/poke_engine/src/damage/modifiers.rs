@@ -448,40 +448,79 @@ mod tests {
         state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
         state.types[6] = [Type::Normal, Type::Normal];
 
-        // Move: Tackle (Physical)
-        let move_id = MoveId::from_str("tackle").unwrap_or(MoveId::default());
-
         // Base damage arbitrarily set to 1000 for easy percentage checks
         let base_damage = 1000;
 
-        // Case 1: Singles + Reflect (0.5x)
+        // Test Physical Move with Reflect
         {
-            state.format = BattleFormat::Singles;
-            // Set Reflect on defender side (Player 1 -> Index 1 for side conditions)
-            state.side_conditions[1] = SideConditions::REFLECT;
+            // Move: Tackle (Physical)
+            let move_id = MoveId::from_str("tackle").unwrap_or(MoveId::default());
 
-            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
-            let rolls = compute_final_damage(&ctx, base_damage);
-            let max_damage = rolls[15]; // Max roll (100% of calculation)
+            // Case 1: Singles + Reflect (0.5x)
+            {
+                state.format = BattleFormat::Singles;
+                // Set Reflect on defender side (Player 1 -> Index 1 for side conditions)
+                state.side_conditions[1] = SideConditions::REFLECT;
 
-            // Expected: 1000 * 0.5 = 500.
-            // STAB (1.5x) = 750.
-            // Range check allowing for small rounding differences
-            assert!(max_damage >= 740 && max_damage <= 760, "Singles Reflect should halve damage (got {})", max_damage);
+                let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+                let rolls = compute_final_damage(&ctx, base_damage);
+                let max_damage = rolls[15]; // Max roll (100% of calculation)
+
+                // Expected: 1000 * 0.5 = 500.
+                // STAB (1.5x) = 750.
+                // Range check allowing for small rounding differences
+                assert!(max_damage >= 740 && max_damage <= 760, "Singles Reflect should halve damage (got {})", max_damage);
+            }
+
+            // Case 2: Doubles + Reflect (~0.67x)
+            {
+                state.format = BattleFormat::Doubles;
+                state.side_conditions[1] = SideConditions::REFLECT;
+
+                let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+                let rolls = compute_final_damage(&ctx, base_damage);
+                let max_damage = rolls[15];
+
+                // Expected: 1000 * (2732/4096) = 666.99...
+                // STAB (1.5x) = 1000.4... -> 1000
+                assert!(max_damage >= 990 && max_damage <= 1010, "Doubles Reflect should be ~0.67x (got {})", max_damage);
+            }
         }
 
-        // Case 2: Doubles + Reflect (~0.67x)
+        // Test Special Move with Light Screen
         {
-            state.format = BattleFormat::Doubles;
-            state.side_conditions[1] = SideConditions::REFLECT;
+            // Move: Water Gun (Special)
+            let move_id = MoveId::from_str("watergun").unwrap_or(MoveId::default());
 
-            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
-            let rolls = compute_final_damage(&ctx, base_damage);
-            let max_damage = rolls[15];
+            // Case 3: Singles + Light Screen (0.5x)
+            {
+                state.format = BattleFormat::Singles;
+                // Set Light Screen on defender side
+                state.side_conditions[1] = SideConditions::LIGHT_SCREEN;
 
-            // Expected: 1000 * (2732/4096) = 666.99...
-            // STAB (1.5x) = 1000.4... -> 1000
-            assert!(max_damage >= 990 && max_damage <= 1010, "Doubles Reflect should be ~0.67x (got {})", max_damage);
+                let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+                let rolls = compute_final_damage(&ctx, base_damage);
+                let max_damage = rolls[15]; // Max roll (100% of calculation)
+
+                // Expected: 1000 * 0.5 = 500.
+                // No STAB (Water Gun on Normal type attacker)
+                // Range check allowing for small rounding differences
+                assert!(max_damage >= 490 && max_damage <= 510, "Singles Light Screen should halve damage (got {})", max_damage);
+            }
+
+            // Case 4: Doubles + Light Screen (~0.67x)
+            {
+                state.format = BattleFormat::Doubles;
+                state.side_conditions[1] = SideConditions::LIGHT_SCREEN;
+
+                let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+                let rolls = compute_final_damage(&ctx, base_damage);
+                let max_damage = rolls[15];
+
+                // Expected: 1000 * (2732/4096) = 666.99...
+                // No STAB (Water Gun on Normal type attacker)
+                assert!(max_damage >= 657 && max_damage <= 677, "Doubles Light Screen should be ~0.67x (got {})", max_damage);
+            }
         }
     }
 }
