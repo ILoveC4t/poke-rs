@@ -68,6 +68,12 @@ struct PokedexEntry {
     weightkg: f64,
     #[serde(rename = "baseSpecies")]
     base_species: Option<String>,
+    #[serde(default)]
+    gender: Option<String>,
+    #[serde(rename = "genderRatio")]
+    gender_ratio: Option<HashMap<String, f64>>,
+    #[serde(rename = "otherFormes")]
+    other_formes: Option<Vec<String>>,
 }
 
 #[derive(Deserialize)]
@@ -612,12 +618,15 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
         })
         .collect();
 
+    // Also include species that are in "otherFormes" of someone else?
+    // Not strictly needed if we just iterate and resolve IDs.
+
     // Generate species data array
     let count = valid_species.len();
 
     let species_data: Vec<TokenStream> = valid_species
         .iter()
-        .map(|(_key, entry)| {
+        .map(|(key, entry)| {
             let stats = entry.base_stats.as_ref().unwrap();
             let hp = stats.hp;
             let atk = stats.atk;
@@ -681,6 +690,74 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
             // Shedinja always has 1 HP (mechanics/stats.md)
             let flags: u8 = if entry.name == "Shedinja" { 1 << 0 } else { 0 };
 
+            // Gender Ratio
+            let gender_ratio_tokens = match entry.gender.as_deref() {
+                Some("N") => quote! { GenderRatio::Genderless },
+                Some("M") => quote! { GenderRatio::AlwaysMale },
+                Some("F") => quote! { GenderRatio::AlwaysFemale },
+                _ => {
+                    match &entry.gender_ratio {
+                        Some(ratio) => {
+                             let m = ratio.get("M").copied().unwrap_or(0.5);
+                             if m >= 0.875 { quote! { GenderRatio::SevenToOne } }
+                             else if m >= 0.75 { quote! { GenderRatio::ThreeToOne } }
+                             else if m >= 0.5 { quote! { GenderRatio::OneToOne } }
+                             else if m >= 0.25 { quote! { GenderRatio::OneToThree } }
+                             else if m >= 0.125 { quote! { GenderRatio::OneToSeven } }
+                             else { quote! { GenderRatio::AlwaysFemale } }
+                        },
+                        None => quote! { GenderRatio::OneToOne },
+                    }
+                }
+            };
+
+            // Helper to find related species ID
+            let find_related = |suffix: &str| -> u16 {
+                // Suffix check: key + suffix
+                let target_key = format!("{}{}", key, suffix);
+                if let Some(&idx) = key_to_idx.get(target_key.as_str()) {
+                     return idx + 1; // 0 = None, idx+1 = valid ID
+                }
+
+                // If not found by direct suffix concatenation, try standard naming conventions
+                // e.g., "charizard" -> "charizardmegax" (already covered above)
+                // But sometimes "groudon" -> "groudonprimal"
+                0
+            };
+
+            // Forme Lookups
+            // We search for standard keys.
+            // Note: This is a simplistic heuristic. Pokedex has "otherFormes" array which lists names.
+            // But we need to map those names to IDs.
+
+            // Mega Forme
+            // Usually Key + "megax" or Key + "mega" or Key + "megay"
+            let mut mega = 0u16;
+            let mut mega_y = 0u16;
+            let mut primal = 0u16;
+
+            if let Some(formes) = &entry.other_formes {
+                 for forme_name in formes {
+                     let forme_key = forme_name
+                        .to_lowercase()
+                        .chars()
+                        .filter(|c| c.is_alphanumeric())
+                        .collect::<String>();
+
+                     if let Some(&idx) = key_to_idx.get(forme_key.as_str()) {
+                         if forme_key.ends_with("megax") {
+                             mega = idx + 1;
+                         } else if forme_key.ends_with("megay") {
+                             mega_y = idx + 1;
+                         } else if forme_key.ends_with("mega") {
+                             mega = idx + 1;
+                         } else if forme_key.ends_with("primal") {
+                             primal = idx + 1;
+                         }
+                     }
+                 }
+            }
+
             quote! {
                 Species {
                     base_stats: [#hp, #atk, #def, #spa, #spd, #spe],
@@ -692,6 +769,10 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
                     hidden_ability: #hidden,
                     base_species: #base,
                     flags: #flags,
+                    gender_ratio: #gender_ratio_tokens,
+                    mega_forme: #mega,
+                    mega_forme_y: #mega_y,
+                    primal_forme: #primal,
                 }
             }
         })
@@ -722,6 +803,20 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
         #[repr(transparent)]
         pub struct SpeciesId(pub u16);
 
+        /// Gender ratio for species
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        #[repr(u8)]
+        pub enum GenderRatio {
+            AlwaysMale,      // 100% male
+            AlwaysFemale,    // 100% female
+            Genderless,      // No gender
+            OneToOne,        // 50/50
+            OneToThree,      // 25% male, 75% female
+            ThreeToOne,      // 75% male, 25% female
+            OneToSeven,      // 12.5% male, 87.5% female
+            SevenToOne,      // 87.5% male, 12.5% female
+        }
+
         /// Static species data
         #[derive(Clone, Copy, Debug)]
         #[repr(C)]
@@ -744,6 +839,14 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
             pub base_species: u16,
             /// Species flags (e.g., Force 1 HP)
             pub flags: u8,
+            /// Gender ratio
+            pub gender_ratio: GenderRatio,
+            /// Mega Forme ID + 1 (0 = none)
+            pub mega_forme: u16,
+            /// Mega Y Forme ID + 1 (0 = none)
+            pub mega_forme_y: u16,
+            /// Primal Forme ID + 1 (0 = none)
+            pub primal_forme: u16,
         }
 
         /// Flag: Shedinja's HP is always 1
@@ -798,6 +901,24 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
             #[inline]
             pub fn primary_ability(&self) -> super::abilities::AbilityId {
                 unsafe { core::mem::transmute(self.ability0) }
+            }
+
+            /// Get Mega Forme (if any)
+            #[inline]
+            pub fn mega_forme(&self) -> Option<SpeciesId> {
+                if self.mega_forme == 0 { None } else { Some(SpeciesId(self.mega_forme - 1)) }
+            }
+
+            /// Get Mega Y Forme (if any)
+            #[inline]
+            pub fn mega_forme_y(&self) -> Option<SpeciesId> {
+                if self.mega_forme_y == 0 { None } else { Some(SpeciesId(self.mega_forme_y - 1)) }
+            }
+
+            /// Get Primal Forme (if any)
+            #[inline]
+            pub fn primal_forme(&self) -> Option<SpeciesId> {
+                if self.primal_forme == 0 { None } else { Some(SpeciesId(self.primal_forme - 1)) }
             }
         }
 

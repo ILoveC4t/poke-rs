@@ -303,16 +303,19 @@ fn apply_field(field: &Option<FieldData>, state: &mut BattleState) {
     // Defender side conditions (screens)
     if let Some(ref def_side) = field.defender_side {
         use poke_engine::state::SideConditions;
-        let mut conditions = SideConditions::empty();
+        let mut conditions = SideConditions::default();
         
         if def_side.is_reflect == Some(true) {
-            conditions |= SideConditions::REFLECT;
+            conditions.reflect_turns = 5;
         }
         if def_side.is_light_screen == Some(true) {
-            conditions |= SideConditions::LIGHT_SCREEN;
+            conditions.light_screen_turns = 5;
         }
         if def_side.is_aurora_veil == Some(true) {
-            conditions |= SideConditions::AURORA_VEIL;
+            conditions.aurora_veil_turns = 5;
+        }
+        if def_side.is_tailwind == Some(true) {
+            conditions.tailwind_turns = 4;
         }
         
         state.side_conditions[1] = conditions; // Defender is player 1
