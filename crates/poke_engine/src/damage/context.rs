@@ -117,14 +117,9 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
         let attacker_ability = state.abilities[attacker];
         let has_adaptability = attacker_ability == AbilityId::Adaptability;
         
-        // Check if grounded (simplified - doesn't account for all edge cases)
-        // TODO: Add proper grounded check (Levitate, Air Balloon, Magnet Rise, etc.)
-        let attacker_grounded = !matches!(attacker_types[0], Type::Flying) 
-            && !matches!(attacker_types[1], Type::Flying)
-            && attacker_ability != AbilityId::Levitate;
-        let defender_grounded = !matches!(state.types[defender][0], Type::Flying)
-            && !matches!(state.types[defender][1], Type::Flying)
-            && state.abilities[defender] != AbilityId::Levitate;
+        // Check if grounded
+        let attacker_grounded = state.is_grounded(attacker);
+        let defender_grounded = state.is_grounded(defender);
         
         // Calculate type effectiveness
         let def_type1 = state.types[defender][0];
