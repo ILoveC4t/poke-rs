@@ -468,7 +468,7 @@ mod tests {
         assert_eq!(state.effective_speed(idx), 100);
 
         // 8. Combination: Tailwind + Surge Surfer + Paralysis
-        // 100 * 2 (TW) * 2 (SS) * 0.5 (Par) = 200
+        // 100 * 0.5 (Par) * 2 (TW) * 2 (SS) = 200 (matches actual order of operations)
         state.terrain = TerrainId::Electric as u8;
         state.abilities[idx] = AbilityId::Surgesurfer;
         state.side_conditions[0] = SideConditions::TAILWIND;
