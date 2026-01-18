@@ -388,7 +388,11 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
 
         // TODO(TASK-A): Metronome requires consecutive move tracking from Task D
 
-        // TODO: Tinted Lens (8192 = 2x for not very effective)
+        // Tinted Lens: 2x damage if "not very effective"
+        if ctx.attacker_ability == AbilityId::Tintedlens && ctx.effectiveness < 4 {
+            damage = apply_modifier(damage, 8192);
+        }
+
         // TODO: Sniper (6144 = 1.5x for crits)
         // TODO: Solid Rock / Filter (3072 = 0.75x for super effective)
         // TODO: Multiscale / Shadow Shield (2048 = 0.5x at full HP)
@@ -668,6 +672,103 @@ mod tests {
             let original_bp = ctx_normal.move_data.power;
             compute_base_power(&mut ctx_normal);
             assert_eq!(ctx_normal.base_power, original_bp, "Charcoal should NOT boost Normal move BP");
+        }
+    }
+
+    #[test]
+    fn test_tinted_lens() {
+        use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
+
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Setup: Atk 100, Def 100
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[0] = [Type::Normal, Type::Normal];
+        state.stats[0][1] = 100; // Atk
+
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[6] = [Type::Rock, Type::Rock]; // Rock resists Normal
+        state.stats[6][2] = 100; // Def
+
+        state.abilities[0] = AbilityId::Tintedlens;
+
+        let move_id = MoveId::Tackle; // Normal type
+
+        // Case 1: Not very effective (0.5x)
+        {
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            assert_eq!(ctx.effectiveness, 2, "Normal vs Rock should be 0.5x (effectiveness 2)");
+
+            // Base damage 100 passed to function
+            // 1. Roll 85: 85
+            // 2. STAB (1.5x): 85 * 1.5 = 127.5 -> 127 (pokeround rounds 0.5 down)
+            // 3. Effectiveness (0.5x): 127 * 2 / 4 = 63.5 -> 63
+            // 4. Tinted Lens (2x): 63 * 2 = 126
+
+            let rolls = compute_final_damage(&ctx, 100);
+            let damage = rolls[0]; // min roll (85)
+
+            assert_eq!(damage, 126, "Tinted Lens should double damage for not very effective hits");
+        }
+
+        // Case 2: Neutral hit (should NOT boost)
+        {
+            state.types[6] = [Type::Normal, Type::Normal]; // Normal vs Normal is 1x
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            assert_eq!(ctx.effectiveness, 4, "Normal vs Normal should be 1x (effectiveness 4)");
+
+            // 1. Roll 85: 85
+            // 2. STAB (1.5x): 127
+            // 3. Effectiveness (1x): 127
+            // 4. No boost
+
+            let rolls = compute_final_damage(&ctx, 100);
+            let damage = rolls[0];
+
+            assert_eq!(damage, 127, "Tinted Lens should NOT boost neutral damage");
+        }
+
+        // Case 3: Doubly Not Very Effective (0.25x)
+        {
+            state.types[6] = [Type::Rock, Type::Steel]; // Normal vs Rock/Steel is 0.5 * 0.5 = 0.25x
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            assert_eq!(ctx.effectiveness, 1, "Normal vs Rock/Steel should be 0.25x (effectiveness 1)");
+
+            // 1. Roll 85: 85
+            // 2. STAB (1.5x): 127
+            // 3. Effectiveness (0.25x): 127 * 1 / 4 = 31.75 -> 31
+            // 4. Tinted Lens (2x): 31 * 2 = 62
+
+            let rolls = compute_final_damage(&ctx, 100);
+            let damage = rolls[0];
+
+            assert_eq!(damage, 62, "Tinted Lens should double damage for 0.25x effective hits");
+        }
+
+        // Case 4: Super Effective (2x) (should NOT boost)
+        {
+            let fighting_move = MoveId::Karatechop; // Fighting type
+            // Target is Rock/Steel (4x weak to Fighting)
+
+            let ctx = DamageContext::new(gen, &state, 0, 6, fighting_move, false);
+            // Fighting vs Rock (2x) * Fighting vs Steel (2x) = 4x (effectiveness 16)
+            assert_eq!(ctx.effectiveness, 16, "Fighting vs Rock/Steel should be 4x (effectiveness 16)");
+
+            // 1. Roll 85: 85
+            // 2. No STAB (Rattata is Normal): 85
+            // 3. Effectiveness (4x): 85 * 16 / 4 = 340
+            // 4. No boost from Tinted Lens (effectiveness >= 4)
+
+            let rolls = compute_final_damage(&ctx, 100);
+            let damage = rolls[0];
+
+            assert_eq!(damage, 340, "Tinted Lens should NOT boost super effective damage");
         }
     }
 }
