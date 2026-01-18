@@ -8,7 +8,8 @@ use super::formula::{apply_boost, apply_modifier, of16};
 use super::generations::{GenMechanics, Weather, Terrain};
 use crate::abilities::AbilityId;
 use crate::items::ItemId;
-use crate::moves::{MoveCategory, MoveFlags};
+use crate::moves::{MoveCategory, MoveFlags, MoveId};
+use crate::state::Status;
 
 // ============================================================================
 // Phase 1: Base Power Computation
@@ -52,7 +53,15 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     
     // TODO: Other variable BP moves
     // - Acrobatics (2x without item)
-    // - Facade (2x when statused)
+
+    // Facade: 2x if burned, poisoned, or paralyzed
+    if ctx.move_id == MoveId::Facade {
+        let status = ctx.attacker_status();
+        if status.intersects(Status::BURN | Status::POISON | Status::TOXIC | Status::PARALYSIS) {
+            bp *= 2;
+        }
+    }
+
     // - Venoshock (2x vs poisoned)
     // - Hex (2x vs statused)
     // - Brine (2x below 50% HP)
@@ -245,7 +254,7 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
         if ctx.is_burned() 
             && ctx.category == MoveCategory::Physical 
             && ctx.attacker_ability != AbilityId::Guts
-            // TODO: Check if move is Facade
+            && ctx.move_id != MoveId::Facade
         {
             damage = apply_modifier(damage, ctx.gen.burn_modifier());
         }
@@ -344,5 +353,79 @@ mod tests {
         
         // Charcoal doesn't boost Water
         assert_eq!(get_type_boost_item_mod(ItemId::Charcoal, Type::Water), None);
+    }
+
+    #[test]
+    fn test_facade_damage() {
+        use crate::state::{BattleState, Status};
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Setup attacker (index 0) and defender (index 6)
+        // Using arbitrary species that exist. "ursaluna" might not exist in the partial data I saw,
+        // but "pikachu" or standard ones should. Let's use "rattata" (Normal type).
+        // If from_str fails, the test panics, which is fine.
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[0] = [Type::Normal, Type::Normal];
+        state.stats[0][1] = 100; // 100 Atk
+
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[6] = [Type::Normal, Type::Normal];
+        state.stats[6][2] = 100; // 100 Def
+
+        let move_id = MoveId::Facade;
+
+        // Case 1: No status
+        {
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 70, "Facade BP should be 70 without status");
+        }
+
+        // Case 2: Burned
+        {
+            state.status[0] = Status::BURN;
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 140, "Facade BP should double when burned");
+
+            // Verify burn reduction is ignored
+            // Base damage 100.
+            // STAB (1.5x) = 150.
+            // Min roll (85%) = 127.
+            // If burned (0.5x) => ~63.
+            let rolls = compute_final_damage(&ctx, 100);
+            let min_damage = rolls[0];
+
+            assert!(min_damage > 100, "Facade should ignore burn reduction (got {})", min_damage);
+        }
+
+        // Case 3: Poisoned
+        {
+            state.status[0] = Status::POISON;
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 140, "Facade BP should double when poisoned");
+        }
+
+        // Case 4: Paralyzed
+        {
+            state.status[0] = Status::PARALYSIS;
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 140, "Facade BP should double when paralyzed");
+        }
+
+        // Case 5: Asleep (should NOT double)
+        {
+            state.status[0] = Status::SLEEP;
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 70, "Facade BP should NOT double when asleep");
+        }
     }
 }
