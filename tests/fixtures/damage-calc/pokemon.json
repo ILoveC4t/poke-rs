@@ -1,0 +1,327 @@
+{
+  "meta": {
+    "source": "smogon/damage-calc/calc/src/test/pokemon.test.ts + move.test.ts",
+    "calcPath": "c:\\Users\\Admin\\Documents\\poke-rs\\fixtures-temp\\damage-calc",
+    "generatedAt": "2026-01-17T20:25:01.712Z",
+    "caseCount": 20
+  },
+  "cases": [
+    {
+      "id": "pokemon-defaults-gen7-Gengar",
+      "gen": 7,
+      "name": "Gengar",
+      "expected": {
+        "types": [
+          "Ghost",
+          "Poison"
+        ],
+        "stats": {
+          "hp": 261,
+          "atk": 166,
+          "def": 156,
+          "spa": 296,
+          "spd": 186,
+          "spe": 256
+        },
+        "ability": "Cursed Body",
+        "weightkg": 40.5,
+        "gender": "M"
+      }
+    },
+    {
+      "id": "pokemon-defaults-gen1-Tauros",
+      "gen": 1,
+      "name": "Tauros",
+      "expected": {
+        "types": [
+          "Normal"
+        ],
+        "stats": {
+          "hp": 353,
+          "atk": 298,
+          "def": 288,
+          "spa": 238,
+          "spd": 238,
+          "spe": 318
+        },
+        "weightkg": 88.4,
+        "gender": "M"
+      }
+    },
+    {
+      "id": "pokemon-defaults-gen8-Snorlax",
+      "gen": 8,
+      "name": "Snorlax",
+      "expected": {
+        "types": [
+          "Normal"
+        ],
+        "stats": {
+          "hp": 461,
+          "atk": 256,
+          "def": 166,
+          "spa": 166,
+          "spd": 256,
+          "spe": 96
+        },
+        "ability": "Immunity",
+        "weightkg": 460,
+        "gender": "M"
+      }
+    },
+    {
+      "id": "pokemon-defaults-gen9-Pikachu",
+      "gen": 9,
+      "name": "Pikachu",
+      "expected": {
+        "types": [
+          "Electric"
+        ],
+        "stats": {
+          "hp": 211,
+          "atk": 146,
+          "def": 116,
+          "spa": 136,
+          "spd": 136,
+          "spe": 216
+        },
+        "ability": "Static",
+        "weightkg": 6,
+        "gender": "M"
+      }
+    },
+    {
+      "id": "pokemon-full-gen7-Suicune",
+      "gen": 7,
+      "name": "Suicune",
+      "opts": {
+        "level": 50,
+        "ability": "Inner Focus",
+        "item": "Leftovers",
+        "nature": "Bold",
+        "ivs": {
+          "spa": 30
+        },
+        "evs": {
+          "spd": 4,
+          "def": 252,
+          "hp": 252
+        },
+        "boosts": {
+          "atk": -1,
+          "spa": 2,
+          "spd": 1
+        },
+        "curHP": 60,
+        "status": "tox",
+        "toxicCounter": 2
+      },
+      "expected": {
+        "types": [
+          "Water"
+        ],
+        "stats": {
+          "hp": 207,
+          "atk": 85,
+          "def": 183,
+          "spa": 110,
+          "spd": 136,
+          "spe": 105
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 30,
+          "spd": 31,
+          "spe": 31
+        },
+        "evs": {
+          "hp": 252,
+          "atk": 0,
+          "def": 252,
+          "spa": 0,
+          "spd": 4,
+          "spe": 0
+        },
+        "ability": "Inner Focus",
+        "nature": "Bold",
+        "level": 50,
+        "curHP": 60,
+        "maxHP": 207
+      }
+    },
+    {
+      "id": "pokemon-full-gen1-Tauros",
+      "gen": 1,
+      "name": "Tauros",
+      "opts": {
+        "level": 100,
+        "ivs": {
+          "spc": 20,
+          "def": 16
+        },
+        "evs": {
+          "atk": 200
+        }
+      },
+      "expected": {
+        "types": [
+          "Normal"
+        ],
+        "stats": {
+          "hp": 343,
+          "atk": 298,
+          "def": 274,
+          "spa": 228,
+          "spd": 228,
+          "spe": 318
+        },
+        "ivs": {
+          "hp": 20,
+          "atk": 31,
+          "def": 16,
+          "spa": 20,
+          "spd": 20,
+          "spe": 31
+        },
+        "evs": {
+          "hp": 252,
+          "atk": 200,
+          "def": 252,
+          "spa": 252,
+          "spd": 252,
+          "spe": 252
+        },
+        "nature": "Serious",
+        "level": 100,
+        "curHP": 343,
+        "maxHP": 343
+      }
+    },
+    {
+      "id": "getForme-gen1-Gengar-none",
+      "fn": "getForme",
+      "gen": 1,
+      "name": "Gengar",
+      "expected": "Gengar"
+    },
+    {
+      "id": "getForme-gen7-Gengar-Black Sludge",
+      "fn": "getForme",
+      "gen": 7,
+      "name": "Gengar",
+      "item": "Black Sludge",
+      "move": "Hypnosis",
+      "expected": "Gengar"
+    },
+    {
+      "id": "getForme-gen7-Gengar-Gengarite",
+      "fn": "getForme",
+      "gen": 7,
+      "name": "Gengar",
+      "item": "Gengarite",
+      "move": "Hypnosis",
+      "expected": "Gengar-Mega"
+    },
+    {
+      "id": "getForme-gen7-Charizard-none",
+      "fn": "getForme",
+      "gen": 7,
+      "name": "Charizard",
+      "expected": "Charizard"
+    },
+    {
+      "id": "getForme-gen7-Charizard-Charizardite X",
+      "fn": "getForme",
+      "gen": 7,
+      "name": "Charizard",
+      "item": "Charizardite X",
+      "expected": "Charizard-Mega-X"
+    },
+    {
+      "id": "getForme-gen7-Charizard-Charizardite Y",
+      "fn": "getForme",
+      "gen": 7,
+      "name": "Charizard",
+      "item": "Charizardite Y",
+      "expected": "Charizard-Mega-Y"
+    },
+    {
+      "id": "getForme-gen7-Mewtwo-Choice Specs",
+      "fn": "getForme",
+      "gen": 7,
+      "name": "Mewtwo",
+      "item": "Choice Specs",
+      "move": "Psystrike",
+      "expected": "Mewtwo"
+    },
+    {
+      "id": "getForme-gen7-Mewtwo-Mewtwonite X",
+      "fn": "getForme",
+      "gen": 7,
+      "name": "Mewtwo",
+      "item": "Mewtwonite X",
+      "move": "Psystrike",
+      "expected": "Mewtwo-Mega-X"
+    },
+    {
+      "id": "getForme-gen7-Mewtwo-Mewtwonite Y",
+      "fn": "getForme",
+      "gen": 7,
+      "name": "Mewtwo",
+      "item": "Mewtwonite Y",
+      "move": "Psystrike",
+      "expected": "Mewtwo-Mega-Y"
+    },
+    {
+      "id": "getForme-gen7-Groudon-Choice Band",
+      "fn": "getForme",
+      "gen": 7,
+      "name": "Groudon",
+      "item": "Choice Band",
+      "move": "Earthquake",
+      "expected": "Groudon"
+    },
+    {
+      "id": "getForme-gen7-Groudon-Red Orb",
+      "fn": "getForme",
+      "gen": 7,
+      "name": "Groudon",
+      "item": "Red Orb",
+      "move": "Earthquake",
+      "expected": "Groudon-Primal"
+    },
+    {
+      "id": "getForme-gen7-Kyogre-Choice Specs",
+      "fn": "getForme",
+      "gen": 7,
+      "name": "Kyogre",
+      "item": "Choice Specs",
+      "move": "Surf",
+      "expected": "Kyogre"
+    },
+    {
+      "id": "getForme-gen7-Kyogre-Blue Orb",
+      "fn": "getForme",
+      "gen": 7,
+      "name": "Kyogre",
+      "item": "Blue Orb",
+      "move": "Surf",
+      "expected": "Kyogre-Primal"
+    },
+    {
+      "id": "move-zmove-blizzard",
+      "fn": "Move",
+      "gen": 7,
+      "name": "Blizzard",
+      "opts": {
+        "useZ": true
+      },
+      "expected": {
+        "name": "Subzero Slammer",
+        "bp": 185
+      }
+    }
+  ]
+}

@@ -1,0 +1,967 @@
+{
+  "meta": {
+    "source": "smogon/damage-calc/calc/src/test/stats.test.ts",
+    "calcPath": "c:\\Users\\Admin\\Documents\\poke-rs\\fixtures-temp\\damage-calc",
+    "generatedAt": "2026-01-17T20:25:01.710Z",
+    "caseCount": 100
+  },
+  "cases": [
+    {
+      "id": "displayStat-hp",
+      "fn": "displayStat",
+      "input": "hp",
+      "expected": "HP"
+    },
+    {
+      "id": "displayStat-atk",
+      "fn": "displayStat",
+      "input": "atk",
+      "expected": "Atk"
+    },
+    {
+      "id": "displayStat-def",
+      "fn": "displayStat",
+      "input": "def",
+      "expected": "Def"
+    },
+    {
+      "id": "displayStat-spa",
+      "fn": "displayStat",
+      "input": "spa",
+      "expected": "SpA"
+    },
+    {
+      "id": "displayStat-spd",
+      "fn": "displayStat",
+      "input": "spd",
+      "expected": "SpD"
+    },
+    {
+      "id": "displayStat-spe",
+      "fn": "displayStat",
+      "input": "spe",
+      "expected": "Spe"
+    },
+    {
+      "id": "displayStat-spc",
+      "fn": "displayStat",
+      "input": "spc",
+      "expected": "Spc"
+    },
+    {
+      "id": "calcStat-gen1-hp-adamant",
+      "fn": "calcStat",
+      "gen": 1,
+      "stat": "hp",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 403
+    },
+    {
+      "id": "calcStat-gen1-atk-adamant",
+      "fn": "calcStat",
+      "gen": 1,
+      "stat": "atk",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 298
+    },
+    {
+      "id": "calcStat-gen1-def-adamant",
+      "fn": "calcStat",
+      "gen": 1,
+      "stat": "def",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 298
+    },
+    {
+      "id": "calcStat-gen1-spa-adamant",
+      "fn": "calcStat",
+      "gen": 1,
+      "stat": "spa",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 298
+    },
+    {
+      "id": "calcStat-gen1-spd-adamant",
+      "fn": "calcStat",
+      "gen": 1,
+      "stat": "spd",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 298
+    },
+    {
+      "id": "calcStat-gen1-spe-adamant",
+      "fn": "calcStat",
+      "gen": 1,
+      "stat": "spe",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 298
+    },
+    {
+      "id": "calcStat-gen2-hp-adamant",
+      "fn": "calcStat",
+      "gen": 2,
+      "stat": "hp",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 403
+    },
+    {
+      "id": "calcStat-gen2-atk-adamant",
+      "fn": "calcStat",
+      "gen": 2,
+      "stat": "atk",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 298
+    },
+    {
+      "id": "calcStat-gen2-def-adamant",
+      "fn": "calcStat",
+      "gen": 2,
+      "stat": "def",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 298
+    },
+    {
+      "id": "calcStat-gen2-spa-adamant",
+      "fn": "calcStat",
+      "gen": 2,
+      "stat": "spa",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 298
+    },
+    {
+      "id": "calcStat-gen2-spd-adamant",
+      "fn": "calcStat",
+      "gen": 2,
+      "stat": "spd",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 298
+    },
+    {
+      "id": "calcStat-gen2-spe-adamant",
+      "fn": "calcStat",
+      "gen": 2,
+      "stat": "spe",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 298
+    },
+    {
+      "id": "calcStat-gen3-hp-adamant",
+      "fn": "calcStat",
+      "gen": 3,
+      "stat": "hp",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 404
+    },
+    {
+      "id": "calcStat-gen3-atk-adamant",
+      "fn": "calcStat",
+      "gen": 3,
+      "stat": "atk",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 328
+    },
+    {
+      "id": "calcStat-gen3-def-adamant",
+      "fn": "calcStat",
+      "gen": 3,
+      "stat": "def",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen3-spa-adamant",
+      "fn": "calcStat",
+      "gen": 3,
+      "stat": "spa",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 269
+    },
+    {
+      "id": "calcStat-gen3-spd-adamant",
+      "fn": "calcStat",
+      "gen": 3,
+      "stat": "spd",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen3-spe-adamant",
+      "fn": "calcStat",
+      "gen": 3,
+      "stat": "spe",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen4-hp-adamant",
+      "fn": "calcStat",
+      "gen": 4,
+      "stat": "hp",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 404
+    },
+    {
+      "id": "calcStat-gen4-atk-adamant",
+      "fn": "calcStat",
+      "gen": 4,
+      "stat": "atk",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 328
+    },
+    {
+      "id": "calcStat-gen4-def-adamant",
+      "fn": "calcStat",
+      "gen": 4,
+      "stat": "def",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen4-spa-adamant",
+      "fn": "calcStat",
+      "gen": 4,
+      "stat": "spa",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 269
+    },
+    {
+      "id": "calcStat-gen4-spd-adamant",
+      "fn": "calcStat",
+      "gen": 4,
+      "stat": "spd",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen4-spe-adamant",
+      "fn": "calcStat",
+      "gen": 4,
+      "stat": "spe",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen5-hp-adamant",
+      "fn": "calcStat",
+      "gen": 5,
+      "stat": "hp",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 404
+    },
+    {
+      "id": "calcStat-gen5-atk-adamant",
+      "fn": "calcStat",
+      "gen": 5,
+      "stat": "atk",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 328
+    },
+    {
+      "id": "calcStat-gen5-def-adamant",
+      "fn": "calcStat",
+      "gen": 5,
+      "stat": "def",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen5-spa-adamant",
+      "fn": "calcStat",
+      "gen": 5,
+      "stat": "spa",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 269
+    },
+    {
+      "id": "calcStat-gen5-spd-adamant",
+      "fn": "calcStat",
+      "gen": 5,
+      "stat": "spd",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen5-spe-adamant",
+      "fn": "calcStat",
+      "gen": 5,
+      "stat": "spe",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen6-hp-adamant",
+      "fn": "calcStat",
+      "gen": 6,
+      "stat": "hp",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 404
+    },
+    {
+      "id": "calcStat-gen6-atk-adamant",
+      "fn": "calcStat",
+      "gen": 6,
+      "stat": "atk",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 328
+    },
+    {
+      "id": "calcStat-gen6-def-adamant",
+      "fn": "calcStat",
+      "gen": 6,
+      "stat": "def",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen6-spa-adamant",
+      "fn": "calcStat",
+      "gen": 6,
+      "stat": "spa",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 269
+    },
+    {
+      "id": "calcStat-gen6-spd-adamant",
+      "fn": "calcStat",
+      "gen": 6,
+      "stat": "spd",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen6-spe-adamant",
+      "fn": "calcStat",
+      "gen": 6,
+      "stat": "spe",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen7-hp-adamant",
+      "fn": "calcStat",
+      "gen": 7,
+      "stat": "hp",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 404
+    },
+    {
+      "id": "calcStat-gen7-atk-adamant",
+      "fn": "calcStat",
+      "gen": 7,
+      "stat": "atk",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 328
+    },
+    {
+      "id": "calcStat-gen7-def-adamant",
+      "fn": "calcStat",
+      "gen": 7,
+      "stat": "def",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen7-spa-adamant",
+      "fn": "calcStat",
+      "gen": 7,
+      "stat": "spa",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 269
+    },
+    {
+      "id": "calcStat-gen7-spd-adamant",
+      "fn": "calcStat",
+      "gen": 7,
+      "stat": "spd",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen7-spe-adamant",
+      "fn": "calcStat",
+      "gen": 7,
+      "stat": "spe",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen8-hp-adamant",
+      "fn": "calcStat",
+      "gen": 8,
+      "stat": "hp",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 404
+    },
+    {
+      "id": "calcStat-gen8-atk-adamant",
+      "fn": "calcStat",
+      "gen": 8,
+      "stat": "atk",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 328
+    },
+    {
+      "id": "calcStat-gen8-def-adamant",
+      "fn": "calcStat",
+      "gen": 8,
+      "stat": "def",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen8-spa-adamant",
+      "fn": "calcStat",
+      "gen": 8,
+      "stat": "spa",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 269
+    },
+    {
+      "id": "calcStat-gen8-spd-adamant",
+      "fn": "calcStat",
+      "gen": 8,
+      "stat": "spd",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen8-spe-adamant",
+      "fn": "calcStat",
+      "gen": 8,
+      "stat": "spe",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen9-hp-adamant",
+      "fn": "calcStat",
+      "gen": 9,
+      "stat": "hp",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 404
+    },
+    {
+      "id": "calcStat-gen9-atk-adamant",
+      "fn": "calcStat",
+      "gen": 9,
+      "stat": "atk",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 328
+    },
+    {
+      "id": "calcStat-gen9-def-adamant",
+      "fn": "calcStat",
+      "gen": 9,
+      "stat": "def",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen9-spa-adamant",
+      "fn": "calcStat",
+      "gen": 9,
+      "stat": "spa",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 269
+    },
+    {
+      "id": "calcStat-gen9-spd-adamant",
+      "fn": "calcStat",
+      "gen": 9,
+      "stat": "spd",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-gen9-spe-adamant",
+      "fn": "calcStat",
+      "gen": 9,
+      "stat": "spe",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Adamant",
+      "expected": 299
+    },
+    {
+      "id": "calcStat-shedinja-hp",
+      "fn": "calcStat",
+      "gen": 8,
+      "stat": "hp",
+      "base": 1,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": "Jolly",
+      "expected": 1
+    },
+    {
+      "id": "calcStat-no-nature",
+      "fn": "calcStat",
+      "gen": 8,
+      "stat": "atk",
+      "base": 100,
+      "iv": 31,
+      "ev": 252,
+      "level": 100,
+      "nature": null,
+      "expected": 299
+    },
+    {
+      "id": "DVToIV-0",
+      "fn": "DVToIV",
+      "input": 0,
+      "expected": 0
+    },
+    {
+      "id": "IVToDV-0",
+      "fn": "IVToDV",
+      "input": 0,
+      "expected": 0
+    },
+    {
+      "id": "DVToIV-1",
+      "fn": "DVToIV",
+      "input": 1,
+      "expected": 2
+    },
+    {
+      "id": "IVToDV-2",
+      "fn": "IVToDV",
+      "input": 2,
+      "expected": 1
+    },
+    {
+      "id": "DVToIV-2",
+      "fn": "DVToIV",
+      "input": 2,
+      "expected": 4
+    },
+    {
+      "id": "IVToDV-4",
+      "fn": "IVToDV",
+      "input": 4,
+      "expected": 2
+    },
+    {
+      "id": "DVToIV-3",
+      "fn": "DVToIV",
+      "input": 3,
+      "expected": 6
+    },
+    {
+      "id": "IVToDV-6",
+      "fn": "IVToDV",
+      "input": 6,
+      "expected": 3
+    },
+    {
+      "id": "DVToIV-4",
+      "fn": "DVToIV",
+      "input": 4,
+      "expected": 8
+    },
+    {
+      "id": "IVToDV-8",
+      "fn": "IVToDV",
+      "input": 8,
+      "expected": 4
+    },
+    {
+      "id": "DVToIV-5",
+      "fn": "DVToIV",
+      "input": 5,
+      "expected": 10
+    },
+    {
+      "id": "IVToDV-10",
+      "fn": "IVToDV",
+      "input": 10,
+      "expected": 5
+    },
+    {
+      "id": "DVToIV-6",
+      "fn": "DVToIV",
+      "input": 6,
+      "expected": 12
+    },
+    {
+      "id": "IVToDV-12",
+      "fn": "IVToDV",
+      "input": 12,
+      "expected": 6
+    },
+    {
+      "id": "DVToIV-7",
+      "fn": "DVToIV",
+      "input": 7,
+      "expected": 14
+    },
+    {
+      "id": "IVToDV-14",
+      "fn": "IVToDV",
+      "input": 14,
+      "expected": 7
+    },
+    {
+      "id": "DVToIV-8",
+      "fn": "DVToIV",
+      "input": 8,
+      "expected": 16
+    },
+    {
+      "id": "IVToDV-16",
+      "fn": "IVToDV",
+      "input": 16,
+      "expected": 8
+    },
+    {
+      "id": "DVToIV-9",
+      "fn": "DVToIV",
+      "input": 9,
+      "expected": 18
+    },
+    {
+      "id": "IVToDV-18",
+      "fn": "IVToDV",
+      "input": 18,
+      "expected": 9
+    },
+    {
+      "id": "DVToIV-10",
+      "fn": "DVToIV",
+      "input": 10,
+      "expected": 20
+    },
+    {
+      "id": "IVToDV-20",
+      "fn": "IVToDV",
+      "input": 20,
+      "expected": 10
+    },
+    {
+      "id": "DVToIV-11",
+      "fn": "DVToIV",
+      "input": 11,
+      "expected": 22
+    },
+    {
+      "id": "IVToDV-22",
+      "fn": "IVToDV",
+      "input": 22,
+      "expected": 11
+    },
+    {
+      "id": "DVToIV-12",
+      "fn": "DVToIV",
+      "input": 12,
+      "expected": 24
+    },
+    {
+      "id": "IVToDV-24",
+      "fn": "IVToDV",
+      "input": 24,
+      "expected": 12
+    },
+    {
+      "id": "DVToIV-13",
+      "fn": "DVToIV",
+      "input": 13,
+      "expected": 26
+    },
+    {
+      "id": "IVToDV-26",
+      "fn": "IVToDV",
+      "input": 26,
+      "expected": 13
+    },
+    {
+      "id": "DVToIV-14",
+      "fn": "DVToIV",
+      "input": 14,
+      "expected": 28
+    },
+    {
+      "id": "IVToDV-28",
+      "fn": "IVToDV",
+      "input": 28,
+      "expected": 14
+    },
+    {
+      "id": "DVToIV-15",
+      "fn": "DVToIV",
+      "input": 15,
+      "expected": 30
+    },
+    {
+      "id": "IVToDV-30",
+      "fn": "IVToDV",
+      "input": 30,
+      "expected": 15
+    },
+    {
+      "id": "getHPDV-15-15-15-15",
+      "fn": "getHPDV",
+      "input": {
+        "atk": 30,
+        "def": 30,
+        "spc": 30,
+        "spe": 30
+      },
+      "expected": 15
+    },
+    {
+      "id": "getHPDV-5-15-13-13",
+      "fn": "getHPDV",
+      "input": {
+        "atk": 10,
+        "def": 30,
+        "spc": 26,
+        "spe": 26
+      },
+      "expected": 15
+    },
+    {
+      "id": "getHPDV-15-3-11-10",
+      "fn": "getHPDV",
+      "input": {
+        "atk": 30,
+        "def": 6,
+        "spc": 22,
+        "spe": 20
+      },
+      "expected": 13
+    },
+    {
+      "id": "getModifiedStat-gen2-158--1",
+      "fn": "getModifiedStat",
+      "gen": 2,
+      "stat": 158,
+      "boost": -1,
+      "desc": "Snorlax after Curse",
+      "expected": 104
+    },
+    {
+      "id": "getModifiedStat-gen2-238--1",
+      "fn": "getModifiedStat",
+      "gen": 2,
+      "stat": 238,
+      "boost": -1,
+      "desc": "Skarmory after Curse",
+      "expected": 157
+    }
+  ]
+}

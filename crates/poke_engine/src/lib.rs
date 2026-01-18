@@ -46,6 +46,9 @@ pub mod state;
 /// Entity blueprints and spawning
 pub mod entities;
 
+/// Damage calculation pipeline
+pub mod damage;
+
 // Re-export commonly used types
 pub use abilities::AbilityId;
 pub use entities::PokemonConfig;
@@ -56,6 +59,7 @@ pub use terrains::TerrainId;
 pub use species::{Species, SpeciesId};
 pub use state::BattleState;
 pub use types::{Type, TypeEffectiveness, TypeImmunities};
+pub use damage::{calculate_damage, DamageResult, Gen9, Generation};
 
 #[cfg(test)]
 mod tests {
