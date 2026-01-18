@@ -450,7 +450,6 @@ mod tests {
 
         // Move: Tackle (Physical)
         let move_id = MoveId::from_str("tackle").unwrap_or(MoveId::default());
-        
         // Move: Thunderbolt (Special)
         let special_move_id = MoveId::from_str("thunderbolt").unwrap_or(MoveId::default());
 
