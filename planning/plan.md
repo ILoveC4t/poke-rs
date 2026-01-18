@@ -4,6 +4,7 @@
 - **Goal:** Build a high-performance, memory-efficient Pokémon engine tailored for Monte Carlo / Minimax AI analysis.
 - **Constraint:** The engine must be highly performant (millions of ticks/sec).
 - **Core idea:** A data-oriented, stack-allocated library (no standard ECS, no heap).
+- **Priority:** Achieve full damage-calculation fixture coverage before building the combat simulation / turn engine (see *Notes & Next Steps*).
 
 ---
 
@@ -29,9 +30,9 @@ pub struct BattleState {
     // 1 bit per status, 32 bits per Pokémon
     pub volatiles:  [u32; 12], 
 
-    // Event queue for turn logic (see Section 5)
-    pub queue:      BattleQueue, 
-}
+    // Event queue for turn logic (see Section 5) — planned; not yet implemented in the current codebase
+    // pub queue:      BattleQueue, 
+} 
 ```
 
 ---
@@ -136,4 +137,9 @@ To handle complex, recursive chains (e.g., Intimidate -> Eject Button -> Switch)
 ## Notes & Next Steps
 - The SoA/stack-first design favors fast cloning/copying for AI rollouts.
 - Macro-generated registries keep hot-path logic cheap.
-- Next: document `BattleQueue` API and event invariants, and add unit tests for spawn/blueprint correctness.
+- Next: close damage fixture gaps (see planning/test-coverage.md) and achieve full damage-calculator coverage; defer construction of the `BattleQueue`/turn engine (combat simulation) until fixture coverage is green.
+
+**Status:**
+- **Damage pipeline:** Primary focus — gen1–9 mechanics and the modifier pipeline are implemented in `crates/poke_engine/src/damage/`.
+- **Ability registry:** Implemented but incomplete; many abilities remain to be added to `crates/poke_engine/src/abilities/`.
+- **Flow layer (`BattleQueue`/turn engine):** Planned and intentionally deferred until damage-calculator coverage is complete.

@@ -122,6 +122,9 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
         let defender_grounded = state.is_grounded(defender);
         
         // Calculate type effectiveness
+        // TODO: Check for immunity-negating items before calculating:
+        //       - Ring Target: Negates holder's type immunities (e.g., Ghost immune to Normal)
+        //       - Iron Ball: Grounds holder, negates Ground immunity from Flying/Levitate
         let def_type1 = state.types[defender][0];
         let def_type2 = state.types[defender][1];
         let def_type2_opt = if def_type2 != def_type1 { Some(def_type2) } else { None };

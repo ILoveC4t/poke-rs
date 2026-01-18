@@ -10,7 +10,7 @@ use poke_engine::items::ItemId;
 use poke_engine::moves::MoveId;
 use poke_engine::natures::NatureId;
 use poke_engine::state::BattleState;
-use poke_engine::damage::calculate_damage;
+use poke_engine::damage::calculate_damage_with_overrides;
 
 use serde::Deserialize;
 use std::fs::File;
@@ -329,6 +329,15 @@ fn parse_expected_damage(value: &serde_json::Value) -> Vec<u16> {
             vec![n.as_u64().unwrap_or(0) as u16]
         }
         serde_json::Value::Array(arr) => {
+            if let Some(serde_json::Value::Array(first_hit)) = arr.first() {
+                // Multi-hit fixtures store arrays per hit; compare per-hit damage.
+                return first_hit
+                    .iter()
+                    .filter_map(|v| v.as_u64())
+                    .map(|v| v as u16)
+                    .collect();
+            }
+
             arr.iter()
                 .filter_map(|v| v.as_u64())
                 .map(|v| v as u16)
@@ -366,16 +375,17 @@ fn verify_damage_calc(case: &DamageTestCase) -> Result<(), String> {
     let defender_idx = 6; // Player 1, slot 0
     
     // Use dynamic dispatch for the generation
+    let base_power_override = z_move_base_power(case);
     let result = match gen {
-        Generation::Gen9(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
-        Generation::Gen8(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
-        Generation::Gen7(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
-        Generation::Gen6(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
-        Generation::Gen5(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
-        Generation::Gen4(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
-        Generation::Gen3(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
-        Generation::Gen2(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
-        Generation::Gen1(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
+        Generation::Gen9(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
+        Generation::Gen8(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
+        Generation::Gen7(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
+        Generation::Gen6(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
+        Generation::Gen5(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
+        Generation::Gen4(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
+        Generation::Gen3(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
+        Generation::Gen2(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
+        Generation::Gen1(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
     };
     
     // Parse expected damage
@@ -421,6 +431,21 @@ fn verify_damage_calc(case: &DamageTestCase) -> Result<(), String> {
     Ok(())
 }
 
+fn z_move_base_power(case: &DamageTestCase) -> Option<u16> {
+    if case.move_data.use_z != Some(true) {
+        return None;
+    }
+
+    extract_base_power_from_desc(&case.expected.desc)
+}
+
+fn extract_base_power_from_desc(desc: &str) -> Option<u16> {
+    let marker = " BP)";
+    let end = desc.find(marker)?;
+    let start = desc[..end].rfind('(')? + 1;
+    desc[start..end].trim().parse::<u16>().ok()
+}
+
 // ============================================================================
 // Main Test
 // ============================================================================
@@ -461,12 +486,6 @@ fn test_damage_calculations() {
                 skipped += 1;
                 continue;
             }
-        }
-        
-        // Skip Z-moves and Dynamax for now
-        if case.move_data.use_z == Some(true) || case.attacker.is_dynamaxed == Some(true) {
-            skipped += 1;
-            continue;
         }
         
         match verify_damage_calc(case) {

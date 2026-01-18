@@ -34,6 +34,9 @@ impl GenMechanics for Gen7 {
     }
     
     // Terrain was 1.5x in Gen 7
+    // TODO: Psychic Terrain boost should apply when ATTACKER is grounded,
+    //       not defender. Current implementation checks defender grounding.
+    //       Fix terrain_modifier call site to pass attacker grounding for boost.
     fn terrain_modifier(&self, terrain: Terrain, move_type: Type, is_grounded: bool) -> Option<u16> {
         if !is_grounded {
             return None;

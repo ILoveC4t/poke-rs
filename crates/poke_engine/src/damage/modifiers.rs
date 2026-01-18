@@ -26,6 +26,9 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     
     // Grass Knot / Low Kick: BP based on target's weight
     // Weight is stored in 0.1kg units (fixed-point), so 200kg = 2000
+    // TODO: Apply weight modifiers from abilities (Heavy Metal 2x, Light Metal 0.5x)
+    //       and items (Float Stone 0.5x) before calculating BP.
+    //       Also handle Autotomize state reducing weight by 100kg per use.
     if move_name == "Grass Knot" || move_name == "Low Kick" {
         let defender_species = ctx.state.species[ctx.defender];
         let weight = defender_species.data().weight; // 0.1kg units
@@ -40,6 +43,8 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     }
     
     // Heavy Slam / Heat Crash: BP based on weight ratio (attacker / defender)
+    // TODO: Apply weight modifiers (Heavy Metal, Light Metal, Float Stone, Autotomize)
+    //       to both attacker and defender weights before calculating ratio.
     if move_name == "Heavy Slam" || move_name == "Heat Crash" {
         let attacker_weight = ctx.state.species[ctx.attacker].data().weight;
         let defender_weight = ctx.state.species[ctx.defender].data().weight.max(1);
@@ -133,6 +138,13 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
         }
     }
 
+    // TODO: Knock Off: 1.5x BP if target has a removable item
+    //       Check defender item != None and item is not unremovable (Mega Stone, Z-Crystal, etc.)
+    //       Also check Klutz: item is still "present" for Knock Off boost even if Klutz negates it
+
+    // TODO: Parental Bond ability: Multi-hit (2 hits), second hit at 0.25x power (Gen 7+)
+    //       Requires special handling in damage pipeline to return combined damage
+
     // - Venoshock (2x vs poisoned)
     // - Hex (2x vs statused)
     // - Brine (2x below 50% HP)
@@ -207,12 +219,13 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
         // - Gorilla Tactics (1.5x Atk, locked into one move)
         // - Solar Power (1.5x SpA in Sun)
         // - Plus/Minus (1.5x SpA with partner)
-        
-        // Ability modifiers for defense
-        // - Marvel Scale (1.5x Def when statused)
-        // - Fur Coat (2x Def)
-        // - Grass Pelt (1.5x Def in Grassy Terrain)
-        // - Ice Scales (2x SpD)
+    
+        // TODO: Defender damage-reducing abilities (apply in final modifier chain)
+        // - Multiscale / Shadow Shield: 0.5x damage when at full HP
+        // - Filter / Prism Armor / Solid Rock: 0.75x on super-effective hits
+        // - Fluffy: 0.5x contact damage, 2x Fire damage
+        // - Punk Rock: 0.5x sound-based damage
+        // - Ice Scales: 0.5x special damage
     }
     
     // Item modifiers
@@ -257,6 +270,9 @@ pub fn apply_spread_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_da
 /// Apply weather modifier.
 ///
 /// Applied directly to base_damage using pokeRound.
+/// TODO: Terrain boost (Electric/Grassy/Psychic) checks ATTACKER grounding.
+///       Misty Terrain Dragon reduction checks DEFENDER grounding.
+///       Current call site may pass wrong grounding state.
 pub fn apply_weather_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_damage: &mut u32) {
     let weather = Weather::from_u8(ctx.state.weather);
     

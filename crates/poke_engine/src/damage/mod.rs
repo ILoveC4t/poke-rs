@@ -240,6 +240,22 @@ pub fn calculate_damage<G: GenMechanics>(
     move_id: MoveId,
     is_crit: bool,
 ) -> DamageResult {
+    calculate_damage_with_overrides(gen, state, attacker, defender, move_id, is_crit, None)
+}
+
+/// Calculate damage for a move with optional overrides.
+///
+/// This is used by fixtures or specialized callers that need to
+/// override base power (e.g., Z-Moves in tests).
+pub fn calculate_damage_with_overrides<G: GenMechanics>(
+    gen: G,
+    state: &BattleState,
+    attacker: usize,
+    defender: usize,
+    move_id: MoveId,
+    is_crit: bool,
+    base_power_override: Option<u16>,
+) -> DamageResult {
     let move_data = move_id.data();
     
     // Status moves deal no damage
@@ -266,6 +282,9 @@ pub fn calculate_damage<G: GenMechanics>(
     
     // Create damage context
     let mut ctx = DamageContext::new(gen, state, attacker, defender, move_id, is_crit);
+    if let Some(bp) = base_power_override {
+        ctx.base_power = bp;
+    }
     
     // Apply special move overrides (e.g. Weather Ball, Struggle, Flying Press)
     special_moves::apply_special_moves(&mut ctx);
