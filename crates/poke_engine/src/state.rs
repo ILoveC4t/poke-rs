@@ -8,6 +8,7 @@ use crate::items::ItemId;
 use crate::moves::MoveId;
 use crate::natures::NatureId;
 use crate::species::SpeciesId;
+use crate::terrains::TerrainId;
 use crate::types::Type;
 
 /// Maximum team size per player
@@ -21,6 +22,15 @@ pub const MAX_MOVES: usize = 4;
 
 /// Number of stats affected by boosts (Atk, Def, SpA, SpD, Spe, Acc, Eva)
 pub const BOOST_STATS: usize = 7;
+
+// Weather constants (private, matching damage/generations/mod.rs)
+const WEATHER_SUN: u8 = 1;
+const WEATHER_RAIN: u8 = 2;
+const WEATHER_SAND: u8 = 3;
+const WEATHER_HAIL: u8 = 4;
+const WEATHER_SNOW: u8 = 5;
+const WEATHER_HARSH_SUN: u8 = 6;
+const WEATHER_HEAVY_RAIN: u8 = 7;
 
 // ============================================================================
 // Status & Volatile Flags
@@ -286,12 +296,55 @@ impl BattleState {
     }
     
     /// Get effective speed (base speed × boost multiplier)
-    /// FIXME: This doesn't account for paralysis, Tailwind, weather abilities, etc.
+    /// Accounts for paralysis, Tailwind, weather abilities, and terrain abilities.
     #[inline]
     pub fn effective_speed(&self, index: usize) -> u16 {
         let base = self.stats[index][5]; // Speed is stat index 5
         let boost = self.boosts[index][4]; // Speed is boost index 4
-        apply_stat_boost(base, boost)
+        let mut speed = apply_stat_boost(base, boost);
+
+        // Paralysis (0.5x)
+        if self.status[index].contains(Status::PARALYSIS) {
+            speed /= 2;
+        }
+
+        // Tailwind (2x)
+        let side = index / MAX_TEAM_SIZE;
+        if self.side_conditions[side].contains(SideConditions::TAILWIND) {
+            speed *= 2;
+        }
+
+        // Weather and Terrain Abilities (2x)
+        match self.abilities[index] {
+            AbilityId::Chlorophyll => {
+                if self.weather == WEATHER_SUN || self.weather == WEATHER_HARSH_SUN {
+                    speed *= 2;
+                }
+            }
+            AbilityId::Swiftswim => {
+                if self.weather == WEATHER_RAIN || self.weather == WEATHER_HEAVY_RAIN {
+                    speed *= 2;
+                }
+            }
+            AbilityId::Sandrush => {
+                if self.weather == WEATHER_SAND {
+                    speed *= 2;
+                }
+            }
+            AbilityId::Slushrush => {
+                if self.weather == WEATHER_SNOW || self.weather == WEATHER_HAIL {
+                    speed *= 2;
+                }
+            }
+            AbilityId::Surgesurfer => {
+                if self.terrain == TerrainId::Electric as u8 {
+                    speed *= 2;
+                }
+            }
+            _ => {}
+        }
+
+        speed
     }
     
     /// Get effective stat with boost applied
@@ -350,5 +403,76 @@ mod tests {
         assert_eq!(apply_stat_boost(100, 6), 400);  // +6 = 8/2
         assert_eq!(apply_stat_boost(100, -1), 66);  // -1 = 2/3
         assert_eq!(apply_stat_boost(100, -6), 25);  // -6 = 2/8
+    }
+
+    #[test]
+    fn test_effective_speed_modifiers() {
+        let mut state = BattleState::new();
+        let idx = 0; // Player 0, slot 0
+        state.stats[idx][5] = 100; // Base speed 100
+
+        // 1. Base speed
+        assert_eq!(state.effective_speed(idx), 100);
+
+        // 2. Stat boost
+        state.boosts[idx][4] = 1; // +1 Speed (1.5x)
+        assert_eq!(state.effective_speed(idx), 150);
+        state.boosts[idx][4] = 0; // Reset
+
+        // 3. Paralysis (0.5x)
+        state.status[idx] = Status::PARALYSIS;
+        assert_eq!(state.effective_speed(idx), 50);
+        state.status[idx] = Status::NONE; // Reset
+
+        // 4. Tailwind (2x)
+        state.side_conditions[0] = SideConditions::TAILWIND;
+        assert_eq!(state.effective_speed(idx), 200);
+
+        // 5. Tailwind + Paralysis (2x * 0.5x = 1x)
+        state.status[idx] = Status::PARALYSIS;
+        assert_eq!(state.effective_speed(idx), 100);
+        state.status[idx] = Status::NONE;
+        state.side_conditions[0] = SideConditions::empty(); // Reset
+
+        // 6. Weather Abilities
+        // Swift Swim
+        state.abilities[idx] = AbilityId::Swiftswim;
+        state.weather = WEATHER_RAIN;
+        assert_eq!(state.effective_speed(idx), 200);
+        state.weather = WEATHER_SUN;
+        assert_eq!(state.effective_speed(idx), 100); // No boost in Sun
+
+        // Chlorophyll
+        state.abilities[idx] = AbilityId::Chlorophyll;
+        state.weather = WEATHER_SUN;
+        assert_eq!(state.effective_speed(idx), 200);
+
+        // Sand Rush
+        state.abilities[idx] = AbilityId::Sandrush;
+        state.weather = WEATHER_SAND;
+        assert_eq!(state.effective_speed(idx), 200);
+
+        // Slush Rush
+        state.abilities[idx] = AbilityId::Slushrush;
+        state.weather = WEATHER_SNOW;
+        assert_eq!(state.effective_speed(idx), 200);
+        state.weather = WEATHER_HAIL;
+        assert_eq!(state.effective_speed(idx), 200);
+
+        // 7. Terrain Abilities (Surge Surfer)
+        state.abilities[idx] = AbilityId::Surgesurfer;
+        state.weather = 0; // Clear weather
+        state.terrain = TerrainId::Electric as u8;
+        assert_eq!(state.effective_speed(idx), 200);
+        state.terrain = TerrainId::Grassy as u8;
+        assert_eq!(state.effective_speed(idx), 100);
+
+        // 8. Combination: Tailwind + Surge Surfer + Paralysis
+        // 100 * 2 (TW) * 2 (SS) * 0.5 (Par) = 200
+        state.terrain = TerrainId::Electric as u8;
+        state.abilities[idx] = AbilityId::Surgesurfer;
+        state.side_conditions[0] = SideConditions::TAILWIND;
+        state.status[idx] = Status::PARALYSIS;
+        assert_eq!(state.effective_speed(idx), 200);
     }
 }
