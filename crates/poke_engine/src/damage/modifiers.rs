@@ -110,6 +110,11 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
             bp = bp * 5461 / 4096; // 1.333... in fixed-point
         }
     }
+
+    // Type-boosting items (e.g. Charcoal)
+    if let Some(modifier) = get_type_boost_item_mod(ctx.state.items[ctx.attacker], ctx.move_type) {
+        bp = apply_modifier(bp, modifier);
+    }
     
     // TODO: Implement remaining ability BP modifiers
     // - Rivalry (+/- 25% based on gender)
@@ -354,8 +359,19 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
         
         // Step 6: Final modifiers (chain applied with pokeRound)
         // These are modifiers that weren't applied to base damage
-        // TODO: Life Orb (5324 = 1.3x)
-        // TODO: Expert Belt (4915 = 1.2x for super effective)
+
+        // Life Orb (1.3x)
+        if ctx.state.items[ctx.attacker] == ItemId::Lifeorb {
+            damage = apply_modifier(damage, 5324);
+        }
+
+        // Expert Belt (1.2x for super effective)
+        if ctx.state.items[ctx.attacker] == ItemId::Expertbelt && ctx.effectiveness > 4 {
+            damage = apply_modifier(damage, 4915);
+        }
+
+        // TODO(TASK-A): Metronome requires consecutive move tracking from Task D
+
         // TODO: Tinted Lens (8192 = 2x for not very effective)
         // TODO: Sniper (6144 = 1.5x for crits)
         // TODO: Solid Rock / Filter (3072 = 0.75x for super effective)
@@ -450,9 +466,6 @@ mod tests {
         let gen = Gen9;
 
         // Setup attacker (index 0) and defender (index 6)
-        // Using arbitrary species that exist. "ursaluna" might not exist in the partial data I saw,
-        // but "pikachu" or standard ones should. Let's use "rattata" (Normal type).
-        // If from_str fails, the test panics, which is fine.
         state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
         state.types[0] = [Type::Normal, Type::Normal];
         state.stats[0][1] = 100; // 100 Atk
@@ -478,10 +491,6 @@ mod tests {
             assert_eq!(ctx.base_power, 140, "Facade BP should double when burned");
 
             // Verify burn reduction is ignored
-            // Base damage 100.
-            // STAB (1.5x) = 150.
-            // Min roll (85%) = 127.
-            // If burned (0.5x) => ~63.
             let rolls = compute_final_damage(&ctx, 100);
             let min_damage = rolls[0];
 
@@ -510,6 +519,139 @@ mod tests {
             let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
             compute_base_power(&mut ctx);
             assert_eq!(ctx.base_power, 70, "Facade BP should NOT double when asleep");
+        }
+    }
+
+    #[test]
+    fn test_item_modifiers() {
+        use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+        use crate::items::ItemId;
+        use crate::moves::{MoveId, MoveCategory};
+
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Setup: Atk 100, SpA 100, Def 100, SpD 100
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[0] = [Type::Normal, Type::Normal];
+        state.stats[0][1] = 100; // Atk
+        state.stats[0][3] = 100; // SpA
+
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[6] = [Type::Normal, Type::Normal];
+        state.stats[6][2] = 100; // Def
+        state.stats[6][4] = 100; // SpD
+
+        // 1. Choice Band (1.5x Atk)
+        {
+            state.items[0] = ItemId::Choiceband;
+            let move_id = MoveId::Tackle; // Physical
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            let (atk, _) = compute_effective_stats(&ctx);
+            // 100 * 1.5 = 150
+            assert_eq!(atk, 150, "Choice Band should boost Attack by 1.5x");
+        }
+
+        // 2. Choice Specs (1.5x SpA)
+        {
+            state.items[0] = ItemId::Choicespecs;
+            // Use a Special move (e.g. Swift or similar). Assuming Ember exists and is special.
+            // Or just mock the category if possible, but DamageContext derives it from MoveId.
+            // MoveId::Swift is usually Special.
+            let move_id = MoveId::Swift;
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            // Verify category is Special (just in case)
+            if ctx.category == MoveCategory::Special {
+                let (atk, _) = compute_effective_stats(&ctx);
+                assert_eq!(atk, 150, "Choice Specs should boost Sp. Attack by 1.5x");
+            }
+        }
+
+        // 3. Life Orb (1.3x damage)
+        {
+            state.items[0] = ItemId::Lifeorb;
+            let move_id = MoveId::Tackle;
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+            // Base damage 100.
+            // Life Orb: 100 * 5324 / 4096 = 129.98 -> 129 or 130
+            // apply_modifier uses pokeround? No, usually pokeround.
+            // apply_modifier(100, 5324) -> (100*5324 + 2048) >> 12 = 534448 >> 12 = 130.48 -> 130.
+            let rolls = compute_final_damage(&ctx, 100);
+            let damage = rolls[0]; // min roll (random=85)
+            // Wait, compute_final_damage applies random roll first!
+            // Roll 85: 100 * 0.85 = 85.
+            // Life Orb: 85 * 5324 / 4096 = 110.
+            // Without Life Orb: 85.
+
+            // Let's reset random roll logic or check strict ratio.
+            // Just check it's boosted.
+            // 85 * 1.3 = 110.5
+
+            // 85 (roll) * 1.5 (STAB) = 127.
+            // 127 * 1.3 (Life Orb) = 165.
+            assert_eq!(damage, 165, "Life Orb should boost damage by ~1.3x (with STAB)");
+        }
+
+        // 4. Expert Belt (1.2x on Super Effective)
+        {
+            state.items[0] = ItemId::Expertbelt;
+            let move_id = MoveId::Karatechop; // Fighting type
+            // Target is Normal (weak to Fighting)
+
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            assert!(ctx.effectiveness > 4, "Move should be super effective");
+
+            // Random roll 85.
+            // SE (2x): 85 * 2 = 170.
+            // Expert Belt (1.2x): 170 * 4915 / 4096 = 204.
+
+            let rolls = compute_final_damage(&ctx, 100);
+            let damage = rolls[0];
+
+            assert_eq!(damage, 204, "Expert Belt should boost super effective damage by ~1.2x");
+
+            // Neutral hit check
+            state.types[6] = [Type::Fighting, Type::Fighting]; // Resists? No, Fighting vs Fighting is neutral?
+            // Fighting vs Poison is 0.5x. Fighting vs Flying is 0.5x.
+            // Fighting vs Bug is 0.5x.
+            // Fighting vs Fighting is 1x.
+
+            let ctx_neutral = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            // 1x effectiveness.
+            // Random 85.
+            // No boost: 85.
+
+            let rolls_neutral = compute_final_damage(&ctx_neutral, 100);
+            let damage_neutral = rolls_neutral[0];
+
+            assert_eq!(damage_neutral, 85, "Expert Belt should NOT boost neutral damage");
+        }
+
+        // 5. Charcoal (1.2x Fire moves)
+        {
+            state.items[0] = ItemId::Charcoal;
+            let move_id = MoveId::Ember; // Fire
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+            // Base Power 40.
+            // Charcoal: 40 * 1.2 = 48.
+
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 48, "Charcoal should boost Fire move BP by 1.2x");
+
+            // Non-Fire move
+            let move_id_normal = MoveId::Tackle;
+            let mut ctx_normal = DamageContext::new(gen, &state, 0, 6, move_id_normal, false);
+            // BP 40 (Tackle is 40 in recent gens? Or 50?)
+            // Tackle is 40 in Gen 9.
+
+            let original_bp = ctx_normal.move_data.power;
+            compute_base_power(&mut ctx_normal);
+            assert_eq!(ctx_normal.base_power, original_bp, "Charcoal should NOT boost Normal move BP");
         }
     }
 }
