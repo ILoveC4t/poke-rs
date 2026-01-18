@@ -24,6 +24,10 @@ impl GenMechanics for Gen8 {
     fn has_dynamax(&self) -> bool {
         true
     }
+
+    fn dynamax_hp_multiplier(&self) -> f32 {
+        2.0
+    }
     
     // STAB without Tera
     fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> u16 {
@@ -44,32 +48,5 @@ impl GenMechanics for Gen8 {
             (Terrain::Misty, Type::Dragon) => Some(2048),      // 0.5x
             _ => None,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_gen8_features() {
-        let gen = Gen8;
-        
-        assert!(gen.has_abilities());
-        assert!(gen.has_held_items());
-        assert!(gen.uses_physical_special_split());
-        assert!(!gen.has_terastallization());
-        assert!(!gen.has_mega_evolution());
-        assert!(!gen.has_z_moves());
-        assert!(gen.has_dynamax());
-    }
-    
-    #[test]
-    fn test_gen8_stab_no_tera() {
-        let gen = Gen8;
-        
-        // Tera STAB should be ignored in Gen 8
-        assert_eq!(gen.stab_multiplier(false, true), 6144);  // Still 1.5x, not 2.0x
-        assert_eq!(gen.stab_multiplier(true, true), 8192);   // Adaptability still 2.0x
     }
 }

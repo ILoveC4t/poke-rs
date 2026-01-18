@@ -17,6 +17,8 @@ mod gen6;
 mod gen5;
 mod gen4;
 mod gen3;
+mod gen2;
+mod gen1;
 
 pub use gen9::Gen9;
 pub use gen8::Gen8;
@@ -25,8 +27,11 @@ pub use gen6::Gen6;
 pub use gen5::Gen5;
 pub use gen4::Gen4;
 pub use gen3::Gen3;
+pub use gen2::Gen2;
+pub use gen1::Gen1;
 
 use crate::types::Type;
+use crate::damage::{DamageContext, DamageResult};
 
 /// Fixed-point scale for modifiers (4096 = 1.0x)
 pub const MOD_SCALE: u16 = 4096;
@@ -97,6 +102,18 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     /// Generation number (1-9, or 0 for custom)
     const GEN: u8;
     
+    // ========================================================================
+    // Damage Calculation Entry Point
+    // ========================================================================
+
+    /// Calculate damage for a context.
+    ///
+    /// The default implementation uses the standard Gen 3+ formula.
+    /// Gen 1-2 overrides this with their specific logic.
+    fn calculate_damage(&self, ctx: DamageContext<Self>) -> DamageResult {
+        crate::damage::formula::calculate_standard(ctx)
+    }
+
     // ========================================================================
     // Damage Modifiers
     // ========================================================================
@@ -192,6 +209,18 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     fn has_mega_evolution(&self) -> bool {
         Self::GEN >= 6 && Self::GEN <= 7
     }
+
+    /// Whether a species can Mega Evolve (checked via lookup usually)
+    /// This is a helper to check if the mechanic is globally enabled
+    /// AND if the specific logic allows it.
+    fn can_mega_evolve(&self) -> bool {
+        false // Override in Gen 6/7
+    }
+
+    /// Get stats for a Mega Evolution if applicable
+    fn mega_stat_boosts(&self, _species: crate::species::SpeciesId) -> Option<[u8; 6]> {
+        None
+    }
     
     /// Whether Z-Moves exist.
     /// Gen 7.
@@ -203,6 +232,17 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     /// Gen 8.
     fn has_dynamax(&self) -> bool {
         Self::GEN == 8
+    }
+
+    /// Dynamax HP multiplier.
+    /// Gen 8: 2.0x (usually).
+    fn dynamax_hp_multiplier(&self) -> f32 {
+        1.0
+    }
+
+    /// Max Move power based on base move power.
+    fn max_move_power(&self, base_power: u16) -> u16 {
+        base_power
     }
     
     // ========================================================================
@@ -239,6 +279,8 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
 /// Runtime generation selection for when the generation isn't known at compile time.
 #[derive(Clone, Copy, Debug)]
 pub enum Generation {
+    Gen1(Gen1),
+    Gen2(Gen2),
     Gen3(Gen3),
     Gen4(Gen4),
     Gen5(Gen5),
@@ -246,7 +288,6 @@ pub enum Generation {
     Gen7(Gen7),
     Gen8(Gen8),
     Gen9(Gen9),
-    // TODO: Gen1, Gen2 require more significant formula changes
 }
 
 impl Default for Generation {
@@ -260,6 +301,8 @@ impl Generation {
     /// Defaults to Gen 9 for unsupported generations.
     pub fn from_num(gen: u8) -> Self {
         match gen {
+            1 => Generation::Gen1(Gen1),
+            2 => Generation::Gen2(Gen2),
             3 => Generation::Gen3(Gen3),
             4 => Generation::Gen4(Gen4),
             5 => Generation::Gen5(Gen5),
@@ -267,7 +310,6 @@ impl Generation {
             7 => Generation::Gen7(Gen7),
             8 => Generation::Gen8(Gen8),
             9 => Generation::Gen9(Gen9),
-            // Gen 1-2 not yet implemented, default to 9
             _ => Generation::Gen9(Gen9),
         }
     }
@@ -275,6 +317,8 @@ impl Generation {
     /// Get the generation number.
     pub fn num(&self) -> u8 {
         match self {
+            Generation::Gen1(_) => 1,
+            Generation::Gen2(_) => 2,
             Generation::Gen3(_) => 3,
             Generation::Gen4(_) => 4,
             Generation::Gen5(_) => 5,
@@ -289,9 +333,243 @@ impl Generation {
 // Implement GenMechanics for the enum by delegating
 impl GenMechanics for Generation {
     const GEN: u8 = 0; // Runtime determined
+
+    fn calculate_damage(&self, ctx: DamageContext<Self>) -> DamageResult {
+        // Macro to avoid repetition? Rust macros here might be overkill or messy.
+        // We just manually unwrap and reconstruct context.
+        match self {
+            Generation::Gen1(g) => {
+                let inner = DamageContext {
+                    gen: *g,
+                    state: ctx.state,
+                    attacker: ctx.attacker,
+                    defender: ctx.defender,
+                    move_id: ctx.move_id,
+                    move_data: ctx.move_data,
+                    base_power: ctx.base_power,
+                    category: ctx.category,
+                    move_type: ctx.move_type,
+                    is_crit: ctx.is_crit,
+                    is_spread: ctx.is_spread,
+                    attacker_grounded: ctx.attacker_grounded,
+                    defender_grounded: ctx.defender_grounded,
+                    chain_mod: ctx.chain_mod,
+                    effectiveness: ctx.effectiveness,
+                    has_stab: ctx.has_stab,
+                    has_adaptability: ctx.has_adaptability,
+                    is_tera_stab: ctx.is_tera_stab,
+                    attacker_ability: ctx.attacker_ability,
+                    defender_ability: ctx.defender_ability,
+                };
+                g.calculate_damage(inner)
+            },
+            Generation::Gen2(g) => {
+                let inner = DamageContext {
+                    gen: *g,
+                    state: ctx.state,
+                    attacker: ctx.attacker,
+                    defender: ctx.defender,
+                    move_id: ctx.move_id,
+                    move_data: ctx.move_data,
+                    base_power: ctx.base_power,
+                    category: ctx.category,
+                    move_type: ctx.move_type,
+                    is_crit: ctx.is_crit,
+                    is_spread: ctx.is_spread,
+                    attacker_grounded: ctx.attacker_grounded,
+                    defender_grounded: ctx.defender_grounded,
+                    chain_mod: ctx.chain_mod,
+                    effectiveness: ctx.effectiveness,
+                    has_stab: ctx.has_stab,
+                    has_adaptability: ctx.has_adaptability,
+                    is_tera_stab: ctx.is_tera_stab,
+                    attacker_ability: ctx.attacker_ability,
+                    defender_ability: ctx.defender_ability,
+                };
+                g.calculate_damage(inner)
+            },
+            Generation::Gen3(g) => {
+                let inner = DamageContext {
+                    gen: *g,
+                    state: ctx.state,
+                    attacker: ctx.attacker,
+                    defender: ctx.defender,
+                    move_id: ctx.move_id,
+                    move_data: ctx.move_data,
+                    base_power: ctx.base_power,
+                    category: ctx.category,
+                    move_type: ctx.move_type,
+                    is_crit: ctx.is_crit,
+                    is_spread: ctx.is_spread,
+                    attacker_grounded: ctx.attacker_grounded,
+                    defender_grounded: ctx.defender_grounded,
+                    chain_mod: ctx.chain_mod,
+                    effectiveness: ctx.effectiveness,
+                    has_stab: ctx.has_stab,
+                    has_adaptability: ctx.has_adaptability,
+                    is_tera_stab: ctx.is_tera_stab,
+                    attacker_ability: ctx.attacker_ability,
+                    defender_ability: ctx.defender_ability,
+                };
+                g.calculate_damage(inner)
+            },
+            Generation::Gen4(g) => {
+                let inner = DamageContext {
+                    gen: *g,
+                    state: ctx.state,
+                    attacker: ctx.attacker,
+                    defender: ctx.defender,
+                    move_id: ctx.move_id,
+                    move_data: ctx.move_data,
+                    base_power: ctx.base_power,
+                    category: ctx.category,
+                    move_type: ctx.move_type,
+                    is_crit: ctx.is_crit,
+                    is_spread: ctx.is_spread,
+                    attacker_grounded: ctx.attacker_grounded,
+                    defender_grounded: ctx.defender_grounded,
+                    chain_mod: ctx.chain_mod,
+                    effectiveness: ctx.effectiveness,
+                    has_stab: ctx.has_stab,
+                    has_adaptability: ctx.has_adaptability,
+                    is_tera_stab: ctx.is_tera_stab,
+                    attacker_ability: ctx.attacker_ability,
+                    defender_ability: ctx.defender_ability,
+                };
+                g.calculate_damage(inner)
+            },
+            Generation::Gen5(g) => {
+                 let inner = DamageContext {
+                    gen: *g,
+                    state: ctx.state,
+                    attacker: ctx.attacker,
+                    defender: ctx.defender,
+                    move_id: ctx.move_id,
+                    move_data: ctx.move_data,
+                    base_power: ctx.base_power,
+                    category: ctx.category,
+                    move_type: ctx.move_type,
+                    is_crit: ctx.is_crit,
+                    is_spread: ctx.is_spread,
+                    attacker_grounded: ctx.attacker_grounded,
+                    defender_grounded: ctx.defender_grounded,
+                    chain_mod: ctx.chain_mod,
+                    effectiveness: ctx.effectiveness,
+                    has_stab: ctx.has_stab,
+                    has_adaptability: ctx.has_adaptability,
+                    is_tera_stab: ctx.is_tera_stab,
+                    attacker_ability: ctx.attacker_ability,
+                    defender_ability: ctx.defender_ability,
+                };
+                g.calculate_damage(inner)
+            },
+            Generation::Gen6(g) => {
+                 let inner = DamageContext {
+                    gen: *g,
+                    state: ctx.state,
+                    attacker: ctx.attacker,
+                    defender: ctx.defender,
+                    move_id: ctx.move_id,
+                    move_data: ctx.move_data,
+                    base_power: ctx.base_power,
+                    category: ctx.category,
+                    move_type: ctx.move_type,
+                    is_crit: ctx.is_crit,
+                    is_spread: ctx.is_spread,
+                    attacker_grounded: ctx.attacker_grounded,
+                    defender_grounded: ctx.defender_grounded,
+                    chain_mod: ctx.chain_mod,
+                    effectiveness: ctx.effectiveness,
+                    has_stab: ctx.has_stab,
+                    has_adaptability: ctx.has_adaptability,
+                    is_tera_stab: ctx.is_tera_stab,
+                    attacker_ability: ctx.attacker_ability,
+                    defender_ability: ctx.defender_ability,
+                };
+                g.calculate_damage(inner)
+            },
+            Generation::Gen7(g) => {
+                 let inner = DamageContext {
+                    gen: *g,
+                    state: ctx.state,
+                    attacker: ctx.attacker,
+                    defender: ctx.defender,
+                    move_id: ctx.move_id,
+                    move_data: ctx.move_data,
+                    base_power: ctx.base_power,
+                    category: ctx.category,
+                    move_type: ctx.move_type,
+                    is_crit: ctx.is_crit,
+                    is_spread: ctx.is_spread,
+                    attacker_grounded: ctx.attacker_grounded,
+                    defender_grounded: ctx.defender_grounded,
+                    chain_mod: ctx.chain_mod,
+                    effectiveness: ctx.effectiveness,
+                    has_stab: ctx.has_stab,
+                    has_adaptability: ctx.has_adaptability,
+                    is_tera_stab: ctx.is_tera_stab,
+                    attacker_ability: ctx.attacker_ability,
+                    defender_ability: ctx.defender_ability,
+                };
+                g.calculate_damage(inner)
+            },
+            Generation::Gen8(g) => {
+                 let inner = DamageContext {
+                    gen: *g,
+                    state: ctx.state,
+                    attacker: ctx.attacker,
+                    defender: ctx.defender,
+                    move_id: ctx.move_id,
+                    move_data: ctx.move_data,
+                    base_power: ctx.base_power,
+                    category: ctx.category,
+                    move_type: ctx.move_type,
+                    is_crit: ctx.is_crit,
+                    is_spread: ctx.is_spread,
+                    attacker_grounded: ctx.attacker_grounded,
+                    defender_grounded: ctx.defender_grounded,
+                    chain_mod: ctx.chain_mod,
+                    effectiveness: ctx.effectiveness,
+                    has_stab: ctx.has_stab,
+                    has_adaptability: ctx.has_adaptability,
+                    is_tera_stab: ctx.is_tera_stab,
+                    attacker_ability: ctx.attacker_ability,
+                    defender_ability: ctx.defender_ability,
+                };
+                g.calculate_damage(inner)
+            },
+            Generation::Gen9(g) => {
+                 let inner = DamageContext {
+                    gen: *g,
+                    state: ctx.state,
+                    attacker: ctx.attacker,
+                    defender: ctx.defender,
+                    move_id: ctx.move_id,
+                    move_data: ctx.move_data,
+                    base_power: ctx.base_power,
+                    category: ctx.category,
+                    move_type: ctx.move_type,
+                    is_crit: ctx.is_crit,
+                    is_spread: ctx.is_spread,
+                    attacker_grounded: ctx.attacker_grounded,
+                    defender_grounded: ctx.defender_grounded,
+                    chain_mod: ctx.chain_mod,
+                    effectiveness: ctx.effectiveness,
+                    has_stab: ctx.has_stab,
+                    has_adaptability: ctx.has_adaptability,
+                    is_tera_stab: ctx.is_tera_stab,
+                    attacker_ability: ctx.attacker_ability,
+                    defender_ability: ctx.defender_ability,
+                };
+                g.calculate_damage(inner)
+            },
+        }
+    }
     
     fn crit_multiplier(&self) -> u16 {
         match self {
+            Generation::Gen1(g) => g.crit_multiplier(),
+            Generation::Gen2(g) => g.crit_multiplier(),
             Generation::Gen3(g) => g.crit_multiplier(),
             Generation::Gen4(g) => g.crit_multiplier(),
             Generation::Gen5(g) => g.crit_multiplier(),
@@ -304,6 +582,8 @@ impl GenMechanics for Generation {
     
     fn stab_multiplier(&self, has_adaptability: bool, is_tera_stab: bool) -> u16 {
         match self {
+            Generation::Gen1(g) => g.stab_multiplier(has_adaptability, is_tera_stab),
+            Generation::Gen2(g) => g.stab_multiplier(has_adaptability, is_tera_stab),
             Generation::Gen3(g) => g.stab_multiplier(has_adaptability, is_tera_stab),
             Generation::Gen4(g) => g.stab_multiplier(has_adaptability, is_tera_stab),
             Generation::Gen5(g) => g.stab_multiplier(has_adaptability, is_tera_stab),
@@ -316,6 +596,8 @@ impl GenMechanics for Generation {
     
     fn weather_modifier(&self, weather: Weather, move_type: Type) -> Option<u16> {
         match self {
+            Generation::Gen1(g) => g.weather_modifier(weather, move_type),
+            Generation::Gen2(g) => g.weather_modifier(weather, move_type),
             Generation::Gen3(g) => g.weather_modifier(weather, move_type),
             Generation::Gen4(g) => g.weather_modifier(weather, move_type),
             Generation::Gen5(g) => g.weather_modifier(weather, move_type),
@@ -328,6 +610,8 @@ impl GenMechanics for Generation {
     
     fn terrain_modifier(&self, terrain: Terrain, move_type: Type, is_grounded: bool) -> Option<u16> {
         match self {
+            Generation::Gen1(g) => g.terrain_modifier(terrain, move_type, is_grounded),
+            Generation::Gen2(g) => g.terrain_modifier(terrain, move_type, is_grounded),
             Generation::Gen3(g) => g.terrain_modifier(terrain, move_type, is_grounded),
             Generation::Gen4(g) => g.terrain_modifier(terrain, move_type, is_grounded),
             Generation::Gen5(g) => g.terrain_modifier(terrain, move_type, is_grounded),
@@ -340,6 +624,8 @@ impl GenMechanics for Generation {
     
     fn has_abilities(&self) -> bool {
         match self {
+            Generation::Gen1(g) => g.has_abilities(),
+            Generation::Gen2(g) => g.has_abilities(),
             Generation::Gen3(g) => g.has_abilities(),
             Generation::Gen4(g) => g.has_abilities(),
             Generation::Gen5(g) => g.has_abilities(),
@@ -352,6 +638,8 @@ impl GenMechanics for Generation {
     
     fn has_held_items(&self) -> bool {
         match self {
+            Generation::Gen1(g) => g.has_held_items(),
+            Generation::Gen2(g) => g.has_held_items(),
             Generation::Gen3(g) => g.has_held_items(),
             Generation::Gen4(g) => g.has_held_items(),
             Generation::Gen5(g) => g.has_held_items(),
@@ -364,6 +652,8 @@ impl GenMechanics for Generation {
     
     fn uses_physical_special_split(&self) -> bool {
         match self {
+            Generation::Gen1(g) => g.uses_physical_special_split(),
+            Generation::Gen2(g) => g.uses_physical_special_split(),
             Generation::Gen3(g) => g.uses_physical_special_split(),
             Generation::Gen4(g) => g.uses_physical_special_split(),
             Generation::Gen5(g) => g.uses_physical_special_split(),
@@ -380,9 +670,63 @@ impl GenMechanics for Generation {
             _ => false,
         }
     }
+
+    fn has_mega_evolution(&self) -> bool {
+        match self {
+            Generation::Gen6(g) => g.has_mega_evolution(),
+            Generation::Gen7(g) => g.has_mega_evolution(),
+            _ => false,
+        }
+    }
+
+    fn can_mega_evolve(&self) -> bool {
+        match self {
+            Generation::Gen6(g) => g.can_mega_evolve(),
+            Generation::Gen7(g) => g.can_mega_evolve(),
+            _ => false,
+        }
+    }
+
+    fn mega_stat_boosts(&self, species: crate::species::SpeciesId) -> Option<[u8; 6]> {
+        match self {
+            Generation::Gen6(g) => g.mega_stat_boosts(species),
+            Generation::Gen7(g) => g.mega_stat_boosts(species),
+            _ => None,
+        }
+    }
+
+    fn has_z_moves(&self) -> bool {
+        match self {
+            Generation::Gen7(g) => g.has_z_moves(),
+            _ => false,
+        }
+    }
+
+    fn has_dynamax(&self) -> bool {
+        match self {
+            Generation::Gen8(g) => g.has_dynamax(),
+            _ => false,
+        }
+    }
+
+    fn dynamax_hp_multiplier(&self) -> f32 {
+        match self {
+            Generation::Gen8(g) => g.dynamax_hp_multiplier(),
+            _ => 1.0,
+        }
+    }
+
+    fn max_move_power(&self, base_power: u16) -> u16 {
+        match self {
+            Generation::Gen8(g) => g.max_move_power(base_power),
+            _ => base_power,
+        }
+    }
     
     fn type_effectiveness(&self, atk_type: Type, def_type1: Type, def_type2: Option<Type>) -> u8 {
         match self {
+            Generation::Gen1(g) => g.type_effectiveness(atk_type, def_type1, def_type2),
+            Generation::Gen2(g) => g.type_effectiveness(atk_type, def_type1, def_type2),
             Generation::Gen3(g) => g.type_effectiveness(atk_type, def_type1, def_type2),
             Generation::Gen4(g) => g.type_effectiveness(atk_type, def_type1, def_type2),
             Generation::Gen5(g) => g.type_effectiveness(atk_type, def_type1, def_type2),
@@ -395,6 +739,8 @@ impl GenMechanics for Generation {
     
     fn burn_modifier(&self) -> u16 {
         match self {
+            Generation::Gen1(g) => g.burn_modifier(),
+            Generation::Gen2(g) => g.burn_modifier(),
             Generation::Gen3(g) => g.burn_modifier(),
             Generation::Gen4(g) => g.burn_modifier(),
             Generation::Gen5(g) => g.burn_modifier(),

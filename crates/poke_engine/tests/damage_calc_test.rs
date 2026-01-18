@@ -374,6 +374,8 @@ fn verify_damage_calc(case: &DamageTestCase) -> Result<(), String> {
         Generation::Gen5(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
         Generation::Gen4(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
         Generation::Gen3(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
+        Generation::Gen2(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
+        Generation::Gen1(g) => calculate_damage(g, &state, attacker_idx, defender_idx, move_id, is_crit),
     };
     
     // Parse expected damage
