@@ -55,6 +55,7 @@ interface CapturedCase {
         curHP?: number;
         teraType?: string;
         isDynamaxed?: boolean;
+        weightkg?: number;
     };
     defender: {
         name: string;
@@ -69,6 +70,7 @@ interface CapturedCase {
         curHP?: number;
         teraType?: string;
         isDynamaxed?: boolean;
+        weightkg?: number;
     };
     move: {
         name: string;
@@ -97,6 +99,7 @@ interface CapturedCase {
         damage: number | number[] | [number, number];
         desc: string;
     };
+    strict: boolean;
 }
 
 const capturedCases: CapturedCase[] = [];
@@ -117,6 +120,18 @@ function serializePokemon(p: any): CapturedCase['attacker'] {
     if (p.originalCurHP !== undefined && p.originalCurHP !== p.maxHP()) result.curHP = p.originalCurHP;
     if (p.teraType) result.teraType = p.teraType;
     if (p.isDynamaxed) result.isDynamaxed = p.isDynamaxed;
+
+    // Always include weight
+    if (p.weightkg !== undefined) {
+        result.weightkg = p.weightkg;
+    } else if (p.species && p.species.weightkg) {
+        result.weightkg = p.species.weightkg;
+    } else if (p.gen && p.gen.species) {
+         // Fallback if species object is not directly on p (though usually it is)
+         const data = p.gen.species.get(p.name);
+         if (data) result.weightkg = data.weightkg;
+    }
+
     return result;
 }
 
@@ -184,6 +199,7 @@ function createCalculateSpy(gen: any) {
                 damage: result.damage,
                 desc: result.desc(),
             },
+            strict: false, // Default to false
         });
 
         // Patch toMatch for the 'tests' helper pattern
@@ -319,19 +335,10 @@ function testsMock(name: string, fn: (ctx: any) => void) {
     }
 }
 
-// --- Run the scraper ---
-async function run() {
-    const calcTestPath = path.join(testDir, 'calc.test.ts');
-
-    if (!fs.existsSync(calcTestPath)) {
-        console.error(`Could not find upstream test file at: ${calcTestPath}`);
-        console.error('Please ensure DAMAGE_CALC_PATH points to the damage-calc repository.');
-        console.error(`Current DAMAGE_CALC_PATH: ${calcRoot}`);
-        process.exit(1);
-    }
-
-    console.log(`Reading tests from ${calcTestPath}...`);
-    let tsCode = fs.readFileSync(calcTestPath, 'utf-8');
+// --- Process a single test file ---
+function processTestFile(filePath: string) {
+    console.log(`Reading tests from ${filePath}...`);
+    let tsCode = fs.readFileSync(filePath, 'utf-8');
 
     // Remove import statements (we inject dependencies via scope)
     tsCode = tsCode.replace(/^import\s+.*?(?:from\s+)?['"][^'"]*['"];?\s*$/gm, '');
@@ -348,7 +355,7 @@ async function run() {
         },
     }).outputText;
 
-    console.log('Executing upstream tests with instrumentation...');
+    console.log(`Executing ${path.basename(filePath)} with instrumentation...`);
 
     // Create a sandboxed execution context
     const runTests = new Function(
@@ -359,7 +366,40 @@ async function run() {
     try {
         runTests(describeMock, testMock, testMock, expectMock, inGensMock, inGenMock, testsMock);
     } catch (e) {
-        console.error('Error running captured code:', e);
+        console.error(`Error running captured code from ${filePath}:`, e);
+    }
+}
+
+// --- Run the scraper ---
+async function run() {
+    // 1. Main calc test
+    const calcTestPath = path.join(testDir, 'calc.test.ts');
+    if (!fs.existsSync(calcTestPath)) {
+        console.error(`Could not find upstream test file at: ${calcTestPath}`);
+        console.error('Please ensure DAMAGE_CALC_PATH points to the damage-calc repository.');
+        process.exit(1);
+    }
+    processTestFile(calcTestPath);
+
+    // 2. Mechanics tests
+    const mechanicsDir = path.join(testDir, 'mechanics');
+    if (fs.existsSync(mechanicsDir)) {
+        const mechanicFiles = fs.readdirSync(mechanicsDir)
+            .filter(f => f.endsWith('.test.ts'))
+            .map(f => path.join(mechanicsDir, f));
+
+        for (const file of mechanicFiles) {
+            processTestFile(file);
+        }
+    }
+
+    // 3. Items and Abilities tests (if they exist)
+    const extraFiles = ['items.test.ts', 'abilities.test.ts'];
+    for (const f of extraFiles) {
+        const p = path.join(testDir, f);
+        if (fs.existsSync(p)) {
+            processTestFile(p);
+        }
     }
 
     console.log(`Captured ${capturedCases.length} test scenarios.`);
@@ -370,7 +410,7 @@ async function run() {
 
     const output = {
         meta: {
-            source: 'smogon/damage-calc/calc/src/test/calc.test.ts',
+            source: 'smogon/damage-calc/calc/src/test/',
             calcPath: calcRoot,
             generatedAt: new Date().toISOString(),
             caseCount: capturedCases.length,

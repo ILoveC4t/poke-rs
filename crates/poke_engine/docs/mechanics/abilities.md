@@ -2,6 +2,38 @@
 
 Abilities are passive effects that Pokémon possess. The engine handles them through a robust hook-based system, managing their lifecycle and various suppression mechanics.
 
+## Implementation
+
+Abilities are implemented via the hook system in `src/abilities/`:
+
+- `hooks.rs` - Hook type definitions (`OnSwitchIn`, `OnModifyPriority`, etc.)
+- `registry.rs` - `ABILITY_REGISTRY` lookup table
+- `implementations/` - Individual ability logic
+
+## Hook Types
+
+| Hook | When Called | Example Abilities |
+|------|-------------|-------------------|
+| `on_switch_in` | Pokemon enters battle | Intimidate, Drizzle |
+| `on_modify_priority` | Turn ordering | Prankster, Gale Wings |
+| `on_modify_damage` | Damage calculation | Multiscale, Shadow Shield |
+| `on_start` | Ability activation | Download, Trace |
+
+## Adding a New Ability
+
+```rust
+// In abilities/implementations/your_ability.rs
+pub fn your_ability_on_switch_in(state: &mut BattleState, idx: usize) {
+    // implementation
+}
+
+// In abilities/registry.rs
+AbilityId::YOUR_ABILITY => Some(AbilityHooks {
+    on_switch_in: Some(your_ability_on_switch_in),
+    ..Default::default()
+}),
+```
+
 ## 1. Ability Lifecycle
 
 The engine triggers specific hooks at key points in an ability's existence:
@@ -36,18 +68,7 @@ Handled by the `suppressingAbility(target)` check during move execution.
 -   **`cantsuppress`**: Marks essential abilities that cannot be removed or ignored.
 -   **`failroleplay` / `failskillswap`**: Prevents certain move interactions.
 
-## 4. Rating System
+## References
 
-Abilities are assigned a numerical rating (found in `data/abilities.ts`) from -1 to 5:
--   **-1**: Detrimental (e.g., *Defeatist*, *Slow Start*).
--   **0**: No significant battle effect (e.g., *Run Away*).
--   **1-2**: Niche or minor utility.
--   **3-4**: Strong, standard competitive abilities (e.g., *Intimidate*, *Regenerator*).
--   **5**: Metagame-defining or "Essential" (e.g., *Shadow Tag*, *Imposter*).
-
-## 5. Implementation Reference
-
--   **Lifecycle Hooks**: `sim/pokemon.ts` -> `setAbility()`.
--   **Suppression Logic**: `sim/pokemon.ts` -> `ignoringAbility()`.
--   **Bypass Logic**: `sim/battle.ts` -> `suppressingAbility()`.
--   **Data Structure**: `sim/dex-abilities.ts` -> `Ability` class.
+- [Showdown: sim/pokemon.ts](https://github.com/smogon/pokemon-showdown/blob/master/sim/pokemon.ts)
+- [Bulbapedia: Abilities](https://bulbapedia.bulbagarden.net/wiki/Ability)

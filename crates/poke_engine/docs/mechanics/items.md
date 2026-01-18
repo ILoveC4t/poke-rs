@@ -2,6 +2,14 @@
 
 Held items provide variety of effects, from stat boosts to status recovery. The engine tracks held items and manages their unique consumption rules.
 
+## Implementation
+
+Items are implemented primarily through the damage calculation pipeline and battle state checks.
+
+- `src/damage/modifiers.rs`: Applies damage-modifying items (Life Orb, Choice Band, etc.)
+- `src/state.rs`: Handles effective speed modifiers (Choice Scarf, Iron Ball)
+- `src/items/`: (Planned) Item hook system similar to abilities
+
 ## 1. Item Lifecycle
 
 Items can be passive, consumed upon use, or knocked off.
@@ -50,8 +58,7 @@ The move *Natural Gift* consumes the user's berry to attack.
     -   *Example:* *Liechi Berry* provides a 100 BP Grass-type move.
     -   *Example:* *Occa Berry* provides an 80 BP Fire-type move.
 
-## 5. Implementation Reference
+## References
 
--   **Item Logic**: `sim/pokemon.ts` -> `useItem()`, `eatItem()`, and `ignoringItem()`.
--   **Item Definitions**: `sim/dex-items.ts` and `data/items.ts` (contains `fling` and `naturalGift` properties).
--   **Fling Logic**: `sim/battle-actions.ts` -> Handles item-specific effects when thrown.
+- [Showdown: sim/pokemon.ts](https://github.com/smogon/pokemon-showdown/blob/master/sim/pokemon.ts)
+- [Bulbapedia: Held Item](https://bulbapedia.bulbagarden.net/wiki/Held_item)
