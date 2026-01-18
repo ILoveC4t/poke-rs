@@ -20,6 +20,15 @@ pub const DEFAULT_EVS: [u8; 6] = [0, 0, 0, 0, 0, 0];
 /// Default level
 pub const DEFAULT_LEVEL: u8 = 50;
 
+/// Gender of a Pokémon
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum Gender {
+    #[default]
+    Genderless,
+    Male,
+    Female,
+}
+
 /// Blueprint for spawning a Pokémon into battle.
 /// 
 /// Use builder methods to customize, then call `spawn()` to inject
@@ -62,6 +71,12 @@ pub struct PokemonConfig {
     
     /// Current HP (if less than max, e.g., for restoring a saved team)
     pub current_hp: Option<u16>,
+
+    /// Override weight (in hectograms). If None, uses species default.
+    pub weight: Option<u16>,
+
+    /// Gender of the Pokémon
+    pub gender: Option<Gender>,
 }
 
 impl Default for PokemonConfig {
@@ -79,6 +94,8 @@ impl Default for PokemonConfig {
             happiness: 255,
             types_override: None,
             current_hp: None,
+            weight: None,
+            gender: None,
         }
     }
 }
@@ -178,6 +195,44 @@ impl PokemonConfig {
         self.current_hp = Some(hp);
         self
     }
+
+    /// Set custom weight (in kg)
+    pub fn weight_kg(mut self, kg: f32) -> Self {
+        self.weight = Some((kg * 10.0) as u16);
+        self
+    }
+
+    /// Set gender
+    pub fn gender(mut self, gender: Gender) -> Self {
+        self.gender = Some(gender);
+        self
+    }
+
+    /// Create a Pokémon in its Mega forme
+    /// Automatically looks up the Mega forme and sets species
+    pub fn mega(mut self) -> Self {
+        if let Some(mega_forme) = self.species.data().mega_forme() {
+            self.species = mega_forme;
+            // Mega ability will be applied during spawn via default ability lookup
+        }
+        self
+    }
+
+    /// Create a Pokémon in its Mega Y forme
+    pub fn mega_y(mut self) -> Self {
+        if let Some(mega_forme) = self.species.data().mega_forme_y() {
+            self.species = mega_forme;
+        }
+        self
+    }
+
+    /// Create a Pokémon in Primal forme
+    pub fn primal(mut self) -> Self {
+        if let Some(primal_forme) = self.species.data().primal_forme() {
+            self.species = primal_forme;
+        }
+        self
+    }
     
     // ========================================================================
     // Stat Calculation
@@ -257,6 +312,22 @@ impl PokemonConfig {
         
         species.primary_ability()
     }
+
+    /// Determine gender based on species ratio if not specified
+    fn get_gender(&self) -> Gender {
+        if let Some(gender) = self.gender {
+            return gender;
+        }
+
+        use crate::species::GenderRatio;
+        match self.species.data().gender_ratio {
+            GenderRatio::Genderless => Gender::Genderless,
+            GenderRatio::AlwaysMale => Gender::Male,
+            GenderRatio::AlwaysFemale => Gender::Female,
+            // For now, default mixed ratios to Male unless we want to introduce RNG here
+            _ => Gender::Male,
+        }
+    }
     
     // ========================================================================
     // Spawning
@@ -280,6 +351,9 @@ impl PokemonConfig {
         state.species[index] = self.species;
         state.level[index] = self.level;
         state.nature[index] = self.nature;
+        state.gender[index] = self.get_gender();
+        state.ivs[index] = self.ivs;
+        state.evs[index] = self.evs;
         
         // Set types
         state.types[index] = self.get_types();
@@ -289,6 +363,9 @@ impl PokemonConfig {
         
         // Set item
         state.items[index] = self.item;
+
+        // Set weight
+        state.weight[index] = self.weight.unwrap_or(species.weight);
         
         // Set moves and PP
         state.moves[index] = self.moves;
@@ -315,6 +392,8 @@ impl PokemonConfig {
         state.status[index] = crate::state::Status::NONE;
         state.volatiles[index] = crate::state::Volatiles::empty();
         state.status_counter[index] = 0;
+        // Mark as transformed if spawning in a non-base form (e.g. Mega)
+        state.transformed[index] = species.base_species != 0;
         
         // Update team size if needed
         if slot >= state.team_sizes[player] as usize {
@@ -941,6 +1020,81 @@ mod tests {
 
              let index = BattleState::entity_index(1, 0);
              assert_eq!(state.abilities[index], AbilityId::Blaze, "Default ability should be Blaze");
+        }
+    }
+
+    #[test]
+    fn test_mega_config() {
+        // Test Charizard -> Mega Charizard X
+        if let Some(charizard) = PokemonConfig::from_str("charizard") {
+            let mega_x = charizard.clone().mega();
+
+            // Should be a different species ID
+            assert_ne!(charizard.species, mega_x.species);
+
+            // Verify types changed (Fire/Flying -> Fire/Dragon)
+            let species_data = mega_x.species.data();
+            assert_eq!(species_data.primary_type(), Type::Fire);
+            assert_eq!(species_data.secondary_type(), Some(Type::Dragon));
+
+            // Verify ability changed (Blaze/Solar Power -> Tough Claws)
+            assert_eq!(species_data.primary_ability(), AbilityId::Toughclaws);
+        }
+    }
+
+    #[test]
+    fn test_mega_y_config() {
+        // Test Charizard -> Mega Charizard Y
+        if let Some(charizard) = PokemonConfig::from_str("charizard") {
+            let mega_y = charizard.clone().mega_y();
+
+            // Should be a different species ID
+            assert_ne!(charizard.species, mega_y.species);
+
+            // Verify ability changed (Blaze -> Drought)
+            let species_data = mega_y.species.data();
+            assert_eq!(species_data.primary_ability(), AbilityId::Drought);
+        }
+    }
+
+    #[test]
+    fn test_gender_determination() {
+        // Tauros (AlwaysMale)
+        if let Some(tauros) = PokemonConfig::from_str("tauros") {
+            assert_eq!(tauros.get_gender(), Gender::Male);
+        }
+
+        // Chansey (AlwaysFemale)
+        if let Some(chansey) = PokemonConfig::from_str("chansey") {
+            assert_eq!(chansey.get_gender(), Gender::Female);
+        }
+
+        // Magnemite (Genderless)
+        if let Some(magnemite) = PokemonConfig::from_str("magnemite") {
+            assert_eq!(magnemite.get_gender(), Gender::Genderless);
+        }
+
+        // Manual override
+        if let Some(pikachu) = PokemonConfig::from_str("pikachu") {
+             // Default (likely Male due to our heuristic)
+             let default_gender = pikachu.get_gender();
+
+             let female_pikachu = pikachu.gender(Gender::Female);
+             assert_eq!(female_pikachu.get_gender(), Gender::Female);
+             assert_ne!(default_gender, Gender::Female, "Pikachu shouldn't be female by default unless heuristic changed");
+        }
+    }
+
+    #[test]
+    fn test_weight_override() {
+        if let Some(pikachu) = PokemonConfig::from_str("pikachu") {
+            // Base weight 6.0kg = 60hg
+            let base_weight = pikachu.species.data().weight;
+            assert_eq!(base_weight, 60);
+
+            // Override to 100.0kg = 1000hg
+            let heavy_pikachu = pikachu.weight_kg(100.0);
+            assert_eq!(heavy_pikachu.weight, Some(1000));
         }
     }
 }

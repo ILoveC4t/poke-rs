@@ -182,19 +182,17 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
     
     /// Check if a screen is active for the defender's side.
     pub fn has_screen(&self, is_physical: bool) -> bool {
-        use crate::state::SideConditions;
-        
         let side = if self.defender >= 6 { 1 } else { 0 };
         let conditions = self.state.side_conditions[side];
         
-        if conditions.contains(SideConditions::AURORA_VEIL) {
+        if conditions.aurora_veil_turns > 0 {
             return true;
         }
         
         if is_physical {
-            conditions.contains(SideConditions::REFLECT)
+            conditions.reflect_turns > 0
         } else {
-            conditions.contains(SideConditions::LIGHT_SCREEN)
+            conditions.light_screen_turns > 0
         }
     }
 }
