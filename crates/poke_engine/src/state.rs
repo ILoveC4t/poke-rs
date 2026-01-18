@@ -69,6 +69,7 @@ bitflags::bitflags! {
         const NIGHTMARE     = 1 << 21;
         const CURSE         = 1 << 22;  // Ghost-type curse
         const YAWN          = 1 << 23;
+        const SMACK_DOWN    = 1 << 24;
         // FIXME: Add more volatile states as needed (Stockpile, Charge, etc.)
     }
 }
@@ -305,6 +306,51 @@ impl BattleState {
         let boost = self.boosts[index][stat_index - 1]; // Boost indices are shifted
         apply_stat_boost(base, boost)
     }
+
+    /// Check if an entity is grounded.
+    ///
+    /// Logic priority:
+    /// 1. Gravity / In-grain / Smack Down / Iron Ball -> Always Grounded
+    /// 2. Magnet Rise / Telekinesis / Air Balloon / Levitate / Flying Type -> Ungrounded
+    /// 3. Default -> Grounded
+    pub fn is_grounded(&self, index: usize) -> bool {
+        // 1. Forced Grounding
+        if self.gravity {
+            return true;
+        }
+
+        let volatiles = self.volatiles[index];
+        if volatiles.contains(Volatiles::INGRAIN) || volatiles.contains(Volatiles::SMACK_DOWN) {
+            return true;
+        }
+
+        let item = self.items[index];
+        if item == ItemId::Ironball {
+            return true;
+        }
+
+        // 2. Ungrounded Checks
+        if volatiles.contains(Volatiles::MAGNET_RISE) || volatiles.contains(Volatiles::TELEKINESIS) {
+            return false;
+        }
+
+        if item == ItemId::Airballoon {
+            return false;
+        }
+
+        let ability = self.abilities[index];
+        if ability == AbilityId::Levitate {
+            return false;
+        }
+
+        let types = self.types[index];
+        if types[0] == Type::Flying || types[1] == Type::Flying {
+            return false;
+        }
+
+        // 3. Default
+        true
+    }
 }
 
 /// Apply stat stage boost to a base stat
@@ -350,5 +396,58 @@ mod tests {
         assert_eq!(apply_stat_boost(100, 6), 400);  // +6 = 8/2
         assert_eq!(apply_stat_boost(100, -1), 66);  // -1 = 2/3
         assert_eq!(apply_stat_boost(100, -6), 25);  // -6 = 2/8
+    }
+
+    #[test]
+    fn test_grounded_logic() {
+        let mut state = BattleState::new();
+        let idx = 0;
+
+        // Default: Grounded (Normal type)
+        state.types[idx][0] = Type::Normal;
+        assert!(state.is_grounded(idx), "Normal type should be grounded");
+
+        // Flying type: Ungrounded
+        state.types[idx][0] = Type::Flying;
+        assert!(!state.is_grounded(idx), "Flying type should be ungrounded");
+
+        // Levitate: Ungrounded
+        state.types[idx][0] = Type::Normal;
+        state.abilities[idx] = AbilityId::Levitate;
+        assert!(!state.is_grounded(idx), "Levitate should be ungrounded");
+
+        // Air Balloon: Ungrounded
+        state.abilities[idx] = AbilityId::Noability;
+        state.items[idx] = ItemId::Airballoon;
+        assert!(!state.is_grounded(idx), "Air Balloon should be ungrounded");
+
+        // Magnet Rise: Ungrounded
+        state.items[idx] = ItemId::default();
+        state.volatiles[idx] = Volatiles::MAGNET_RISE;
+        assert!(!state.is_grounded(idx), "Magnet Rise should be ungrounded");
+
+        // Gravity overrides Flying
+        state.volatiles[idx] = Volatiles::empty();
+        state.types[idx][0] = Type::Flying;
+        state.gravity = true;
+        assert!(state.is_grounded(idx), "Gravity should ground Flying types");
+
+        // Iron Ball overrides Flying
+        state.gravity = false;
+        state.items[idx] = ItemId::Ironball;
+        assert!(state.is_grounded(idx), "Iron Ball should ground Flying types");
+
+        // Ingrain overrides Levitate
+        state.items[idx] = ItemId::default();
+        state.types[idx][0] = Type::Normal;
+        state.abilities[idx] = AbilityId::Levitate;
+        state.volatiles[idx] = Volatiles::INGRAIN;
+        assert!(state.is_grounded(idx), "Ingrain should ground Levitate users");
+
+        // Smack Down overrides Air Balloon
+        state.volatiles[idx] = Volatiles::SMACK_DOWN;
+        state.abilities[idx] = AbilityId::Noability;
+        state.items[idx] = ItemId::Airballoon;
+        assert!(state.is_grounded(idx), "Smack Down should ground Air Balloon users");
     }
 }
