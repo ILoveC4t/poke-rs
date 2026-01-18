@@ -232,14 +232,12 @@ impl PokemonConfig {
     }
     
     /// Get ability (from override or species default)
-    fn get_ability(&self, _species: &Species) -> AbilityId {
+    fn get_ability(&self, species: &Species) -> AbilityId {
         if let Some(ability) = self.ability {
             return ability;
         }
         
-        // FIXME: Look up species' first ability from Species data
-        // For now, return a placeholder
-        AbilityId::default()
+        species.primary_ability()
     }
     
     // ========================================================================
@@ -855,5 +853,25 @@ mod tests {
         }
 
         eprintln!("pokemon.json: {} passed, {} skipped", passed, skipped);
+    }
+
+    #[test]
+    fn test_default_ability_lookup() {
+        let mut state = BattleState::new();
+
+        if let Some(config) = PokemonConfig::from_str("bulbasaur") {
+            // Bulbasaur's first ability is Overgrow
+            config.spawn(&mut state, 0, 0);
+
+            assert_eq!(state.abilities[0], AbilityId::Overgrow, "Default ability should be Overgrow");
+        }
+
+        if let Some(config) = PokemonConfig::from_str("charmander") {
+            // Charmander's first ability is Blaze
+             config.spawn(&mut state, 1, 0);
+
+             let index = BattleState::entity_index(1, 0);
+             assert_eq!(state.abilities[index], AbilityId::Blaze, "Default ability should be Blaze");
+        }
     }
 }
