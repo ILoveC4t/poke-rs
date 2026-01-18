@@ -179,6 +179,11 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
         use crate::state::Status;
         self.state.status[self.attacker].contains(Status::BURN)
     }
+
+    /// Get the attacker's major status condition.
+    pub fn attacker_status(&self) -> crate::state::Status {
+        self.state.status[self.attacker]
+    }
     
     /// Check if a screen is active for the defender's side.
     pub fn has_screen(&self, is_physical: bool) -> bool {
