@@ -733,5 +733,42 @@ mod tests {
 
             assert_eq!(damage, 127, "Tinted Lens should NOT boost neutral damage");
         }
+
+        // Case 3: Doubly Not Very Effective (0.25x)
+        {
+            state.types[6] = [Type::Rock, Type::Steel]; // Normal vs Rock/Steel is 0.5 * 0.5 = 0.25x
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            assert_eq!(ctx.effectiveness, 1, "Normal vs Rock/Steel should be 0.25x (effectiveness 1)");
+
+            // 1. Roll 85: 85
+            // 2. STAB (1.5x): 127
+            // 3. Effectiveness (0.25x): 127 * 1 / 4 = 31.75 -> 31
+            // 4. Tinted Lens (2x): 31 * 2 = 62
+
+            let rolls = compute_final_damage(&ctx, 100);
+            let damage = rolls[0];
+
+            assert_eq!(damage, 62, "Tinted Lens should double damage for 0.25x effective hits");
+        }
+
+        // Case 4: Super Effective (2x) (should NOT boost)
+        {
+            let fighting_move = MoveId::Karatechop; // Fighting type
+            // Target is Rock/Steel (4x weak to Fighting)
+
+            let ctx = DamageContext::new(gen, &state, 0, 6, fighting_move, false);
+            // Fighting vs Rock (2x) * Fighting vs Steel (2x) = 4x (effectiveness 16)
+            assert_eq!(ctx.effectiveness, 16, "Fighting vs Rock/Steel should be 4x (effectiveness 16)");
+
+            // 1. Roll 85: 85
+            // 2. No STAB (Rattata is Normal): 85
+            // 3. Effectiveness (4x): 85 * 16 / 4 = 340
+            // 4. No boost from Tinted Lens (effectiveness >= 4)
+
+            let rolls = compute_final_damage(&ctx, 100);
+            let damage = rolls[0];
+
+            assert_eq!(damage, 340, "Tinted Lens should NOT boost super effective damage");
+        }
     }
 }
