@@ -483,5 +483,64 @@ mod tests {
             // STAB (1.5x) = 1000.4... -> 1000
             assert!(max_damage >= 990 && max_damage <= 1010, "Doubles Reflect should be ~0.67x (got {})", max_damage);
         }
+
+        // Case 3: Singles + Aurora Veil + Physical (0.5x)
+        {
+            state.format = BattleFormat::Singles;
+            state.side_conditions[1] = SideConditions::AURORA_VEIL;
+
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            let rolls = compute_final_damage(&ctx, base_damage);
+            let max_damage = rolls[15];
+
+            // Expected: 1000 * 0.5 = 500.
+            // STAB (1.5x) = 750.
+            assert!(max_damage >= 740 && max_damage <= 760, "Singles Aurora Veil (Physical) should halve damage (got {})", max_damage);
+        }
+
+        // Case 4: Doubles + Aurora Veil + Physical (~0.67x)
+        {
+            state.format = BattleFormat::Doubles;
+            state.side_conditions[1] = SideConditions::AURORA_VEIL;
+
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            let rolls = compute_final_damage(&ctx, base_damage);
+            let max_damage = rolls[15];
+
+            // Expected: 1000 * (2732/4096) = 666.99...
+            // STAB (1.5x) = 1000.4... -> 1000
+            assert!(max_damage >= 990 && max_damage <= 1010, "Doubles Aurora Veil (Physical) should be ~0.67x (got {})", max_damage);
+        }
+
+        // Move: Thunderbolt (Special)
+        let special_move_id = MoveId::from_str("thunderbolt").unwrap_or(MoveId::default());
+
+        // Case 5: Singles + Aurora Veil + Special (0.5x)
+        {
+            state.format = BattleFormat::Singles;
+            state.side_conditions[1] = SideConditions::AURORA_VEIL;
+
+            let ctx = DamageContext::new(gen, &state, 0, 6, special_move_id, false);
+            let rolls = compute_final_damage(&ctx, base_damage);
+            let max_damage = rolls[15];
+
+            // Expected: 1000 * 0.5 = 500.
+            // No STAB (attacker is Normal type) = 500.
+            assert!(max_damage >= 490 && max_damage <= 510, "Singles Aurora Veil (Special) should halve damage (got {})", max_damage);
+        }
+
+        // Case 6: Doubles + Aurora Veil + Special (~0.67x)
+        {
+            state.format = BattleFormat::Doubles;
+            state.side_conditions[1] = SideConditions::AURORA_VEIL;
+
+            let ctx = DamageContext::new(gen, &state, 0, 6, special_move_id, false);
+            let rolls = compute_final_damage(&ctx, base_damage);
+            let max_damage = rolls[15];
+
+            // Expected: 1000 * (2732/4096) = 666.99...
+            // No STAB (attacker is Normal type) = 666.99... -> 666
+            assert!(max_damage >= 656 && max_damage <= 676, "Doubles Aurora Veil (Special) should be ~0.67x (got {})", max_damage);
+        }
     }
 }
