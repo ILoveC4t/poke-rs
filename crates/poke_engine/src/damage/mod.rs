@@ -90,7 +90,10 @@ fn get_fixed_damage(
     let defender_types = state.types[defender];
     
     match move_name {
-        // Fixed damage = level
+        // ====================================================================
+        // Level-based fixed damage
+        // ====================================================================
+        
         "Night Shade" => {
             // Ghost-type move, Normal-types are immune
             if defender_types[0] == crate::types::Type::Normal 
@@ -110,17 +113,97 @@ fn get_fixed_damage(
             }
         }
         
-        // TODO: Implement these fixed damage moves
-        // "Dragon Rage" => Some(40),
-        // "Sonic Boom" => Some(20),
-        // "Super Fang" => Some(state.hp[defender] / 2),
-        // "Nature's Madness" => Some(state.hp[defender] / 2),
-        // "Final Gambit" => Some(state.hp[attacker]),
-        // "Endeavor" => handled specially
-        // "Psywave" => Random 0.5x to 1.5x level
-        // "Counter" / "Mirror Coat" => 2x damage received
-        // "Metal Burst" => 1.5x damage received
-        // "Bide" => 2x stored damage
+        // ====================================================================
+        // Constant fixed damage (removed in Gen 5+)
+        // ====================================================================
+        
+        "Dragon Rage" => {
+            // Dragon-type, Fairy-types are immune (Gen 6+)
+            if defender_types[0] == crate::types::Type::Fairy 
+                || defender_types[1] == crate::types::Type::Fairy {
+                Some(0)
+            } else {
+                Some(40)
+            }
+        }
+        "Sonic Boom" => {
+            // Normal-type, Ghost-types are immune
+            if defender_types[0] == crate::types::Type::Ghost 
+                || defender_types[1] == crate::types::Type::Ghost {
+                Some(0)
+            } else {
+                Some(20)
+            }
+        }
+        
+        // ====================================================================
+        // HP percentage-based damage
+        // ====================================================================
+        
+        // Super Fang / Nature's Madness: 50% of target's current HP
+        "Super Fang" | "Nature's Madness" => {
+            // Normal-type (Super Fang) - Ghost immune
+            // Fairy-type (Nature's Madness) - no immunities by type
+            if move_name == "Super Fang" 
+                && (defender_types[0] == crate::types::Type::Ghost 
+                    || defender_types[1] == crate::types::Type::Ghost) {
+                Some(0)
+            } else {
+                Some((state.hp[defender] / 2).max(1))
+            }
+        }
+        
+        // Guardian of Alola: 75% of target's current HP
+        "Guardian of Alola" => {
+            Some((state.hp[defender] * 3 / 4).max(1))
+        }
+        
+        // Ruination: 50% of target's current HP (Gen 9)
+        "Ruination" => {
+            Some((state.hp[defender] / 2).max(1))
+        }
+        
+        // ====================================================================
+        // Attacker HP-based damage
+        // ====================================================================
+        
+        // Final Gambit: damage = attacker's current HP (attacker faints)
+        "Final Gambit" => {
+            // Fighting-type, Ghost-types are immune
+            if defender_types[0] == crate::types::Type::Ghost 
+                || defender_types[1] == crate::types::Type::Ghost {
+                Some(0)
+            } else {
+                Some(state.hp[attacker])
+            }
+        }
+        
+        // ====================================================================
+        // Endeavor: special handling (reduces target to attacker's HP)
+        // ====================================================================
+        
+        "Endeavor" => {
+            // Normal-type, Ghost-types are immune
+            if defender_types[0] == crate::types::Type::Ghost 
+                || defender_types[1] == crate::types::Type::Ghost {
+                Some(0)
+            } else {
+                let attacker_hp = state.hp[attacker];
+                let defender_hp = state.hp[defender];
+                if defender_hp > attacker_hp {
+                    Some(defender_hp - attacker_hp)
+                } else {
+                    Some(0) // Fails if target HP <= attacker HP
+                }
+            }
+        }
+        
+        // TODO: Implement these (require battle history tracking)
+        // "Counter" => 2x physical damage received this turn
+        // "Mirror Coat" => 2x special damage received this turn
+        // "Metal Burst" => 1.5x damage received this turn
+        // "Bide" => 2x stored damage over 2 turns
+        // "Psywave" => Random damage between level * 0.5 and level * 1.5
         
         _ => None,
     }
@@ -189,12 +272,13 @@ pub fn calculate_damage<G: GenMechanics>(
     
     // Phase 3: Base damage formula
     let level = state.level[attacker] as u32;
-    let base_damage = get_base_damage(level, ctx.base_power as u32, attack as u32, defense as u32);
+    let mut base_damage = get_base_damage(level, ctx.base_power as u32, attack as u32, defense as u32);
     
-    // Phase 4: Apply pre-random modifier chain
-    modifiers::apply_spread_mod(&mut ctx);
-    modifiers::apply_weather_mod(&mut ctx);
-    modifiers::apply_crit_mod(&mut ctx);
+    // Phase 4: Apply pre-random modifiers directly to base damage
+    // These use pokeRound and are applied before the random roll loop
+    modifiers::apply_spread_mod(&mut ctx, &mut base_damage);
+    modifiers::apply_weather_mod(&mut ctx, &mut base_damage);
+    modifiers::apply_crit_mod(&mut ctx, &mut base_damage);
     
     // Phase 5: Generate all 16 damage rolls
     let rolls = modifiers::compute_final_damage(&ctx, base_damage);

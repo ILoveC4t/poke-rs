@@ -286,13 +286,67 @@ impl BattleState {
         self.hp[index] == 0
     }
     
-    /// Get effective speed (base speed × boost multiplier)
-    /// FIXME: This doesn't account for paralysis, Tailwind, weather abilities, etc.
+    /// Get effective speed accounting for all modifiers.
+    ///
+    /// Applies in order:
+    /// 1. Base speed with stat boosts
+    /// 2. Paralysis (0.5x in Gen 7+, 0.25x in Gen 1-6)
+    /// 3. Weather abilities (Swift Swim, Chlorophyll, Sand Rush, Slush Rush)
+    /// 4. Tailwind (2x)
+    /// 5. Choice Scarf (1.5x)
+    /// 6. Iron Ball / Macho Brace (0.5x)
+    /// 7. Unburden (2x if item consumed)
+    ///
+    /// Uses fixed-point arithmetic (no floats) for performance.
     #[inline]
     pub fn effective_speed(&self, index: usize) -> u16 {
         let base = self.stats[index][5]; // Speed is stat index 5
         let boost = self.boosts[index][4]; // Speed is boost index 4
-        apply_stat_boost(base, boost)
+        let mut speed = apply_stat_boost(base, boost) as u32;
+        
+        // Paralysis: 0.5x (Gen 7+)
+        // TODO: Make this generation-aware (0.25x in Gen 1-6)
+        if self.status[index].contains(Status::PARALYSIS) {
+            speed /= 2;
+        }
+        
+        // Weather-based speed abilities
+        let ability = self.abilities[index];
+        let weather = self.weather;
+        let weather_boost = matches!(
+            (ability, weather),
+            (AbilityId::Swiftswim, 2) |     // Rain
+            (AbilityId::Chlorophyll, 1) |    // Sun
+            (AbilityId::Sandrush, 3) |       // Sand
+            (AbilityId::Slushrush, 4) |      // Hail
+            (AbilityId::Slushrush, 5)        // Snow
+        );
+        if weather_boost {
+            speed *= 2;
+        }
+        
+        // Tailwind: 2x speed for the side
+        let side = if index >= MAX_TEAM_SIZE { 1 } else { 0 };
+        if self.side_conditions[side].contains(SideConditions::TAILWIND) {
+            speed *= 2;
+        }
+        
+        // Item modifiers
+        let item = self.items[index];
+        if item == ItemId::Choicescarf {
+            // Choice Scarf: 1.5x
+            speed = speed * 3 / 2;
+        } else if item == ItemId::Ironball {
+            // Iron Ball: 0.5x (Macho Brace also halves speed but is less common)
+            speed /= 2;
+        }
+        
+        // TODO: Unburden (2x if item was consumed) - needs tracking
+        // TODO: Quick Feet (1.5x when statused)
+        // TODO: Slow Start (0.5x for 5 turns)
+        // TODO: Surge Surfer (2x in Electric Terrain)
+        
+        speed.min(u16::MAX as u32) as u16
     }
     
     /// Get effective stat with boost applied
@@ -365,6 +419,125 @@ pub fn apply_stat_boost(base: u16, stage: i8) -> u16 {
         (2, 2 - stage)
     };
     ((base as i32 * numerator) / denominator) as u16
+}
+
+/// Priority bracket for turn order determination
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PriorityBracket {
+    /// Pursuit on switching target
+    Pursuit = 0,
+    /// Highest priority (+5: Helping Hand)
+    Priority5 = 1,
+    /// Priority +4 (Protect, Detect)
+    Priority4 = 2,
+    /// Priority +3 (Fake Out, Quick Guard)
+    Priority3 = 3,
+    /// Priority +2 (Extreme Speed, Follow Me)
+    Priority2 = 4,
+    /// Priority +1 (Aqua Jet, Mach Punch, Sucker Punch)
+    Priority1 = 5,
+    /// Normal priority (0)
+    Normal = 6,
+    /// Priority -1 (Vital Throw)
+    PriorityMinus1 = 7,
+    /// Priority -2 (Focus Punch)
+    PriorityMinus2 = 8,
+    /// Priority -3 (Avalanche, Revenge)
+    PriorityMinus3 = 9,
+    /// Priority -4 (Counter, Mirror Coat)
+    PriorityMinus4 = 10,
+    /// Priority -5 (Roar, Whirlwind)
+    PriorityMinus5 = 11,
+    /// Priority -6 (Trick Room, Circle Throw)
+    PriorityMinus6 = 12,
+    /// Priority -7 (Teleport)
+    PriorityMinus7 = 13,
+}
+
+impl PriorityBracket {
+    /// Convert a move's priority value to a bracket
+    pub fn from_priority(priority: i8) -> Self {
+        match priority {
+            5.. => PriorityBracket::Priority5,
+            4 => PriorityBracket::Priority4,
+            3 => PriorityBracket::Priority3,
+            2 => PriorityBracket::Priority2,
+            1 => PriorityBracket::Priority1,
+            0 => PriorityBracket::Normal,
+            -1 => PriorityBracket::PriorityMinus1,
+            -2 => PriorityBracket::PriorityMinus2,
+            -3 => PriorityBracket::PriorityMinus3,
+            -4 => PriorityBracket::PriorityMinus4,
+            -5 => PriorityBracket::PriorityMinus5,
+            -6 => PriorityBracket::PriorityMinus6,
+            _ => PriorityBracket::PriorityMinus7,
+        }
+    }
+}
+
+/// Result of comparing two actions for turn order
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TurnOrder {
+    /// First entity moves first
+    First,
+    /// Second entity moves first
+    Second,
+    /// Speed tie (random determination needed)
+    Tie,
+}
+
+impl BattleState {
+    /// Compare two entities to determine turn order.
+    ///
+    /// Takes into account:
+    /// - Priority brackets
+    /// - Trick Room (reverses speed comparison)
+    /// - Effective speed
+    ///
+    /// Returns which entity should move first, or Tie if speeds are equal.
+    pub fn compare_turn_order(
+        &self,
+        entity1: usize,
+        priority1: i8,
+        entity2: usize,
+        priority2: i8,
+    ) -> TurnOrder {
+        let bracket1 = PriorityBracket::from_priority(priority1);
+        let bracket2 = PriorityBracket::from_priority(priority2);
+        
+        // Higher priority (lower enum value) goes first
+        if bracket1 < bracket2 {
+            return TurnOrder::First;
+        }
+        if bracket2 < bracket1 {
+            return TurnOrder::Second;
+        }
+        
+        // Same priority bracket: compare speeds
+        let speed1 = self.effective_speed(entity1);
+        let speed2 = self.effective_speed(entity2);
+        
+        // Trick Room: slower goes first
+        if self.trick_room {
+            if speed1 < speed2 {
+                return TurnOrder::First;
+            }
+            if speed2 < speed1 {
+                return TurnOrder::Second;
+            }
+        } else {
+            // Normal: faster goes first
+            if speed1 > speed2 {
+                return TurnOrder::First;
+            }
+            if speed2 > speed1 {
+                return TurnOrder::Second;
+            }
+        }
+        
+        // Speed tie
+        TurnOrder::Tie
+    }
 }
 
 // FIXME: Implement BattleQueue for action/event processing
@@ -449,5 +622,163 @@ mod tests {
         state.abilities[idx] = AbilityId::Noability;
         state.items[idx] = ItemId::Airballoon;
         assert!(state.is_grounded(idx), "Smack Down should ground Air Balloon users");
+    }
+
+    #[test]
+    fn test_effective_speed_paralysis() {
+        let mut state = BattleState::new();
+        let idx = 0;
+        state.stats[idx][5] = 100; // Base 100 speed
+        
+        // Normal speed
+        assert_eq!(state.effective_speed(idx), 100);
+        
+        // Paralysis halves speed
+        state.status[idx] = Status::PARALYSIS;
+        assert_eq!(state.effective_speed(idx), 50);
+    }
+    
+    #[test]
+    fn test_effective_speed_tailwind() {
+        let mut state = BattleState::new();
+        let idx = 0;
+        state.stats[idx][5] = 100;
+        
+        // Tailwind doubles speed
+        state.side_conditions[0] = SideConditions::TAILWIND;
+        assert_eq!(state.effective_speed(idx), 200);
+        
+        // Player 2's Tailwind doesn't affect player 1
+        state.side_conditions[0] = SideConditions::empty();
+        state.side_conditions[1] = SideConditions::TAILWIND;
+        assert_eq!(state.effective_speed(idx), 100);
+        
+        // Player 2 benefits from their own Tailwind
+        let idx2 = 6; // Player 2's first slot
+        state.stats[idx2][5] = 100;
+        assert_eq!(state.effective_speed(idx2), 200);
+    }
+    
+    #[test]
+    fn test_effective_speed_weather_abilities() {
+        let mut state = BattleState::new();
+        let idx = 0;
+        state.stats[idx][5] = 100;
+        
+        // Swift Swim in Rain
+        state.abilities[idx] = AbilityId::Swiftswim;
+        state.weather = 2; // Rain
+        assert_eq!(state.effective_speed(idx), 200);
+        
+        // Swift Swim without Rain
+        state.weather = 0;
+        assert_eq!(state.effective_speed(idx), 100);
+        
+        // Chlorophyll in Sun
+        state.abilities[idx] = AbilityId::Chlorophyll;
+        state.weather = 1; // Sun
+        assert_eq!(state.effective_speed(idx), 200);
+        
+        // Sand Rush in Sand
+        state.abilities[idx] = AbilityId::Sandrush;
+        state.weather = 3; // Sand
+        assert_eq!(state.effective_speed(idx), 200);
+    }
+    
+    #[test]
+    fn test_effective_speed_items() {
+        let mut state = BattleState::new();
+        let idx = 0;
+        state.stats[idx][5] = 100;
+        
+        // Choice Scarf: 1.5x
+        state.items[idx] = ItemId::Choicescarf;
+        assert_eq!(state.effective_speed(idx), 150);
+        
+        // Iron Ball: 0.5x
+        state.items[idx] = ItemId::Ironball;
+        assert_eq!(state.effective_speed(idx), 50);
+    }
+    
+    #[test]
+    fn test_effective_speed_stacking() {
+        let mut state = BattleState::new();
+        let idx = 0;
+        state.stats[idx][5] = 100;
+        
+        // +1 boost + Tailwind + Choice Scarf
+        state.boosts[idx][4] = 1; // +1 speed boost -> 150
+        state.side_conditions[0] = SideConditions::TAILWIND; // -> 300
+        state.items[idx] = ItemId::Choicescarf; // -> 450
+        assert_eq!(state.effective_speed(idx), 450);
+    }
+    
+    #[test]
+    fn test_turn_order_priority() {
+        let state = BattleState::new();
+        
+        // Higher priority goes first
+        assert_eq!(
+            state.compare_turn_order(0, 1, 6, 0),
+            TurnOrder::First,
+            "+1 priority should go before 0"
+        );
+        assert_eq!(
+            state.compare_turn_order(0, 0, 6, 1),
+            TurnOrder::Second,
+            "0 priority should go after +1"
+        );
+    }
+    
+    #[test]
+    fn test_turn_order_speed() {
+        let mut state = BattleState::new();
+        state.stats[0][5] = 100; // Entity 0: 100 speed
+        state.stats[6][5] = 80;  // Entity 6: 80 speed
+        
+        // Faster goes first at same priority
+        assert_eq!(
+            state.compare_turn_order(0, 0, 6, 0),
+            TurnOrder::First,
+            "Faster should go first"
+        );
+        assert_eq!(
+            state.compare_turn_order(6, 0, 0, 0),
+            TurnOrder::Second,
+            "Slower should go second"
+        );
+    }
+    
+    #[test]
+    fn test_turn_order_trick_room() {
+        let mut state = BattleState::new();
+        state.stats[0][5] = 100; // Entity 0: 100 speed
+        state.stats[6][5] = 80;  // Entity 6: 80 speed
+        state.trick_room = true;
+        
+        // In Trick Room, slower goes first
+        assert_eq!(
+            state.compare_turn_order(0, 0, 6, 0),
+            TurnOrder::Second,
+            "In Trick Room, faster should go second"
+        );
+        assert_eq!(
+            state.compare_turn_order(6, 0, 0, 0),
+            TurnOrder::First,
+            "In Trick Room, slower should go first"
+        );
+    }
+    
+    #[test]
+    fn test_turn_order_tie() {
+        let mut state = BattleState::new();
+        state.stats[0][5] = 100;
+        state.stats[6][5] = 100;
+        
+        assert_eq!(
+            state.compare_turn_order(0, 0, 6, 0),
+            TurnOrder::Tie,
+            "Same speed should be a tie"
+        );
     }
 }

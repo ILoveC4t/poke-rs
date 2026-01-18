@@ -4,7 +4,7 @@
 //! of the calculation. Each function is a discrete step in the pipeline.
 
 use super::context::DamageContext;
-use super::formula::{apply_boost, apply_modifier, of16};
+use super::formula::{apply_boost, apply_modifier, apply_modifier_floor, of16, of32, pokeround};
 use super::generations::{GenMechanics, Weather, Terrain};
 use crate::abilities::AbilityId;
 use crate::items::ItemId;
@@ -18,41 +18,107 @@ use crate::state::Status;
 /// Compute the effective base power after ability and item modifiers.
 pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     let mut bp = ctx.base_power as u32;
+    let move_name = ctx.move_data.name;
+    
+    // ========================================================================
+    // Weight-based moves (must be calculated before Technician)
+    // ========================================================================
+    
+    // Grass Knot / Low Kick: BP based on target's weight
+    // Weight is stored in 0.1kg units (fixed-point), so 200kg = 2000
+    if move_name == "Grass Knot" || move_name == "Low Kick" {
+        let defender_species = ctx.state.species[ctx.defender];
+        let weight = defender_species.data().weight; // 0.1kg units
+        bp = match weight {
+            w if w >= 2000 => 120, // >= 200kg
+            w if w >= 1000 => 100, // >= 100kg
+            w if w >= 500 => 80,   // >= 50kg
+            w if w >= 250 => 60,   // >= 25kg
+            w if w >= 100 => 40,   // >= 10kg
+            _ => 20,               // < 10kg
+        };
+    }
+    
+    // Heavy Slam / Heat Crash: BP based on weight ratio (attacker / defender)
+    if move_name == "Heavy Slam" || move_name == "Heat Crash" {
+        let attacker_weight = ctx.state.species[ctx.attacker].data().weight;
+        let defender_weight = ctx.state.species[ctx.defender].data().weight.max(1);
+        // Multiply by 10 for precision before dividing
+        let ratio_x10 = (attacker_weight as u32 * 10) / defender_weight as u32;
+        bp = match ratio_x10 {
+            r if r >= 50 => 120, // >= 5x
+            r if r >= 40 => 100, // >= 4x
+            r if r >= 30 => 80,  // >= 3x
+            r if r >= 20 => 60,  // >= 2x
+            _ => 40,             // < 2x
+        };
+    }
+    
+    // ========================================================================
+    // HP-based moves
+    // ========================================================================
+    
+    // Eruption / Water Spout: BP = 150 * currentHP / maxHP
+    if move_name == "Eruption" || move_name == "Water Spout" {
+        let current_hp = ctx.state.hp[ctx.attacker] as u32;
+        let max_hp = ctx.state.max_hp[ctx.attacker] as u32;
+        bp = (150 * current_hp / max_hp.max(1)).max(1);
+    }
+    
+    // Flail / Reversal: BP increases as HP decreases
+    if move_name == "Flail" || move_name == "Reversal" {
+        let current_hp = ctx.state.hp[ctx.attacker] as u32;
+        let max_hp = ctx.state.max_hp[ctx.attacker] as u32;
+        // HP% thresholds: 48/255 = ~4.7%, 80/255 = ~10.2%, etc.
+        let hp_percent = (current_hp * 48) / max_hp.max(1);
+        bp = match hp_percent {
+            0..=1 => 200,   // < 4.17%
+            2..=4 => 150,   // < 10.42%
+            5..=9 => 100,   // < 20.83%
+            10..=16 => 80,  // < 35.42%
+            17..=32 => 40,  // < 68.75%
+            _ => 20,        // >= 68.75%
+        };
+    }
+    
+    // ========================================================================
+    // Ability-based BP modifiers (after weight calc for Technician interaction)
+    // ========================================================================
     
     // Technician: 1.5x for moves with BP <= 60
     if ctx.attacker_ability == AbilityId::Technician && bp <= 60 {
         bp = bp * 3 / 2;
     }
     
-    // TODO: Implement these base power modifiers
+    // Reckless: 1.2x for recoil moves
+    // TODO: Reckless needs access to move's recoil property, not a flag
+    // The recoil property is stored separately in the move data JSON
+    // if ctx.attacker_ability == AbilityId::Reckless {
+    //     if move has recoil { bp = bp * 6 / 5; }
+    // }
+    
+    // Iron Fist: 1.2x for punch moves
+    if ctx.attacker_ability == AbilityId::Ironfist {
+        if ctx.move_data.flags.intersects(MoveFlags::PUNCH) {
+            bp = bp * 6 / 5;
+        }
+    }
+    
+    // Tough Claws: 1.3x for contact moves
+    if ctx.attacker_ability == AbilityId::Toughclaws {
+        if ctx.move_data.flags.intersects(MoveFlags::CONTACT) {
+            bp = bp * 5461 / 4096; // 1.333... in fixed-point
+        }
+    }
+    
+    // TODO: Implement remaining ability BP modifiers
     // - Rivalry (+/- 25% based on gender)
-    // - Reckless (1.2x for recoil moves)
-    // - Iron Fist (1.2x for punch moves)
     // - Sheer Force (1.3x, disables secondary effects)
     // - Sand Force (1.3x for Rock/Ground/Steel in Sand)
     // - Analytic (1.3x if moving last)
-    // - Tough Claws (1.3x for contact moves)
     // - Aerilate/Pixilate/Refrigerate/Galvanize (1.2x + type change)
     // - Steelworker (1.5x for Steel moves)
     // - Water Bubble (2x for Water moves)
-    
-    // TODO: Item-based BP modifiers
-    // - Muscle Band (1.1x Physical)
-    // - Wise Glasses (1.1x Special)
-    // - Type-boosting items (1.2x)
-    // - Plates (1.2x)
-    // - Gems (1.5x, one-time)
-    
-    // TODO: Weight-based moves
-    // - Grass Knot / Low Kick: BP based on target weight
-    // - Heavy Slam / Heat Crash: BP based on weight ratio
-    
-    // TODO: HP-based moves
-    // - Eruption / Water Spout: BP = 150 * currentHP / maxHP
-    // - Flail / Reversal: Inverse HP scaling
-    
-    // TODO: Other variable BP moves
-    // - Acrobatics (2x without item)
 
     // Facade: 2x if burned, poisoned, or paralyzed
     if ctx.move_id == MoveId::Facade {
@@ -174,18 +240,24 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
 // ============================================================================
 
 /// Apply spread move modifier (0.75x for hitting multiple targets).
-pub fn apply_spread_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
+/// 
+/// Applied directly to base_damage using pokeRound.
+pub fn apply_spread_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_damage: &mut u32) {
     if ctx.is_spread {
-        ctx.apply_mod(3072); // 0.75x
+        // pokeRound(OF32(baseDamage * 3072) / 4096)
+        *base_damage = apply_modifier(*base_damage, 3072); // 0.75x
     }
 }
 
 /// Apply weather modifier.
-pub fn apply_weather_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
+///
+/// Applied directly to base_damage using pokeRound.
+pub fn apply_weather_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_damage: &mut u32) {
     let weather = Weather::from_u8(ctx.state.weather);
     
     if let Some(modifier) = ctx.gen.weather_modifier(weather, ctx.move_type) {
-        ctx.apply_mod(modifier);
+        // pokeRound(OF32(baseDamage * weatherMod) / 4096)
+        *base_damage = apply_modifier(*base_damage, modifier);
     }
     
     // TODO: Handle weather immunity abilities
@@ -204,9 +276,13 @@ pub fn apply_terrain_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
 }
 
 /// Apply critical hit modifier.
-pub fn apply_crit_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
+///
+/// Note: In smogon's implementation, crit uses direct floor(x * 1.5),
+/// NOT the 4096-scale system. This is applied during base damage phase.
+pub fn apply_crit_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_damage: &mut u32) {
     if ctx.is_crit {
-        ctx.apply_mod(ctx.gen.crit_multiplier());
+        // Crit uses floor(damage * 1.5), not the 4096-scale modifier system
+        *base_damage = apply_modifier_floor(*base_damage, 3, 2);
     }
 }
 
@@ -216,18 +292,17 @@ pub fn apply_crit_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
 
 /// Compute final damage for all 16 random rolls.
 ///
-/// This applies:
-/// - Random roll (85-100%)
-/// - STAB
-/// - Type effectiveness
-/// - Burn (for physical moves)
-/// - Screens
-/// - Final modifiers (Life Orb, etc.)
+/// This matches smogon's getFinalDamage order:
+/// 1. Random roll (85-100%)
+/// 2. STAB (apply then pokeround)
+/// 3. Type effectiveness (floor after multiply)
+/// 4. Burn (simple floor(x/2))
+/// 5. Final modifiers (screens, items, abilities)
+///
+/// Note: Weather, spread, and crit are applied to base_damage BEFORE
+/// this function is called.
 pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_damage: u32) -> [u16; 16] {
     let mut rolls = [0u16; 16];
-    
-    // Apply pre-random chain modifier to base damage
-    let modified_base = apply_modifier(base_damage, ctx.chain_mod as u16);
     
     // Type immunity check
     if ctx.effectiveness == 0 {
@@ -235,48 +310,56 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
     }
     
     for i in 0..16 {
-        // Random roll (85-100%)
+        // Step 1: Random roll (85-100%)
+        // floor(OF32(baseAmount * (85 + i)) / 100)
         let roll_percent = 85 + i as u32;
-        let mut damage = (modified_base * roll_percent) / 100;
+        let mut damage = of32(base_damage as u64 * roll_percent as u64) / 100;
         
-        // STAB
+        // Step 2: STAB
+        // Apply STAB modifier, then pokeround BEFORE type effectiveness
         if ctx.has_stab {
             let stab_mod = ctx.gen.stab_multiplier(ctx.has_adaptability, ctx.is_tera_stab);
-            damage = apply_modifier(damage, stab_mod);
+            if stab_mod != 4096 {
+                // damageAmount = OF32(damageAmount * stabMod) / 4096
+                // Then pokeRound before effectiveness
+                let product = of32(damage as u64 * stab_mod as u64);
+                damage = pokeround(product, 4096);
+            }
         }
         
-        // Type effectiveness
-        // effectiveness is in units where 4 = 1x
-        // We multiply by effectiveness and divide by 4
-        damage = damage * ctx.effectiveness as u32 / 4;
+        // Step 3: Type effectiveness
+        // floor(OF32(pokeRound(damageAmount) * effectiveness))
+        // effectiveness is in units where 4 = 1x (so 8 = 2x, 2 = 0.5x)
+        // We multiply by effectiveness then divide by 4
+        damage = of32(damage as u64 * ctx.effectiveness as u64) / 4;
         
-        // Burn (0.5x for physical, unless Guts/Facade)
+        // Step 4: Burn (0.5x for physical, unless Guts/Facade)
+        // Smogon uses simple floor(damage / 2), NOT 4096-scale
         if ctx.is_burned() 
             && ctx.category == MoveCategory::Physical 
             && ctx.attacker_ability != AbilityId::Guts
             && ctx.move_id != MoveId::Facade
         {
-            damage = apply_modifier(damage, ctx.gen.burn_modifier());
+            damage = damage / 2;
         }
         
-        // Screens (Reflect/Light Screen/Aurora Veil)
-        // 0.5x in singles, 0.67x in doubles
+        // Step 5: Screens (Reflect/Light Screen/Aurora Veil)
+        // pokeRound(OF32(damageAmount * screenMod) / 4096)
+        // 0.5x in singles (2048), 0.67x in doubles (2732)
         if !ctx.is_crit && ctx.has_screen(ctx.category == MoveCategory::Physical) {
-            ctx.apply_mod_to(&mut damage, 2048); // 0.5x for singles
+            let screen_mod = 2048u16; // 0.5x for singles
             // TODO: 2732 (0.67x) for doubles
+            damage = apply_modifier(damage, screen_mod);
         }
         
-        // Final modifiers
+        // Step 6: Final modifiers (chain applied with pokeRound)
+        // These are modifiers that weren't applied to base damage
         // TODO: Life Orb (5324 = 1.3x)
         // TODO: Expert Belt (4915 = 1.2x for super effective)
         // TODO: Tinted Lens (8192 = 2x for not very effective)
         // TODO: Sniper (6144 = 1.5x for crits)
         // TODO: Solid Rock / Filter (3072 = 0.75x for super effective)
-        // TODO: Prism Armor (3072 = 0.75x for super effective)
         // TODO: Multiscale / Shadow Shield (2048 = 0.5x at full HP)
-        // TODO: Fluffy (2048 = 0.5x for contact, 8192 = 2x for Fire)
-        // TODO: Friend Guard (3072 = 0.75x)
-        // TODO: Neuroforce (5120 = 1.25x for super effective)
         
         // Minimum damage is 1 (unless immune)
         rolls[i] = damage.max(1).min(u16::MAX as u32) as u16;
@@ -287,6 +370,7 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
 
 impl<G: GenMechanics> DamageContext<'_, G> {
     /// Apply a modifier directly to a damage value (for post-random mods).
+    #[allow(dead_code)]
     fn apply_mod_to(&self, damage: &mut u32, modifier: u16) {
         *damage = apply_modifier(*damage, modifier);
     }

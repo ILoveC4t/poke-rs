@@ -22,32 +22,61 @@ pub const fn of32(value: u64) -> u32 {
 /// Rounds 0.5 down instead of up (banker's rounding toward zero).
 /// This is critical for cartridge accuracy.
 ///
-/// Formula: `floor(n * 2 + 1) / 2` is NOT used.
-/// Instead: if fractional part is exactly 0.5, round down.
+/// The fractional part > 0.5 rounds up, otherwise rounds down.
+/// This differs from standard rounding where 0.5 rounds up.
 #[inline]
-pub const fn pokeround(value: u32) -> u32 {
-    // In fixed-point 4096 scale, 0.5 = 2048
-    // The game uses: (value + 2048 - 1) >> 12 for division
-    // But for general rounding, we check if we're at exactly 0.5
-    value
+pub fn pokeround(value: u32, divisor: u32) -> u32 {
+    // Perform division and check if we should round up
+    // We round up only if remainder > divisor/2 (strictly greater)
+    let quotient = value / divisor;
+    let remainder = value % divisor;
+    let half = divisor / 2;
+    
+    // Round up only if remainder is strictly greater than half
+    // (0.5 exactly rounds DOWN in Pokemon)
+    if remainder > half {
+        quotient + 1
+    } else {
+        quotient
+    }
 }
 
-/// Apply a 4096-scale modifier with proper rounding.
+/// Apply a 4096-scale division with pokeRound.
 ///
-/// This performs: `(value * modifier + 2048) >> 12`
-/// which is equivalent to `value * (modifier / 4096)` with rounding.
+/// This is the standard way to apply modifiers in Pokemon:
+/// `pokeround(value * modifier / 4096)`
+#[inline]
+#[allow(dead_code)]
+pub fn pokeround_4096(value: u32) -> u32 {
+    pokeround(value, 4096)
+}
+
+/// Apply a 4096-scale modifier with proper pokeRound.
+///
+/// This performs: `pokeround(value * modifier / 4096)`
+/// Game Freak rounds 0.5 DOWN, not up.
 #[inline]
 pub fn apply_modifier(value: u32, modifier: u16) -> u32 {
     if modifier == 4096 {
         return value;
     }
-    ((value as u64 * modifier as u64 + 2048) >> 12) as u32
+    let product = of32(value as u64 * modifier as u64);
+    pokeround(product, 4096)
+}
+
+/// Apply a modifier and floor the result (no rounding).
+///
+/// Used for crit multiplier and some other cases where
+/// the game uses simple floor division.
+#[inline]
+pub fn apply_modifier_floor(value: u32, modifier_num: u32, modifier_den: u32) -> u32 {
+    of32(value as u64 * modifier_num as u64) / modifier_den
 }
 
 /// Chain multiple 4096-scale modifiers together.
 ///
 /// Starts at 4096 (1.0x) and multiplies each modifier in sequence.
-/// Each intermediate result is rounded.
+/// Each intermediate result uses pokeRound (0.5 rounds down).
 ///
 /// Clamps the final result to valid bounds (0.1x to 32x approximately).
 pub fn chain_mods(modifiers: &[u16]) -> u32 {
@@ -55,7 +84,8 @@ pub fn chain_mods(modifiers: &[u16]) -> u32 {
     
     for &modifier in modifiers {
         if modifier != 4096 {
-            result = of32((result as u64 * modifier as u64 + 2048) >> 12);
+            let product = of32(result as u64 * modifier as u64);
+            result = pokeround(product, 4096);
         }
     }
     
@@ -284,5 +314,39 @@ mod tests {
         
         // -6 = 0.25x
         assert_eq!(apply_boost(base, -6), 25);
+    }
+    
+    #[test]
+    fn test_pokeround() {
+        // pokeRound rounds 0.5 DOWN (Game Freak's rounding convention)
+        // This differs from standard rounding where 0.5 rounds up
+        
+        // Exact 0.5 should round DOWN
+        // 2048 / 4096 = 0.5 → 0
+        assert_eq!(pokeround(2048, 4096), 0);
+        
+        // Just above 0.5 should round UP
+        // 2049 / 4096 > 0.5 → 1
+        assert_eq!(pokeround(2049, 4096), 1);
+        
+        // Standard cases
+        assert_eq!(pokeround(4096, 4096), 1);   // 1.0
+        assert_eq!(pokeround(6144, 4096), 1);   // 1.5 → rounds to 1 (0.5 rounds down)
+        assert_eq!(pokeround(6145, 4096), 2);   // 1.5+ → rounds to 2
+        assert_eq!(pokeround(8192, 4096), 2);   // 2.0
+        
+        // Test with smaller divisor
+        assert_eq!(pokeround(5, 10), 0);   // 0.5 → 0
+        assert_eq!(pokeround(6, 10), 1);   // 0.6 → 1
+        assert_eq!(pokeround(15, 10), 1);  // 1.5 → 1
+        assert_eq!(pokeround(16, 10), 2);  // 1.6 → 2
+    }
+    
+    #[test]
+    fn test_apply_modifier_floor() {
+        // Crit uses floor(x * 1.5), not pokeRound
+        assert_eq!(apply_modifier_floor(100, 3, 2), 150); // 100 * 1.5 = 150
+        assert_eq!(apply_modifier_floor(101, 3, 2), 151); // 101 * 1.5 = 151.5 → 151
+        assert_eq!(apply_modifier_floor(99, 3, 2), 148);  // 99 * 1.5 = 148.5 → 148
     }
 }
