@@ -793,6 +793,12 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
                     Some(unsafe { core::mem::transmute(self.type2 - 1) })
                 }
             }
+
+            /// Get primary ability
+            #[inline]
+            pub fn primary_ability(&self) -> super::abilities::AbilityId {
+                unsafe { core::mem::transmute(self.ability0) }
+            }
         }
 
         /// Static species data array
