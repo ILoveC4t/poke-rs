@@ -262,35 +262,11 @@ pub fn calculate_damage<G: GenMechanics>(
     }
     
     // Create damage context
-    let mut ctx = DamageContext::new(gen, state, attacker, defender, move_id, is_crit);
-    
-    // Phase 1: Compute base power (Technician, etc.)
-    modifiers::compute_base_power(&mut ctx);
-    
-    // Phase 2: Get effective stats (apply boosts, crit rules)
-    let (attack, defense) = modifiers::compute_effective_stats(&ctx);
-    
-    // Phase 3: Base damage formula
-    let level = state.level[attacker] as u32;
-    let mut base_damage = get_base_damage(level, ctx.base_power as u32, attack as u32, defense as u32);
-    
-    // Phase 4: Apply pre-random modifiers directly to base damage
-    // These use pokeRound and are applied before the random roll loop
-    modifiers::apply_spread_mod(&mut ctx, &mut base_damage);
-    modifiers::apply_weather_mod(&mut ctx, &mut base_damage);
-    modifiers::apply_crit_mod(&mut ctx, &mut base_damage);
-    
-    // Phase 5: Generate all 16 damage rolls
-    let rolls = modifiers::compute_final_damage(&ctx, base_damage);
-    
-    DamageResult {
-        rolls,
-        min: rolls[0],
-        max: rolls[15],
-        effectiveness: ctx.effectiveness,
-        is_crit,
-        final_base_power: ctx.base_power,
-    }
+    let ctx = DamageContext::new(gen, state, attacker, defender, move_id, is_crit);
+
+    // Delegate to standard formula (Gen 3+)
+    // TODO: Delegate to gen.calculate_damage(&ctx) once trait is updated
+    formula::calculate_standard(ctx)
 }
 
 #[cfg(test)]

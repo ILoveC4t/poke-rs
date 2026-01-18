@@ -127,6 +127,19 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
         let def_type2_opt = if def_type2 != def_type1 { Some(def_type2) } else { None };
         let effectiveness = gen.type_effectiveness(move_type, def_type1, def_type2_opt);
         
+        // Determine category (respect Physical/Special split)
+        let category = if move_data.category == MoveCategory::Status {
+            MoveCategory::Status
+        } else if gen.uses_physical_special_split() {
+            move_data.category
+        } else {
+            match move_type {
+                Type::Normal | Type::Fighting | Type::Flying | Type::Ground |
+                Type::Rock | Type::Bug | Type::Ghost | Type::Poison | Type::Steel => MoveCategory::Physical,
+                _ => MoveCategory::Special,
+            }
+        };
+
         Self {
             gen,
             state,
@@ -135,7 +148,7 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
             move_id,
             move_data,
             base_power: move_data.power,
-            category: move_data.category,
+            category,
             move_type,
             is_crit,
             is_spread: false, // Set by caller if applicable

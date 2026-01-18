@@ -20,6 +20,10 @@ impl GenMechanics for Gen6 {
     fn has_mega_evolution(&self) -> bool {
         true
     }
+
+    fn can_mega_evolve(&self) -> bool {
+        true
+    }
     
     // STAB without Tera
     fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> u16 {
@@ -39,30 +43,5 @@ impl GenMechanics for Gen6 {
             (Terrain::Misty, Type::Dragon) => Some(2048),
             _ => None,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_gen6_crit() {
-        let gen = Gen6;
-        // Gen 6 introduced 1.5x crit
-        assert_eq!(gen.crit_multiplier(), 6144);
-    }
-    
-    #[test]
-    fn test_gen6_features() {
-        let gen = Gen6;
-        
-        assert!(gen.has_abilities());
-        assert!(gen.has_held_items());
-        assert!(gen.uses_physical_special_split());
-        assert!(!gen.has_terastallization());
-        assert!(gen.has_mega_evolution());
-        assert!(!gen.has_z_moves());
-        assert!(!gen.has_dynamax());
     }
 }

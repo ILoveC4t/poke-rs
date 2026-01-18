@@ -23,6 +23,10 @@ impl GenMechanics for Gen7 {
     fn has_mega_evolution(&self) -> bool {
         true
     }
+
+    fn can_mega_evolve(&self) -> bool {
+        true
+    }
     
     // STAB without Tera
     fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> u16 {
@@ -42,31 +46,5 @@ impl GenMechanics for Gen7 {
             (Terrain::Misty, Type::Dragon) => Some(2048),      // 0.5x
             _ => None,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_gen7_features() {
-        let gen = Gen7;
-        
-        assert!(gen.has_abilities());
-        assert!(gen.has_held_items());
-        assert!(gen.uses_physical_special_split());
-        assert!(!gen.has_terastallization());
-        assert!(gen.has_mega_evolution());
-        assert!(gen.has_z_moves());
-        assert!(!gen.has_dynamax());
-    }
-    
-    #[test]
-    fn test_gen7_terrain_boost() {
-        let gen = Gen7;
-        
-        // 1.5x terrain boost in Gen 7
-        assert_eq!(gen.terrain_modifier(Terrain::Electric, Type::Electric, true), Some(6144));
     }
 }

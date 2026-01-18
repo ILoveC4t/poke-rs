@@ -3,6 +3,11 @@
 //! This module contains the fundamental damage calculation math,
 //! including Game Freak's specific rounding and overflow behaviors.
 
+use super::DamageContext;
+use super::DamageResult;
+use super::generations::GenMechanics;
+use super::modifiers;
+
 /// 16-bit overflow wrapping (simulates hardware behavior).
 /// Values that exceed 65535 wrap around.
 #[inline]
@@ -210,6 +215,44 @@ pub fn apply_acc_eva_boost(base: u16, stage: i8) -> u16 {
     let (num, den) = ACC_EVA_TABLE[index];
     
     of16((base as u32 * num) / den)
+}
+
+/// Calculate standard damage (Gen 3+ formula).
+///
+/// This implements the standard, modular damage pipeline used by most generations.
+///
+/// # Arguments
+/// * `ctx` - The damage context containing all calculation state
+///
+/// # Returns
+/// `DamageResult` with all 16 damage rolls.
+pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageResult {
+    // Phase 1: Compute base power (Technician, etc.)
+    modifiers::compute_base_power(&mut ctx);
+
+    // Phase 2: Get effective stats (apply boosts, crit rules)
+    let (attack, defense) = modifiers::compute_effective_stats(&ctx);
+
+    // Phase 3: Base damage formula
+    let level = ctx.state.level[ctx.attacker] as u32;
+    let mut base_damage = get_base_damage(level, ctx.base_power as u32, attack as u32, defense as u32);
+
+    // Phase 4: Apply pre-random modifiers directly to base damage
+    modifiers::apply_spread_mod(&mut ctx, &mut base_damage);
+    modifiers::apply_weather_mod(&mut ctx, &mut base_damage);
+    modifiers::apply_crit_mod(&mut ctx, &mut base_damage);
+
+    // Phase 5: Generate all 16 damage rolls
+    let rolls = modifiers::compute_final_damage(&ctx, base_damage);
+
+    DamageResult {
+        rolls,
+        min: rolls[0],
+        max: rolls[15],
+        effectiveness: ctx.effectiveness,
+        is_crit: ctx.is_crit,
+        final_base_power: ctx.base_power,
+    }
 }
 
 #[cfg(test)]
