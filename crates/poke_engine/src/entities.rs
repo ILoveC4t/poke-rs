@@ -49,6 +49,9 @@ pub struct PokemonConfig {
     
     /// Move set
     pub moves: [MoveId; MAX_MOVES],
+
+    /// PP Ups used for each move (0-3)
+    pub pp_ups: [u8; MAX_MOVES],
     
     /// Happiness (affects Return/Frustration power)
     /// FIXME: May not be needed if these moves are deprecated in Gen 9
@@ -72,6 +75,7 @@ impl Default for PokemonConfig {
             ability: None,
             item: ItemId::default(),
             moves: [MoveId::default(); MAX_MOVES],
+            pp_ups: [0; MAX_MOVES],
             happiness: 255,
             types_override: None,
             current_hp: None,
@@ -151,6 +155,20 @@ impl PokemonConfig {
     pub fn set_move(mut self, slot: usize, move_id: MoveId) -> Self {
         if slot < MAX_MOVES {
             self.moves[slot] = move_id;
+        }
+        self
+    }
+
+    /// Set PP Ups for all moves
+    pub fn pp_ups(mut self, pp_ups: [u8; MAX_MOVES]) -> Self {
+        self.pp_ups = pp_ups.map(|u| u.min(3));
+        self
+    }
+
+    /// Set PP Ups for a single move at a slot
+    pub fn set_pp_up(mut self, slot: usize, ups: u8) -> Self {
+        if slot < MAX_MOVES {
+            self.pp_ups[slot] = ups.min(3);
         }
         self
     }
@@ -277,9 +295,21 @@ impl PokemonConfig {
         // Set moves and PP
         state.moves[index] = self.moves;
         for i in 0..MAX_MOVES {
-            // FIXME: Look up move's base PP and calculate max PP with PP Ups
-            state.pp[index][i] = 0;  // Placeholder
-            state.max_pp[index][i] = 0;
+            let move_id = self.moves[i];
+            // Skip empty move slots
+            if move_id == MoveId::default() {
+                state.pp[index][i] = 0;
+                state.max_pp[index][i] = 0;
+                continue;
+            }
+
+            let move_data = move_id.data();
+            let base_pp = move_data.pp;
+            let pp_ups = self.pp_ups[i];
+            let max_pp = base_pp + (base_pp * pp_ups / 5);
+
+            state.pp[index][i] = max_pp;
+            state.max_pp[index][i] = max_pp;
         }
         
         // Reset volatile state
@@ -517,6 +547,45 @@ mod tests {
 
         eprintln!("stats.json: {} passed, {} failed", passed, failed);
         assert_eq!(failed, 0, "Some fixture cases failed");
+    }
+
+    #[test]
+    fn test_pp_initialization() {
+        let mut state = BattleState::new();
+        let pikachu = PokemonConfig::from_str("pikachu").unwrap();
+        let thunderbolt = MoveId::from_str("thunderbolt").unwrap();
+
+        // Test with no PP Ups
+        let config1 = pikachu.clone().set_move(0, thunderbolt);
+        config1.spawn(&mut state, 0, 0);
+
+        let expected_base_pp = thunderbolt.data().pp;
+        assert_eq!(state.pp[0][0], expected_base_pp, "PP should match base PP without PP Ups");
+        assert_eq!(state.max_pp[0][0], expected_base_pp, "Max PP should match base PP without PP Ups");
+
+        // Test with 1 PP Up
+        let config2 = pikachu.clone().set_move(0, thunderbolt).set_pp_up(0, 1);
+        config2.spawn(&mut state, 0, 1);
+
+        let expected_pp_1up = expected_base_pp + (expected_base_pp * 1 / 5);
+        assert_eq!(state.pp[1][0], expected_pp_1up, "PP should be increased with 1 PP Up");
+        assert_eq!(state.max_pp[1][0], expected_pp_1up, "Max PP should be increased with 1 PP Up");
+
+        // Test with 2 PP Ups
+        let config3 = pikachu.clone().set_move(0, thunderbolt).set_pp_up(0, 2);
+        config3.spawn(&mut state, 0, 2);
+
+        let expected_pp_2up = expected_base_pp + (expected_base_pp * 2 / 5);
+        assert_eq!(state.pp[2][0], expected_pp_2up, "PP should be increased with 2 PP Ups");
+        assert_eq!(state.max_pp[2][0], expected_pp_2up, "Max PP should be increased with 2 PP Ups");
+
+        // Test with max PP Ups
+        let config4 = pikachu.clone().set_move(0, thunderbolt).set_pp_up(0, 3);
+        config4.spawn(&mut state, 0, 3);
+
+        let expected_max_pp = expected_base_pp + (expected_base_pp * 3 / 5);
+        assert_eq!(state.pp[3][0], expected_max_pp, "PP should be maximized with 3 PP Ups");
+        assert_eq!(state.max_pp[3][0], expected_max_pp, "Max PP should be maximized with 3 PP Ups");
     }
 
     #[test]
