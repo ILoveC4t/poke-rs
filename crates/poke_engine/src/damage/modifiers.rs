@@ -450,6 +450,9 @@ mod tests {
 
         // Move: Tackle (Physical)
         let move_id = MoveId::from_str("tackle").unwrap_or(MoveId::default());
+        
+        // Move: Thunderbolt (Special)
+        let special_move_id = MoveId::from_str("thunderbolt").unwrap_or(MoveId::default());
 
         // Base damage arbitrarily set to 1000 for easy percentage checks
         let base_damage = 1000;
@@ -465,7 +468,7 @@ mod tests {
             let max_damage = rolls[15]; // Max roll (100% of calculation)
 
             // Expected: 1000 * 0.5 = 500.
-            // STAB (1.5x) = 750.
+            // STAB applies (Normal attacker, Normal move): 500 * 1.5 = 750.
             // Range check allowing for small rounding differences
             assert!(max_damage >= 740 && max_damage <= 760, "Singles Reflect should halve damage (got {})", max_damage);
         }
@@ -480,7 +483,7 @@ mod tests {
             let max_damage = rolls[15];
 
             // Expected: 1000 * (2732/4096) = 666.99...
-            // STAB (1.5x) = 1000.4... -> 1000
+            // STAB applies (Normal attacker, Normal move): 666.99 * 1.5 = 1000.4... -> 1000
             assert!(max_damage >= 990 && max_damage <= 1010, "Doubles Reflect should be ~0.67x (got {})", max_damage);
         }
 
@@ -494,7 +497,7 @@ mod tests {
             let max_damage = rolls[15];
 
             // Expected: 1000 * 0.5 = 500.
-            // STAB (1.5x) = 750.
+            // STAB applies (Normal attacker, Normal move): 500 * 1.5 = 750.
             assert!(max_damage >= 740 && max_damage <= 760, "Singles Aurora Veil (Physical) should halve damage (got {})", max_damage);
         }
 
@@ -508,12 +511,9 @@ mod tests {
             let max_damage = rolls[15];
 
             // Expected: 1000 * (2732/4096) = 666.99...
-            // STAB (1.5x) = 1000.4... -> 1000
+            // STAB applies (Normal attacker, Normal move): 666.99 * 1.5 = 1000.4... -> 1000
             assert!(max_damage >= 990 && max_damage <= 1010, "Doubles Aurora Veil (Physical) should be ~0.67x (got {})", max_damage);
         }
-
-        // Move: Thunderbolt (Special)
-        let special_move_id = MoveId::from_str("thunderbolt").unwrap_or(MoveId::default());
 
         // Case 5: Singles + Aurora Veil + Special (0.5x)
         {
@@ -525,7 +525,7 @@ mod tests {
             let max_damage = rolls[15];
 
             // Expected: 1000 * 0.5 = 500.
-            // No STAB (attacker is Normal type) = 500.
+            // No STAB (Normal attacker, Electric move): 500.
             assert!(max_damage >= 490 && max_damage <= 510, "Singles Aurora Veil (Special) should halve damage (got {})", max_damage);
         }
 
@@ -539,7 +539,7 @@ mod tests {
             let max_damage = rolls[15];
 
             // Expected: 1000 * (2732/4096) = 666.99...
-            // No STAB (attacker is Normal type) = 666.99... -> 666
+            // No STAB (Normal attacker, Electric move): 666.99... -> 666
             assert!(max_damage >= 656 && max_damage <= 676, "Doubles Aurora Veil (Special) should be ~0.67x (got {})", max_damage);
         }
     }
