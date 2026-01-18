@@ -30,6 +30,9 @@ mod context;
 mod formula;
 mod modifiers;
 pub mod generations;
+mod special_moves;
+#[cfg(test)]
+mod special_moves_tests;
 
 pub use context::DamageContext;
 pub use formula::{get_base_damage, pokeround, of16, of32, chain_mods};
@@ -262,7 +265,10 @@ pub fn calculate_damage<G: GenMechanics>(
     }
     
     // Create damage context
-    let ctx = DamageContext::new(gen, state, attacker, defender, move_id, is_crit);
+    let mut ctx = DamageContext::new(gen, state, attacker, defender, move_id, is_crit);
+    
+    // Apply special move overrides (e.g. Weather Ball, Struggle, Flying Press)
+    special_moves::apply_special_moves(&mut ctx);
 
     // Delegate to standard formula (Gen 3+)
     // TODO: Delegate to gen.calculate_damage(&ctx) once trait is updated
