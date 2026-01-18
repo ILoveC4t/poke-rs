@@ -483,5 +483,35 @@ mod tests {
             // STAB (1.5x) = 1000.4... -> 1000
             assert!(max_damage >= 990 && max_damage <= 1010, "Doubles Reflect should be ~0.67x (got {})", max_damage);
         }
+
+        // Case 3: Singles + Reflect + Critical Hit (screen should be bypassed)
+        {
+            state.format = BattleFormat::Singles;
+            state.side_conditions[1] = SideConditions::REFLECT;
+
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, true); // is_crit = true
+            let rolls = compute_final_damage(&ctx, base_damage);
+            let max_damage = rolls[15];
+
+            // Expected: 1000 (no screen reduction due to crit)
+            // STAB (1.5x) = 1500
+            // Crit hits should bypass screen, so we expect full damage with STAB
+            assert!(max_damage >= 1490 && max_damage <= 1510, "Critical hit in Singles should bypass Reflect (got {})", max_damage);
+        }
+
+        // Case 4: Doubles + Reflect + Critical Hit (screen should be bypassed)
+        {
+            state.format = BattleFormat::Doubles;
+            state.side_conditions[1] = SideConditions::REFLECT;
+
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, true); // is_crit = true
+            let rolls = compute_final_damage(&ctx, base_damage);
+            let max_damage = rolls[15];
+
+            // Expected: 1000 (no screen reduction due to crit)
+            // STAB (1.5x) = 1500
+            // Crit hits should bypass screen, so we expect full damage with STAB
+            assert!(max_damage >= 1490 && max_damage <= 1510, "Critical hit in Doubles should bypass Reflect (got {})", max_damage);
+        }
     }
 }
