@@ -310,7 +310,7 @@ impl BattleState {
     /// Check if an entity is grounded.
     ///
     /// Logic priority:
-    /// 1. Gravity / In-grain / Smack Down / Iron Ball -> Always Grounded
+    /// 1. Gravity / Ingrain / Smack Down / Iron Ball -> Always Grounded
     /// 2. Magnet Rise / Telekinesis / Air Balloon / Levitate / Flying Type -> Ungrounded
     /// 3. Default -> Grounded
     pub fn is_grounded(&self, index: usize) -> bool {
