@@ -15,10 +15,8 @@ pub mod natures {
     include!(concat!(env!("OUT_DIR"), "/natures.rs"));
 }
 
-/// Ability identifiers
-pub mod abilities {
-    include!(concat!(env!("OUT_DIR"), "/abilities.rs"));
-}
+/// Ability identifiers and hooks
+pub mod abilities;
 
 /// Species data and lookup
 pub mod species {
