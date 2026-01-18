@@ -563,13 +563,29 @@ mod tests {
         assert_eq!(state.pp[0][0], expected_base_pp, "PP should match base PP without PP Ups");
         assert_eq!(state.max_pp[0][0], expected_base_pp, "Max PP should match base PP without PP Ups");
 
-        // Test with max PP Ups
-        let config2 = pikachu.clone().set_move(0, thunderbolt).set_pp_up(0, 3);
+        // Test with 1 PP Up
+        let config2 = pikachu.clone().set_move(0, thunderbolt).set_pp_up(0, 1);
         config2.spawn(&mut state, 0, 1);
 
+        let expected_pp_1up = expected_base_pp + (expected_base_pp * 1 / 5);
+        assert_eq!(state.pp[1][0], expected_pp_1up, "PP should be increased with 1 PP Up");
+        assert_eq!(state.max_pp[1][0], expected_pp_1up, "Max PP should be increased with 1 PP Up");
+
+        // Test with 2 PP Ups
+        let config3 = pikachu.clone().set_move(0, thunderbolt).set_pp_up(0, 2);
+        config3.spawn(&mut state, 0, 2);
+
+        let expected_pp_2up = expected_base_pp + (expected_base_pp * 2 / 5);
+        assert_eq!(state.pp[2][0], expected_pp_2up, "PP should be increased with 2 PP Ups");
+        assert_eq!(state.max_pp[2][0], expected_pp_2up, "Max PP should be increased with 2 PP Ups");
+
+        // Test with max PP Ups
+        let config4 = pikachu.clone().set_move(0, thunderbolt).set_pp_up(0, 3);
+        config4.spawn(&mut state, 0, 3);
+
         let expected_max_pp = expected_base_pp + (expected_base_pp * 3 / 5);
-        assert_eq!(state.pp[1][0], expected_max_pp, "PP should be maximized with 3 PP Ups");
-        assert_eq!(state.max_pp[1][0], expected_max_pp, "Max PP should be maximized with 3 PP Ups");
+        assert_eq!(state.pp[3][0], expected_max_pp, "PP should be maximized with 3 PP Ups");
+        assert_eq!(state.max_pp[3][0], expected_max_pp, "Max PP should be maximized with 3 PP Ups");
     }
 
     #[test]
