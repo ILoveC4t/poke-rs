@@ -806,4 +806,112 @@ mod tests {
             assert_eq!(damage, 340, "Tinted Lens should NOT boost super effective damage");
         }
     }
+
+    #[test]
+    fn test_sniper() {
+        use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
+
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Setup: Atk 100, Def 100
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[0] = [Type::Normal, Type::Normal];
+        state.stats[0][1] = 100; // Atk
+        state.abilities[0] = AbilityId::Sniper;
+
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[6] = [Type::Normal, Type::Normal];
+        state.stats[6][2] = 100; // Def
+
+        let move_id = MoveId::Tackle; // Normal
+
+        // Case 1: Critical Hit (should boost)
+        {
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, true); // is_crit = true
+
+            // 1. Roll 85: 85
+            // 2. STAB (1.5x): 127
+            // 3. Effectiveness (1x): 127
+            // 4. Sniper (1.5x): 127 * 6144 / 4096 = 190.5 -> 190
+
+            let rolls = compute_final_damage(&ctx, 100);
+            let damage = rolls[0]; // min roll 85
+
+            assert_eq!(damage, 190, "Sniper should boost crit damage by 1.5x");
+        }
+
+        // Case 2: No Crit (should NOT boost)
+        {
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false); // is_crit = false
+            let rolls = compute_final_damage(&ctx, 100);
+            let damage = rolls[0];
+
+            assert_eq!(damage, 127, "Sniper should NOT boost non-crit damage");
+        }
+    }
+
+    #[test]
+    fn test_filter() {
+        use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
+
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Setup: Atk 100, Def 100
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[0] = [Type::Fighting, Type::Fighting]; // Fighting for SE vs Normal
+        state.stats[0][1] = 100; // Atk
+
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[6] = [Type::Normal, Type::Normal];
+        state.stats[6][2] = 100; // Def
+        state.abilities[6] = AbilityId::Filter;
+
+        let move_id = MoveId::Karatechop; // Fighting type
+
+        // Case 1: Super Effective (2x) -> Filter (0.75x)
+        {
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            assert_eq!(ctx.effectiveness, 8, "Fighting vs Normal should be 2x (effectiveness 8)");
+
+            // 1. Roll 85: 85
+            // 2. STAB (1.5x): 127
+            // 3. Effectiveness (2x): 127 * 8 / 4 = 254
+            // 4. Filter (0.75x): 254 * 3072 / 4096 = 190.5 -> 190
+
+            let rolls = compute_final_damage(&ctx, 100);
+            let damage = rolls[0];
+
+            assert_eq!(damage, 190, "Filter should reduce SE damage by 0.75x");
+        }
+
+        // Case 2: Neutral (1x) -> No Filter
+        {
+            state.types[0] = [Type::Normal, Type::Normal];
+            let move_id_normal = MoveId::Tackle;
+            let ctx = DamageContext::new(gen, &state, 0, 6, move_id_normal, false);
+            assert_eq!(ctx.effectiveness, 4, "Normal vs Normal should be 1x (effectiveness 4)");
+
+            // 1. Roll 85: 85
+            // 2. STAB (1.5x): 127
+            // 3. Effectiveness (1x): 127
+            // 4. No Filter
+
+            let rolls = compute_final_damage(&ctx, 100);
+            let damage = rolls[0];
+
+            assert_eq!(damage, 127, "Filter should NOT reduce neutral damage");
+        }
+    }
 }
