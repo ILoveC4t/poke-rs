@@ -33,6 +33,8 @@ pub mod generations;
 mod special_moves;
 #[cfg(test)]
 mod special_moves_tests;
+#[cfg(test)]
+mod conditional_moves_tests;
 
 pub use context::DamageContext;
 pub use formula::{get_base_damage, pokeround, of16, of32, chain_mods, apply_modifier};

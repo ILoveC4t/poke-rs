@@ -9,7 +9,7 @@ use super::generations::{GenMechanics, Weather, Terrain};
 use crate::abilities::{AbilityId, ABILITY_REGISTRY};
 use crate::items::ItemId;
 use crate::moves::{MoveCategory, MoveFlags, MoveId};
-// use crate::state::Status;
+use crate::state::Status;
 
 // ============================================================================
 // Ability Hook Helpers
@@ -132,10 +132,26 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     // TODO: Parental Bond ability: Multi-hit (2 hits), second hit at 0.25x power (Gen 7+)
     //       Requires special handling in damage pipeline to return combined damage
 
+    // Venoshock: 2x damage if target is poisoned
+    if ctx.move_id == MoveId::Venoshock && ctx.state.status[ctx.defender].intersects(Status::POISON | Status::TOXIC) {
+        bp = apply_modifier(bp, 8192); // 2x
+    }
+
+    // Hex: 2x damage if target has any major status condition
+    if ctx.move_id == MoveId::Hex && ctx.state.status[ctx.defender] != Status::NONE {
+        bp = apply_modifier(bp, 8192); // 2x
+    }
+
+    // Brine: 2x damage if target is at or below 50% HP
+    if ctx.move_id == MoveId::Brine {
+        let hp = ctx.state.hp[ctx.defender];
+        let max_hp = ctx.state.max_hp[ctx.defender];
+        if hp * 2 <= max_hp {
+            bp = apply_modifier(bp, 8192); // 2x
+        }
+    }
+
     // TODO: Other conditional power moves that weren't in modify_base_power yet:
-    // - Venoshock (2x vs poisoned)
-    // - Hex (2x vs statused)
-    // - Brine (2x below 50% HP)
     // - Assurance (2x if target was hit this turn)
     // - Payback (2x if target moved first)
     // - Avalanche / Revenge (2x if hit by target this turn)
