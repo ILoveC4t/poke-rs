@@ -1,0 +1,11 @@
+# Prevent Git from normalizing line endings in vendor directory
+# This preserves checksums across Windows/Linux
+vendor/** -text
+
+# Standard text files
+*.rs text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
