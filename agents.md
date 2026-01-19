@@ -18,7 +18,7 @@
 - **Item modifier:** `damage/modifiers.rs`, use `ctx.state.items[attacker/defender]`.
 - **Type immunity overrides:** `damage/context.rs` (effectiveness calculation).
 - **Special move behavior:** `damage/special_moves.rs`.
-- **Note:** The ability registry exists and is wired into the damage pipeline, but is **implemented but incomplete**; prefer adding ability effects to `crates/poke_engine/src/abilities/` and hooking them into the damage pipeline as needed.
+- **Note:** The ability registry exists and is wired into the damage pipeline (Type Immunities, Weather, etc. implemented); prefer adding ability effects to `crates/poke_engine/src/abilities/` and hooking them into the damage pipeline as needed.
 
 # TESTS
 **Recommended:** Use the AI-friendly test runner.

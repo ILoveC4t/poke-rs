@@ -6,49 +6,96 @@
 use crate::state::BattleState;
 use crate::types::Type;
 
-/// Levitate: Immune to Ground moves
+/// Levitate: Immune to Ground moves (if not grounded)
 pub fn levitate(
+    state: &BattleState,
+    defender: usize,
+    move_type: Type,
+) -> bool {
+    // Note: is_grounded(defender) returns false if Levitate is active AND not negated.
+    // However, if Iron Ball / Gravity is active, is_grounded returns true.
+    // So if grounded, Levitate fails.
+    // If not grounded, Levitate applies (and grants immunity to Ground).
+    move_type == Type::Ground && !state.is_grounded(defender)
+}
+
+/// Flash Fire: Immune to Fire moves
+pub fn flash_fire(
+    _state: &BattleState,
+    _defender: usize,
+    move_type: Type,
+) -> bool {
+    move_type == Type::Fire
+}
+
+/// Volt Absorb: Immune to Electric moves
+pub fn volt_absorb(
+    _state: &BattleState,
+    _defender: usize,
+    move_type: Type,
+) -> bool {
+    move_type == Type::Electric
+}
+
+/// Water Absorb: Immune to Water moves
+pub fn water_absorb(
+    _state: &BattleState,
+    _defender: usize,
+    move_type: Type,
+) -> bool {
+    move_type == Type::Water
+}
+
+/// Storm Drain: Immune to Water moves
+pub fn storm_drain(
+    _state: &BattleState,
+    _defender: usize,
+    move_type: Type,
+) -> bool {
+    move_type == Type::Water
+}
+
+/// Lightning Rod: Immune to Electric moves
+pub fn lightning_rod(
+    _state: &BattleState,
+    _defender: usize,
+    move_type: Type,
+) -> bool {
+    move_type == Type::Electric
+}
+
+/// Sap Sipper: Immune to Grass moves
+pub fn sap_sipper(
+    _state: &BattleState,
+    _defender: usize,
+    move_type: Type,
+) -> bool {
+    move_type == Type::Grass
+}
+
+/// Motor Drive: Immune to Electric moves
+pub fn motor_drive(
+    _state: &BattleState,
+    _defender: usize,
+    move_type: Type,
+) -> bool {
+    move_type == Type::Electric
+}
+
+/// Dry Skin: Immune to Water moves
+pub fn dry_skin(
+    _state: &BattleState,
+    _defender: usize,
+    move_type: Type,
+) -> bool {
+    move_type == Type::Water
+}
+
+/// Earth Eater: Immune to Ground moves
+pub fn earth_eater(
     _state: &BattleState,
     _defender: usize,
     move_type: Type,
 ) -> bool {
     move_type == Type::Ground
 }
-
-// =============================================================================
-// TODO: Future implementations
-// =============================================================================
-
-// TODO: Flash Fire - Fire immunity + boost flag
-// pub fn flash_fire(state: &BattleState, defender: usize, move_type: Type) -> bool {
-//     if move_type == Type::Fire {
-//         // Set flash fire activated flag on defender
-//         true
-//     } else {
-//         false
-//     }
-// }
-
-// TODO: Volt Absorb - Electric immunity + heal
-// pub fn volt_absorb(state: &mut BattleState, defender: usize, move_type: Type) -> bool
-
-// TODO: Water Absorb - Water immunity + heal
-// pub fn water_absorb(state: &mut BattleState, defender: usize, move_type: Type) -> bool
-
-// TODO: Storm Drain - Water immunity + SpA boost
-// pub fn storm_drain(state: &mut BattleState, defender: usize, move_type: Type) -> bool
-
-// TODO: Lightning Rod - Electric immunity + SpA boost
-// pub fn lightning_rod(state: &mut BattleState, defender: usize, move_type: Type) -> bool
-
-// TODO: Sap Sipper - Grass immunity + Atk boost
-// pub fn sap_sipper(state: &mut BattleState, defender: usize, move_type: Type) -> bool
-
-// TODO: Motor Drive - Electric immunity + Speed boost
-// pub fn motor_drive(state: &mut BattleState, defender: usize, move_type: Type) -> bool
-
-// TODO: Dry Skin - Water immunity + heal, Fire weakness
-// pub fn dry_skin(state: &mut BattleState, defender: usize, move_type: Type) -> bool
-
-// TODO: Earth Eater - Ground immunity + heal
-// pub fn earth_eater(state: &mut BattleState, defender: usize, move_type: Type) -> bool

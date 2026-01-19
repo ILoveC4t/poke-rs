@@ -132,6 +132,42 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
         on_type_immunity: Some(immunity::levitate),
         ..AbilityHooks::NONE
     });
+    registry[AbilityId::Flashfire as usize] = Some(AbilityHooks {
+        on_type_immunity: Some(immunity::flash_fire),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Voltabsorb as usize] = Some(AbilityHooks {
+        on_type_immunity: Some(immunity::volt_absorb),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Waterabsorb as usize] = Some(AbilityHooks {
+        on_type_immunity: Some(immunity::water_absorb),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Stormdrain as usize] = Some(AbilityHooks {
+        on_type_immunity: Some(immunity::storm_drain),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Lightningrod as usize] = Some(AbilityHooks {
+        on_type_immunity: Some(immunity::lightning_rod),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Sapsipper as usize] = Some(AbilityHooks {
+        on_type_immunity: Some(immunity::sap_sipper),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Motordrive as usize] = Some(AbilityHooks {
+        on_type_immunity: Some(immunity::motor_drive),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Dryskin as usize] = Some(AbilityHooks {
+        on_type_immunity: Some(immunity::dry_skin),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Eartheater as usize] = Some(AbilityHooks {
+        on_type_immunity: Some(immunity::earth_eater),
+        ..AbilityHooks::NONE
+    });
 
     registry
 };

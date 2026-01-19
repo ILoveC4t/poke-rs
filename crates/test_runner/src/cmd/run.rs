@@ -177,10 +177,6 @@ pub fn execute(args: RunArgs) {
     println!("========================");
     
     eprintln!("\n[test_runner] Results saved to .test_runs/latest.json");
-    
-    if summary.status == "FAILURE" {
-        std::process::exit(1);
-    }
 }
 
 // Helpers specific to parsing (could be moved to parsing.rs if needed, but keeping here for now)

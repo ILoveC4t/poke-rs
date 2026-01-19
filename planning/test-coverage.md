@@ -38,13 +38,16 @@ We track test coverage across different domains of the engine.
 
 1. **Status Effects**: Burn damage reduction implemented, but status application logic needs more tests.
 2. **Field Effects**: Terrain/Weather modifiers implemented, but duration/override logic needs tests.
-3. **Complex Abilities**: Abilities like Mold Breaker, Neutralizing Gas need integration tests.
+3. **Complex Abilities**: Abilities like Mold Breaker, Neutralizing Gas need integration tests. (Mold Breaker check added to immunity hooks).
+
+## Notes
+- **Iron Ball/Gravity**: In Gen 5+, grounded Flying-types resist Ground (0.5x). In Gen 4 and earlier, they take neutral damage (1x). This is implemented in `DamageContext`.
 
 ## Implementation TODOs (from fixture failures)
 
 - [ ] Weight modifiers: Heavy Metal (2x), Light Metal (0.5x), Float Stone (0.5x), Autotomize
-- [ ] Type immunity negation: Ring Target, Iron Ball grounding
-- [ ] Defender abilities: Multiscale/Shadow Shield (0.5x at full HP), Filter/Solid Rock
+- [x] Type immunity negation: Ring Target, Iron Ball grounding
+- [x] Defender abilities: Multiscale/Shadow Shield (0.5x at full HP), Filter/Solid Rock (Implemented)
 - [ ] Knock Off: 1.5x BP when target has removable item (+ Klutz interaction)
 - [ ] Parental Bond: Two-hit with second at 0.25x power
 - [ ] Psychic Terrain: Check attacker grounding for boost, not defender
