@@ -6,6 +6,7 @@
 //!   cargo bench --package poke_engine --bench damage_calc
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
+const BATCH_INNER: usize = 1_000;
 use poke_engine::{
     calculate_damage, BattleState, Gen9, MoveId, PokemonConfig,
 };
@@ -64,14 +65,16 @@ fn bench_single_damage_calc(c: &mut Criterion) {
     
     c.bench_function("damage_calc_single", |b| {
         b.iter(|| {
-            calculate_damage(
-                black_box(Gen9),
-                black_box(&state),
-                black_box(0),
-                black_box(6),
-                black_box(move_id),
-                black_box(false),
-            )
+            for _ in 0..BATCH_INNER {
+                calculate_damage(
+                    black_box(Gen9),
+                    black_box(&state),
+                    black_box(0),
+                    black_box(6),
+                    black_box(move_id),
+                    black_box(false),
+                );
+            }
         })
     });
 }
@@ -83,13 +86,17 @@ fn bench_damage_calc_with_crit(c: &mut Criterion) {
     
     group.bench_function("non_crit", |b| {
         b.iter(|| {
-            calculate_damage(Gen9, &state, 0, 6, move_id, black_box(false))
+            for _ in 0..(BATCH_INNER / 2) {
+                calculate_damage(Gen9, &state, 0, 6, move_id, black_box(false));
+            }
         })
     });
     
     group.bench_function("crit", |b| {
         b.iter(|| {
-            calculate_damage(Gen9, &state, 0, 6, move_id, black_box(true))
+            for _ in 0..(BATCH_INNER / 2) {
+                calculate_damage(Gen9, &state, 0, 6, move_id, black_box(true));
+            }
         })
     });
     
@@ -141,8 +148,10 @@ fn bench_multiple_moves(c: &mut Criterion) {
     
     c.bench_function("damage_calc_4moves", |b| {
         b.iter(|| {
-            for &move_id in &moves {
-                let _ = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+            for _ in 0..(BATCH_INNER / 10) {
+                for &move_id in &moves {
+                    let _ = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+                }
             }
         })
     });
@@ -154,14 +163,15 @@ fn bench_ai_rollout_simulation(c: &mut Criterion) {
     
     c.bench_function("ai_rollout_100_states", |b| {
         b.iter(|| {
-            let mut state = base_state;
-            for _ in 0..100 {
-                // Calculate damage
-                let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
-                // Simulate applying damage (mutating state)
-                state.hp[6] = state.hp[6].saturating_sub(result.rolls[8]);
-                // Reset for next iteration
-                state.hp[6] = state.max_hp[6];
+            // Keep the original 100-state rollout, but repeat the whole rollout
+            // multiple times per sample to increase per-sample duration.
+            for _ in 0..10 {
+                let mut state = base_state;
+                for _ in 0..100 {
+                    let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+                    state.hp[6] = state.hp[6].saturating_sub(result.rolls[8]);
+                    state.hp[6] = state.max_hp[6];
+                }
             }
         })
     });

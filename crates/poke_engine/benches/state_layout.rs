@@ -3,6 +3,7 @@ use poke_engine::state::BattleState;
 use poke_engine::damage::{calculate_damage, Gen9};
 use poke_engine::moves::MoveId;
 use poke_engine::entities::PokemonConfig;
+const BATCH_INNER: usize = 1_000;
 
 fn create_benchmark_state() -> (BattleState, MoveId) {
     let mut state = BattleState::new();
@@ -21,14 +22,8 @@ fn create_benchmark_state() -> (BattleState, MoveId) {
     (state, move_id)
 }
 
-fn benchmark_state_size(c: &mut Criterion) {
-    c.bench_function("BattleState size", |b| {
-        b.iter(|| {
-            std::mem::size_of::<BattleState>()
-        })
-    });
-
-    // Report actual size
+fn benchmark_state_size() {
+    // Report actual size (not part of the noisy timing suite)
     println!("BattleState size: {} bytes", std::mem::size_of::<BattleState>());
     println!("Fits in L1 cache line (64B): {}", std::mem::size_of::<BattleState>() <= 64);
 }
@@ -37,7 +32,11 @@ fn benchmark_state_clone(c: &mut Criterion) {
     let (state, _) = create_benchmark_state();
 
     c.bench_function("BattleState clone", |b| {
-        b.iter(|| black_box(&state).clone())
+        b.iter(|| {
+            for _ in 0..(BATCH_INNER) {
+                let _ = black_box(&state).clone();
+            }
+        })
     });
 }
 
@@ -46,17 +45,20 @@ fn benchmark_damage_calc(c: &mut Criterion) {
 
     c.bench_function("calculate_damage", |b| {
         b.iter(|| {
-            calculate_damage(
-                Gen9,
-                black_box(&state),
-                0, // attacker
-                6, // defender (player 1, slot 0)
-                move_id,
-                false
-            )
+            for _ in 0..(BATCH_INNER / 2) {
+                calculate_damage(
+                    Gen9,
+                    black_box(&state),
+                    0, // attacker
+                    6, // defender (player 1, slot 0)
+                    move_id,
+                    false
+                );
+            }
         })
     });
 }
 
-criterion_group!(benches, benchmark_state_size, benchmark_state_clone, benchmark_damage_calc);
+// `benchmark_state_size` prints static size info and is omitted from the noisy timing group.
+criterion_group!(benches, benchmark_state_clone, benchmark_damage_calc);
 criterion_main!(benches);
