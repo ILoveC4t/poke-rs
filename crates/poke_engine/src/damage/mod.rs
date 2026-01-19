@@ -340,22 +340,23 @@ mod tests {
     fn test_type_immunity() {
         let mut state = BattleState::new();
         
-        // Pikachu vs Gastly (Ghost/Poison - immune to Normal)
+        // Pikachu vs Gengar (Ghost/Poison)
+        // Note: We use Gengar because Gastly has Levitate (immune to Ground).
+        // Gengar has Cursed Body (Gen 9), so it should be hit by Ground.
         if let Some(config) = PokemonConfig::from_str("pikachu") {
             config.level(50).spawn(&mut state, 0, 0);
         }
-        if let Some(config) = PokemonConfig::from_str("gastly") {
+        if let Some(config) = PokemonConfig::from_str("gengar") {
             config.level(50).spawn(&mut state, 1, 0);
         }
         
         // Get a Ground move (Earthquake)
         let earthquake = MoveId::from_str("earthquake").expect("earthquake should exist");
         
-        // Calculate damage (Ground vs Ghost = immune because Gastly has Levitate, 
-        // but type-wise Ghost isn't immune to Ground - we need a better test)
+        // Calculate damage
         let result = calculate_damage(Gen9, &state, 0, 6, earthquake, false);
         
-        // Gastly is Ghost/Poison - neither is immune to Ground
+        // Gengar is Ghost/Poison - neither is immune to Ground type-wise.
         // So this should deal super effective damage (2x to Poison)
         assert!(result.effectiveness > 0, "Ghost/Poison is not immune to Ground");
     }

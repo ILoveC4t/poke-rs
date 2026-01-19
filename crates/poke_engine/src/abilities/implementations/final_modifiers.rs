@@ -28,17 +28,21 @@ pub fn tinted_lens(
     }
 }
 
-// TODO: Sniper - 1.5x damage on critical hits
-// pub fn sniper(
-//     _state: &BattleState,
-//     _attacker: usize,
-//     _defender: usize,
-//     _effectiveness: u8,
-//     is_crit: bool,
-//     damage: u32,
-// ) -> u32 {
-//     if is_crit { apply_modifier(damage, 6144) } else { damage } // 1.5x
-// }
+/// Sniper: 1.5x damage on critical hits
+pub fn sniper(
+    _state: &BattleState,
+    _attacker: usize,
+    _defender: usize,
+    _effectiveness: u8,
+    is_crit: bool,
+    damage: u32,
+) -> u32 {
+    if is_crit {
+        apply_modifier(damage, 6144) // 1.5x
+    } else {
+        damage
+    }
+}
 
 // TODO: Neuroforce - 1.25x on super-effective hits
 // pub fn neuroforce(...) -> u32
@@ -67,18 +71,22 @@ pub fn multiscale(
 // TODO: Shadow Shield - identical to Multiscale
 // pub fn shadow_shield(...) -> u32 { multiscale(...) }
 
-// TODO: Filter / Solid Rock / Prism Armor - 0.75x on super-effective hits
-// pub fn filter(
-//     _state: &BattleState,
-//     _attacker: usize,
-//     _defender: usize,
-//     effectiveness: u8,
-//     _category: MoveCategory,
-//     _is_contact: bool,
-//     damage: u32,
-// ) -> u32 {
-//     if effectiveness > 4 { apply_modifier(damage, 3072) } else { damage } // 0.75x
-// }
+/// Filter / Solid Rock / Prism Armor: 0.75x on super-effective hits
+pub fn filter(
+    _state: &BattleState,
+    _attacker: usize,
+    _defender: usize,
+    effectiveness: u8,
+    _category: MoveCategory,
+    _is_contact: bool,
+    damage: u32,
+) -> u32 {
+    if effectiveness > 4 {
+        apply_modifier(damage, 3072) // 0.75x
+    } else {
+        damage
+    }
+}
 
 // TODO: Fluffy - 0.5x contact damage, 2x Fire damage
 // pub fn fluffy(

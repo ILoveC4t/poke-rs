@@ -100,12 +100,28 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
         on_attacker_final_mod: Some(final_modifiers::tinted_lens),
         ..AbilityHooks::NONE
     });
+    registry[AbilityId::Sniper as usize] = Some(AbilityHooks {
+        on_attacker_final_mod: Some(final_modifiers::sniper),
+        ..AbilityHooks::NONE
+    });
 
     // =========================================================================
     // Defender Final Modifiers (OnDefenderFinalMod)
     // =========================================================================
     registry[AbilityId::Multiscale as usize] = Some(AbilityHooks {
         on_defender_final_mod: Some(final_modifiers::multiscale),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Filter as usize] = Some(AbilityHooks {
+        on_defender_final_mod: Some(final_modifiers::filter),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Solidrock as usize] = Some(AbilityHooks {
+        on_defender_final_mod: Some(final_modifiers::filter),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Prismarmor as usize] = Some(AbilityHooks {
+        on_defender_final_mod: Some(final_modifiers::filter),
         ..AbilityHooks::NONE
     });
 
