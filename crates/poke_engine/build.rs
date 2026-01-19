@@ -1207,13 +1207,13 @@ fn generate_items(out_dir: &Path, data_dir: &Path) {
     let json = fs::read_to_string(data_dir.join("items.json")).expect("items.json");
     let items: BTreeMap<String, ItemData> = serde_json::from_str(&json).expect("parse items");
 
-    // Filter valid items (has num, not nonstandard "Future" unless we want them)
-    // We include "Past" items for testing and compatibility
+    // Filter valid items (has num >= 0, exclude only "Future" nonstandard items)
+    // We include items marked as "Past" for testing and compatibility purposes
     let mut item_list: Vec<(&String, &ItemData)> = items
         .iter()
         .filter(|(_, data)| {
             data.num.map(|n| n >= 0).unwrap_or(false)
-                && data.is_nonstandard.as_ref().map(|s| s != "Future").unwrap_or(true)
+                && !matches!(data.is_nonstandard.as_deref(), Some("Future"))
         })
         .collect();
     item_list.sort_by_key(|(_, data)| data.num.unwrap_or(0));
