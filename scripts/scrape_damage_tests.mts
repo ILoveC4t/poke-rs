@@ -103,8 +103,6 @@ interface CapturedCase {
 }
 
 const capturedCases: CapturedCase[] = [];
-let currentTestName = '';
-let currentGen = 0;
 
 // --- Serialization helpers ---
 function serializePokemon(p: any): CapturedCase['attacker'] {
@@ -180,165 +178,10 @@ function serializeField(f: any): CapturedCase['field'] | undefined {
     return result;
 }
 
-// --- Spy calculate function ---
-function createCalculateSpy(gen: any) {
-    return (attacker: any, defender: any, move: any, field?: any) => {
-        const result = calculate(gen, attacker, defender, move, field);
-
-        const caseId = `gen${gen.num}-${currentTestName.replace(/[^a-zA-Z0-9]/g, '-')}-${capturedCases.length}`;
-
-        capturedCases.push({
-            id: caseId,
-            gen: gen.num,
-            testName: currentTestName,
-            attacker: serializePokemon(attacker),
-            defender: serializePokemon(defender),
-            move: serializeMove(move),
-            field: serializeField(field),
-            expected: {
-                damage: result.damage,
-                desc: result.desc(),
-            },
-            strict: false, // Default to false
-        });
-
-        // Patch toMatch for the 'tests' helper pattern
-        (result as any).toMatch = (_genNum: any, _expected: any) => { };
-
-        return result;
-    };
-}
-
-// --- Mock test runner functions ---
-function describeMock(_name: string, fn: () => void) {
-    fn();
-}
-
-function testMock(name: string, fn: () => void) {
-    const prevTestName = currentTestName;
-    // Replace [object Object] with actual gen number if present
-    currentTestName = name.replace('[object Object]', `${currentGen}`);
-    try {
-        fn();
-    } catch (e) {
-        // Ignore assertion errors - we just want to run the code
-    }
-    currentTestName = prevTestName;
-}
-
-function expectMock(_val: any) {
-    return {
-        toBe: () => { },
-        toEqual: () => { },
-        toMatch: () => { },
-        toMatchSnapshot: () => { },
-        toBeGreaterThan: () => { },
-        toBeLessThan: () => { },
-        toBeGreaterThanOrEqual: () => { },
-        toBeLessThanOrEqual: () => { },
-        toContain: () => { },
-        toBeDefined: () => { },
-        toBeUndefined: () => { },
-        toBeTruthy: () => { },
-        toBeFalsy: () => { },
-        toThrow: () => { },
-        not: {
-            toBe: () => { },
-            toEqual: () => { },
-            toMatch: () => { },
-            toContain: () => { },
-            toBeDefined: () => { },
-            toBeUndefined: () => { },
-            toBeTruthy: () => { },
-            toBeFalsy: () => { },
-            toThrow: () => { },
-        },
-    };
-}
-
-// Mock for result.toMatch() - this is a custom matcher on calc results
-// We need to patch this onto the result objects
-function patchResultToMatch(result: any) {
-    result.toMatch = (_gen: any, _expected: any) => { };
-    return result;
-}
-
-// --- inGens helper mock ---
-function inGensMock(from: number | ((ctx: any) => void), to?: number, fn?: (ctx: any) => void) {
-    // Handle overload: inGens(fn) -> all gens
-    if (typeof from === 'function') {
-        fn = from;
-        from = 1;
-        to = 9;
-    }
-    // Handle overload: inGens(from, fn) -> single gen
-    if (typeof to === 'function') {
-        fn = to;
-        to = from as number;
-    }
-
-    for (let i = from as number; i <= (to as number); i++) {
-        currentGen = i;
-        try {
-            const gen = Generations.get(i);
-            fn!({
-                gen,
-                calculate: createCalculateSpy(gen),
-                Pokemon: (name: string, opts?: any) => new Pokemon(gen, name, opts),
-                Move: (name: string, opts?: any) => new Move(gen, name, opts),
-                Field: (opts?: any) => new Field(opts),
-                Side: (opts?: any) => new Side(opts),
-            });
-        } catch (e) {
-            // Some gens may not support certain features
-        }
-    }
-}
-
-// --- inGen helper mock (single gen version) ---
-function inGenMock(genNum: number, fn: (ctx: any) => void) {
-    currentGen = genNum;
-    try {
-        const gen = Generations.get(genNum);
-        fn({
-            gen,
-            calculate: createCalculateSpy(gen),
-            Pokemon: (name: string, opts?: any) => new Pokemon(gen, name, opts),
-            Move: (name: string, opts?: any) => new Move(gen, name, opts),
-            Field: (opts?: any) => new Field(opts),
-            Side: (opts?: any) => new Side(opts),
-        });
-    } catch (e) {
-        // Gen may not support certain features
-    }
-}
-
-// --- tests helper mock (multi-gen expect pattern) ---
-function testsMock(name: string, fn: (ctx: any) => void) {
-    // The 'tests' helper runs across all gens and provides a toMatch helper
-    for (let i = 1; i <= 9; i++) {
-        currentGen = i;
-        currentTestName = `${name} (gen ${i})`;
-        try {
-            const gen = Generations.get(i);
-            fn({
-                gen,
-                calculate: createCalculateSpy(gen),
-                Pokemon: (name: string, opts?: any) => new Pokemon(gen, name, opts),
-                Move: (name: string, opts?: any) => new Move(gen, name, opts),
-                Field: (opts?: any) => new Field(opts),
-                Side: (opts?: any) => new Side(opts),
-            });
-        } catch (e) {
-            // Gen may not support certain features
-        }
-    }
-}
-
 // --- Process a single test file ---
-function processTestFile(filePath: string) {
+async function processTestFile(filePath: string): Promise<CapturedCase[]> {
     console.log(`Reading tests from ${filePath}...`);
-    let tsCode = fs.readFileSync(filePath, 'utf-8');
+    let tsCode = await fs.promises.readFile(filePath, 'utf-8');
 
     // Remove import statements (we inject dependencies via scope)
     tsCode = tsCode.replace(/^import\s+.*?(?:from\s+)?['"][^'"]*['"];?\s*$/gm, '');
@@ -357,6 +200,159 @@ function processTestFile(filePath: string) {
 
     console.log(`Executing ${path.basename(filePath)} with instrumentation...`);
 
+    const fileCases: CapturedCase[] = [];
+    let currentTestName = '';
+    let currentGen = 0;
+
+    // --- Spy calculate function ---
+    function createCalculateSpy(gen: any) {
+        return (attacker: any, defender: any, move: any, field?: any) => {
+            const result = calculate(gen, attacker, defender, move, field);
+
+            // ID will be assigned later to ensure deterministic order
+            const caseId = '';
+
+            fileCases.push({
+                id: caseId,
+                gen: gen.num,
+                testName: currentTestName,
+                attacker: serializePokemon(attacker),
+                defender: serializePokemon(defender),
+                move: serializeMove(move),
+                field: serializeField(field),
+                expected: {
+                    damage: result.damage,
+                    desc: result.desc(),
+                },
+                strict: false, // Default to false
+            });
+
+            // Patch toMatch for the 'tests' helper pattern
+            (result as any).toMatch = (_genNum: any, _expected: any) => { };
+
+            return result;
+        };
+    }
+
+    // --- Mock test runner functions ---
+    function describeMock(_name: string, fn: () => void) {
+        fn();
+    }
+
+    function testMock(name: string, fn: () => void) {
+        const prevTestName = currentTestName;
+        // Replace [object Object] with actual gen number if present
+        currentTestName = name.replace('[object Object]', `${currentGen}`);
+        try {
+            fn();
+        } catch (e) {
+            // Ignore assertion errors - we just want to run the code
+        }
+        currentTestName = prevTestName;
+    }
+
+    function expectMock(_val: any) {
+        return {
+            toBe: () => { },
+            toEqual: () => { },
+            toMatch: () => { },
+            toMatchSnapshot: () => { },
+            toBeGreaterThan: () => { },
+            toBeLessThan: () => { },
+            toBeGreaterThanOrEqual: () => { },
+            toBeLessThanOrEqual: () => { },
+            toContain: () => { },
+            toBeDefined: () => { },
+            toBeUndefined: () => { },
+            toBeTruthy: () => { },
+            toBeFalsy: () => { },
+            toThrow: () => { },
+            not: {
+                toBe: () => { },
+                toEqual: () => { },
+                toMatch: () => { },
+                toContain: () => { },
+                toBeDefined: () => { },
+                toBeUndefined: () => { },
+                toBeTruthy: () => { },
+                toBeFalsy: () => { },
+                toThrow: () => { },
+            },
+        };
+    }
+
+    // --- inGens helper mock ---
+    function inGensMock(from: number | ((ctx: any) => void), to?: number, fn?: (ctx: any) => void) {
+        // Handle overload: inGens(fn) -> all gens
+        if (typeof from === 'function') {
+            fn = from;
+            from = 1;
+            to = 9;
+        }
+        // Handle overload: inGens(from, fn) -> single gen
+        if (typeof to === 'function') {
+            fn = to;
+            to = from as number;
+        }
+
+        for (let i = from as number; i <= (to as number); i++) {
+            currentGen = i;
+            try {
+                const gen = Generations.get(i);
+                fn!({
+                    gen,
+                    calculate: createCalculateSpy(gen),
+                    Pokemon: (name: string, opts?: any) => new Pokemon(gen, name, opts),
+                    Move: (name: string, opts?: any) => new Move(gen, name, opts),
+                    Field: (opts?: any) => new Field(opts),
+                    Side: (opts?: any) => new Side(opts),
+                });
+            } catch (e) {
+                // Some gens may not support certain features
+            }
+        }
+    }
+
+    // --- inGen helper mock (single gen version) ---
+    function inGenMock(genNum: number, fn: (ctx: any) => void) {
+        currentGen = genNum;
+        try {
+            const gen = Generations.get(genNum);
+            fn({
+                gen,
+                calculate: createCalculateSpy(gen),
+                Pokemon: (name: string, opts?: any) => new Pokemon(gen, name, opts),
+                Move: (name: string, opts?: any) => new Move(gen, name, opts),
+                Field: (opts?: any) => new Field(opts),
+                Side: (opts?: any) => new Side(opts),
+            });
+        } catch (e) {
+            // Gen may not support certain features
+        }
+    }
+
+    // --- tests helper mock (multi-gen expect pattern) ---
+    function testsMock(name: string, fn: (ctx: any) => void) {
+        // The 'tests' helper runs across all gens and provides a toMatch helper
+        for (let i = 1; i <= 9; i++) {
+            currentGen = i;
+            currentTestName = `${name} (gen ${i})`;
+            try {
+                const gen = Generations.get(i);
+                fn({
+                    gen,
+                    calculate: createCalculateSpy(gen),
+                    Pokemon: (name: string, opts?: any) => new Pokemon(gen, name, opts),
+                    Move: (name: string, opts?: any) => new Move(gen, name, opts),
+                    Field: (opts?: any) => new Field(opts),
+                    Side: (opts?: any) => new Side(opts),
+                });
+            } catch (e) {
+                // Gen may not support certain features
+            }
+        }
+    }
+
     // Create a sandboxed execution context
     const runTests = new Function(
         'describe', 'test', 'it', 'expect', 'inGens', 'inGen', 'tests',
@@ -368,6 +364,7 @@ function processTestFile(filePath: string) {
     } catch (e) {
         console.error(`Error running captured code from ${filePath}:`, e);
     }
+    return fileCases;
 }
 
 // --- Run the scraper ---
@@ -379,7 +376,9 @@ async function run() {
         console.error('Please ensure DAMAGE_CALC_PATH points to the damage-calc repository.');
         process.exit(1);
     }
-    processTestFile(calcTestPath);
+
+    const tasks: Promise<CapturedCase[]>[] = [];
+    tasks.push(processTestFile(calcTestPath));
 
     // 2. Mechanics tests
     const mechanicsDir = path.join(testDir, 'mechanics');
@@ -389,7 +388,7 @@ async function run() {
             .map(f => path.join(mechanicsDir, f));
 
         for (const file of mechanicFiles) {
-            processTestFile(file);
+            tasks.push(processTestFile(file));
         }
     }
 
@@ -398,8 +397,19 @@ async function run() {
     for (const f of extraFiles) {
         const p = path.join(testDir, f);
         if (fs.existsSync(p)) {
-            processTestFile(p);
+            tasks.push(processTestFile(p));
         }
+    }
+
+    const results = await Promise.all(tasks);
+    for (const cases of results) {
+        capturedCases.push(...cases);
+    }
+
+    // Assign IDs deterministically
+    for (let i = 0; i < capturedCases.length; i++) {
+        const c = capturedCases[i];
+        c.id = `gen${c.gen}-${c.testName.replace(/[^a-zA-Z0-9]/g, '-')}-${i}`;
     }
 
     console.log(`Captured ${capturedCases.length} test scenarios.`);
