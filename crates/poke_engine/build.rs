@@ -109,6 +109,12 @@ struct MoveData {
     #[allow(dead_code)]
     #[serde(rename = "struggleRecoil")]
     struggle_recoil: Option<bool>,
+
+    // Fields for Sheer Force
+    secondary: Option<serde_json::Value>,
+    secondaries: Option<serde_json::Value>,
+    #[serde(rename = "hasSheerForce")]
+    has_sheer_force: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -1010,6 +1016,16 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
         {
             flag_names.insert("Recoil".to_string());
         }
+
+        // Sheer Force boost criteria: has secondary effects or explicit flag
+        // Note: secondary can be explicit null in JSON, so we check !is_null()
+        let has_secondary = data.secondary.as_ref().map_or(false, |v| !v.is_null())
+            || data.secondaries.as_ref().map_or(false, |v| !v.is_null())
+            || data.has_sheer_force.unwrap_or(false);
+
+        if has_secondary {
+            flag_names.insert("HasSecondaryEffects".to_string());
+        }
     }
     let flag_count = flag_names.len();
     let use_u64 = flag_count > 32;
@@ -1079,6 +1095,18 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
                  flag_bits |= 1 << pos;
              }
          }
+
+         // Inject HasSecondaryEffects flag bit
+         let has_secondary = data.secondary.as_ref().map_or(false, |v| !v.is_null())
+            || data.secondaries.as_ref().map_or(false, |v| !v.is_null())
+            || data.has_sheer_force.unwrap_or(false);
+
+         if has_secondary {
+             if let Some(pos) = flag_names.iter().position(|x| x == "HasSecondaryEffects") {
+                 flag_bits |= 1 << pos;
+             }
+         }
+
          let flag_bits_lit = if use_u64 {
              quote! { #flag_bits }
          } else {

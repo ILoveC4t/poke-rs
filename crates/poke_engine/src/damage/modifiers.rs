@@ -7,6 +7,7 @@ use super::context::DamageContext;
 use super::formula::{apply_boost, apply_modifier, apply_modifier_floor, of16, of32, pokeround};
 use super::generations::{GenMechanics, Weather, Terrain};
 use crate::abilities::{AbilityId, ABILITY_REGISTRY};
+use crate::entities::Gender;
 use crate::items::ItemId;
 use crate::moves::{MoveCategory, MoveFlags, MoveId};
 // use crate::state::Status;
@@ -111,10 +112,38 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
         bp = apply_modifier(bp, modifier);
     }
     
+    // Rivalry (+/- 25% based on gender)
+    if ctx.attacker_ability == AbilityId::Rivalry {
+        let attacker_gender = ctx.state.gender[ctx.attacker];
+        let defender_gender = ctx.state.gender[ctx.defender];
+
+        if attacker_gender != Gender::Genderless && defender_gender != Gender::Genderless {
+            if attacker_gender == defender_gender {
+                bp = apply_modifier(bp, 5120); // 1.25x
+            } else {
+                bp = apply_modifier(bp, 3072); // 0.75x
+            }
+        }
+    }
+
+    // Sheer Force (1.3x)
+    if ctx.attacker_ability == AbilityId::Sheerforce {
+        if ctx.move_data.flags.contains(MoveFlags::HAS_SECONDARY_EFFECTS) {
+            bp = apply_modifier(bp, 5325); // 1.3x
+        }
+    }
+
+    // Sand Force (1.3x for Rock/Ground/Steel in Sand)
+    if ctx.attacker_ability == AbilityId::Sandforce {
+        if Weather::from_u8(ctx.state.weather) == Weather::Sand {
+            use crate::types::Type;
+            if matches!(ctx.move_type, Type::Rock | Type::Ground | Type::Steel) {
+                bp = apply_modifier(bp, 5325); // 1.3x
+            }
+        }
+    }
+
     // TODO: Implement remaining ability BP modifiers
-    // - Rivalry (+/- 25% based on gender)
-    // - Sheer Force (1.3x, disables secondary effects)
-    // - Sand Force (1.3x for Rock/Ground/Steel in Sand)
     // - Analytic (1.3x if moving last)
     // - Aerilate/Pixilate/Refrigerate/Galvanize (1.2x + type change)
 
@@ -847,6 +876,160 @@ mod tests {
             let damage = rolls[0];
 
             assert_eq!(damage, 127, "Filter should NOT reduce neutral damage");
+        }
+    }
+
+    #[test]
+    fn test_rivalry() {
+        use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
+        use crate::entities::Gender;
+
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Setup: Atk 100
+        state.species[0] = SpeciesId::from_str("nidorino").unwrap_or(SpeciesId(33)); // Male
+        state.types[0] = [Type::Poison, Type::Poison];
+        state.stats[0][1] = 100;
+        state.abilities[0] = AbilityId::Rivalry;
+        state.gender[0] = Gender::Male;
+
+        state.species[6] = SpeciesId::from_str("nidorino").unwrap_or(SpeciesId(33));
+        state.types[6] = [Type::Poison, Type::Poison];
+        state.stats[6][2] = 100;
+        state.gender[6] = Gender::Male;
+
+        let move_id = MoveId::Tackle;
+
+        // Case 1: Same Gender (Male vs Male) -> 1.25x
+        {
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            compute_base_power(&mut ctx);
+            // Tackle BP 40. 40 * 1.25 = 50.
+            // 40 * 5120 / 4096 = 50.
+            assert_eq!(ctx.base_power, 50, "Rivalry should boost same gender BP by 1.25x");
+        }
+
+        // Case 2: Opposite Gender (Male vs Female) -> 0.75x
+        {
+            state.gender[6] = Gender::Female;
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            compute_base_power(&mut ctx);
+            // 40 * 0.75 = 30.
+            // 40 * 3072 / 4096 = 30.
+            assert_eq!(ctx.base_power, 30, "Rivalry should reduce opposite gender BP by 0.75x");
+        }
+
+        // Case 3: Genderless (Male vs Genderless) -> 1x
+        {
+            state.gender[6] = Gender::Genderless;
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 40, "Rivalry should not affect genderless targets");
+        }
+    }
+
+    #[test]
+    fn test_sheer_force() {
+        use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
+
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Setup: Atk 100
+        state.species[0] = SpeciesId::from_str("tauros").unwrap_or(SpeciesId(128));
+        state.types[0] = [Type::Normal, Type::Normal];
+        state.stats[0][1] = 100;
+        state.abilities[0] = AbilityId::Sheerforce;
+
+        state.species[6] = SpeciesId::from_str("tauros").unwrap_or(SpeciesId(128));
+        state.types[6] = [Type::Normal, Type::Normal];
+        state.stats[6][2] = 100;
+
+        // Case 1: Move with secondary effect (Thunderbolt) -> 1.3x
+        {
+            let move_id = MoveId::Thunderbolt; // BP 90, has 10% para
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+            // Note: Verify Thunderbolt has secondary effect flag generated by build.rs
+            // If this fails, build.rs logic might be wrong or Thunderbolt data missing secondary
+
+            compute_base_power(&mut ctx);
+            // 90 * 1.3 = 117.
+            // 90 * 5325 / 4096 = 117.004... -> 117.
+            assert_eq!(ctx.base_power, 117, "Sheer Force should boost move with secondary effect by 1.3x");
+        }
+
+        // Case 2: Move without secondary effect (Earthquake) -> 1x
+        {
+            let move_id = MoveId::Earthquake; // BP 100, no secondary
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 100, "Sheer Force should not boost move without secondary effect");
+        }
+    }
+
+    #[test]
+    fn test_sand_force() {
+        use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
+
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Setup: Atk 100
+        state.species[0] = SpeciesId::from_str("probopass").unwrap_or(SpeciesId(476));
+        state.types[0] = [Type::Rock, Type::Steel];
+        state.stats[0][1] = 100;
+        state.abilities[0] = AbilityId::Sandforce;
+
+        state.species[6] = SpeciesId::from_str("probopass").unwrap_or(SpeciesId(476));
+        state.types[6] = [Type::Rock, Type::Steel];
+        state.stats[6][2] = 100;
+
+        // Case 1: Sandstorm + Rock Move -> 1.3x
+        {
+            state.weather = 3; // Sand
+            let move_id = MoveId::Rockthrow; // BP 50, Rock
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+            compute_base_power(&mut ctx);
+            // 50 * 1.3 = 65.
+            assert_eq!(ctx.base_power, 65, "Sand Force should boost Rock moves in Sand");
+        }
+
+        // Case 2: No Weather -> 1x
+        {
+            state.weather = 0;
+            let move_id = MoveId::Rockthrow;
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 50, "Sand Force should not boost without Sand");
+        }
+
+        // Case 3: Sandstorm + Non-boosted Type (e.g. Normal) -> 1x
+        {
+            state.weather = 3;
+            let move_id = MoveId::Tackle; // Normal
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 40, "Sand Force should not boost Normal moves");
         }
     }
 }
