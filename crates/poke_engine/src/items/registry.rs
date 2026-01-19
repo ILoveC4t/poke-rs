@@ -19,10 +19,11 @@ pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
         ..ItemHooks::NONE
     });
 
-    registry[ItemId::Thickclub as usize] = Some(ItemHooks {
-        on_modify_attack: Some(on_modify_attack_thick_club),
-        ..ItemHooks::NONE
-    });
+    // NOTE: Thick Club is filtered out in build.rs due to isNonstandard: "Past"
+    // registry[ItemId::Thickclub as usize] = Some(ItemHooks {
+    //     on_modify_attack: Some(on_modify_attack_thick_club),
+    //     ..ItemHooks::NONE
+    // });
 
     registry[ItemId::Lightball as usize] = Some(ItemHooks {
         on_modify_attack: Some(on_modify_attack_light_ball),

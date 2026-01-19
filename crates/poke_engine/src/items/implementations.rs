@@ -3,7 +3,13 @@
 use crate::moves::MoveCategory;
 use crate::species::SpeciesId;
 use crate::state::BattleState;
-use crate::damage::formula::apply_modifier;
+use crate::damage::apply_modifier;
+use std::sync::OnceLock;
+
+// Cached species IDs to avoid repeated string parsing in hot path
+static CUBONE_ID: OnceLock<SpeciesId> = OnceLock::new();
+static MAROWAK_ID: OnceLock<SpeciesId> = OnceLock::new();
+static PIKACHU_ID: OnceLock<SpeciesId> = OnceLock::new();
 
 
 // Assault Vest: 1.5x SpD, but can only use damaging moves.
@@ -23,17 +29,16 @@ pub fn on_modify_defense_assault_vest(
 }
 
 // Eviolite: 1.5x Def and SpD if the holder can evolve.
+// NOTE: This is currently disabled because evolution data is not yet available in Species struct.
+// TODO: Add evolution data to Species and implement proper Eviolite logic.
 pub fn on_modify_defense_eviolite(
-    state: &BattleState,
-    defender: usize,
+    _state: &BattleState,
+    _defender: usize,
     _attacker: usize,
     _category: MoveCategory,
     defense: u16,
 ) -> u16 {
-    let species_data = state.species[defender].data();
-    if !species_data.evolutions.is_empty() {
-        return apply_modifier(defense.into(), 6144).max(1) as u16; // 1.5x
-    }
+    // Evolution data not yet implemented
     defense
 }
 
@@ -46,13 +51,15 @@ pub fn on_modify_attack_thick_club(
 ) -> u16 {
     if category == MoveCategory::Physical {
         let species = state.species[attacker];
-        if let (Some(cubone), Some(marowak)) = (
-            SpeciesId::from_str("cubone"),
-            SpeciesId::from_str("marowak"),
-        ) {
-            if species == cubone || species == marowak {
-                return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
-            }
+        let cubone = CUBONE_ID.get_or_init(|| {
+            SpeciesId::from_str("cubone").expect("cubone species should exist")
+        });
+        let marowak = MAROWAK_ID.get_or_init(|| {
+            SpeciesId::from_str("marowak").expect("marowak species should exist")
+        });
+        
+        if species == *cubone || species == *marowak {
+            return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
         }
     }
     attack
@@ -65,10 +72,12 @@ pub fn on_modify_attack_light_ball(
     _category: MoveCategory,
     attack: u16,
 ) -> u16 {
-    if let Some(pikachu) = SpeciesId::from_str("pikachu") {
-        if state.species[attacker] == pikachu {
-            return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
-        }
+    let pikachu = PIKACHU_ID.get_or_init(|| {
+        SpeciesId::from_str("pikachu").expect("pikachu species should exist")
+    });
+    
+    if state.species[attacker] == *pikachu {
+        return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
     }
     attack
 }
