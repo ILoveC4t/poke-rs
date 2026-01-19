@@ -3,7 +3,7 @@
 use crate::moves::MoveCategory;
 use crate::species::SpeciesId;
 use crate::state::BattleState;
-use crate::damage::formula::apply_modifier;
+use crate::damage::apply_modifier;
 
 
 // Assault Vest: 1.5x SpD, but can only use damaging moves.
@@ -31,7 +31,7 @@ pub fn on_modify_defense_eviolite(
     defense: u16,
 ) -> u16 {
     let species_data = state.species[defender].data();
-    if !species_data.evolutions.is_empty() {
+    if species_data.has_evolutions {
         return apply_modifier(defense.into(), 6144).max(1) as u16; // 1.5x
     }
     defense

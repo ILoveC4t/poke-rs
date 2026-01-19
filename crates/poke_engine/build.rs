@@ -74,6 +74,8 @@ struct PokedexEntry {
     gender_ratio: Option<HashMap<String, f64>>,
     #[serde(rename = "otherFormes")]
     other_formes: Option<Vec<String>>,
+    #[serde(default)]
+    evos: Option<Vec<String>>,
 }
 
 #[derive(Deserialize)]
@@ -786,6 +788,9 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
                  }
             }
 
+            // Check if has evolutions
+            let has_evos = entry.evos.as_ref().map(|e| !e.is_empty()).unwrap_or(false);
+
             quote! {
                 Species {
                     base_stats: [#hp, #atk, #def, #spa, #spd, #spe],
@@ -801,6 +806,7 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
                     mega_forme: #mega,
                     mega_forme_y: #mega_y,
                     primal_forme: #primal,
+                    has_evolutions: #has_evos,
                 }
             }
         })
@@ -875,6 +881,8 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
             pub mega_forme_y: u16,
             /// Primal Forme ID + 1 (0 = none)
             pub primal_forme: u16,
+            /// Whether this species has any evolutions
+            pub has_evolutions: bool,
         }
 
         /// Flag: Shedinja's HP is always 1
@@ -1199,12 +1207,13 @@ fn generate_items(out_dir: &Path, data_dir: &Path) {
     let json = fs::read_to_string(data_dir.join("items.json")).expect("items.json");
     let items: BTreeMap<String, ItemData> = serde_json::from_str(&json).expect("parse items");
 
-    // Filter valid items (has num, not nonstandard "Past"/"Future" unless we want them)
+    // Filter valid items (has num, not nonstandard "Future" unless we want them)
+    // We include "Past" items for testing and compatibility
     let mut item_list: Vec<(&String, &ItemData)> = items
         .iter()
         .filter(|(_, data)| {
             data.num.map(|n| n >= 0).unwrap_or(false)
-                && data.is_nonstandard.as_ref().map(|s| s != "Past").unwrap_or(true)
+                && data.is_nonstandard.as_ref().map(|s| s != "Future").unwrap_or(true)
         })
         .collect();
     item_list.sort_by_key(|(_, data)| data.num.unwrap_or(0));
