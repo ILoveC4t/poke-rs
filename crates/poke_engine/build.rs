@@ -99,7 +99,16 @@ struct MoveData {
     #[serde(default)]
     flags: HashMap<String, u8>,
     terrain: Option<String>,
-    // FIXME: Add more fields: target, secondary effects, etc.
+    
+    // Recoil fields for Reckless ability
+    recoil: Option<serde_json::Value>,
+    #[serde(rename = "hasCrashDamage")]
+    has_crash_damage: Option<bool>,
+    #[serde(rename = "mindBlownRecoil")]
+    mind_blown_recoil: Option<bool>,
+    #[allow(dead_code)]
+    #[serde(rename = "struggleRecoil")]
+    struggle_recoil: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -113,11 +122,30 @@ struct ItemData {
     #[allow(dead_code)]
     name: String,
     num: Option<i16>,
+    #[allow(dead_code)]
     #[serde(default)]
     gen: u8,
     #[serde(rename = "isNonstandard")]
     is_nonstandard: Option<String>,
     fling: Option<Fling>,
+    #[serde(default)]
+    #[serde(rename = "megaStone")]
+    mega_stone: Option<serde_json::Value>,
+    #[serde(default)]
+    #[serde(rename = "zMove")]
+    z_move: Option<serde_json::Value>,
+    #[serde(default)]
+    #[serde(rename = "onPlate")]
+    on_plate: Option<String>,
+    #[serde(default)]
+    #[serde(rename = "onMemory")]
+    on_memory: Option<String>,
+    #[serde(default)]
+    #[serde(rename = "onDrive")]
+    on_drive: Option<String>,
+    #[serde(default)]
+    #[serde(rename = "forcedForme")]
+    forced_forme: Option<String>,
 }
 
 // ============================================================================
@@ -712,7 +740,7 @@ fn generate_species(out_dir: &Path, data_dir: &Path) {
             };
 
             // Helper to find related species ID
-            let find_related = |suffix: &str| -> u16 {
+            let _find_related = |suffix: &str| -> u16 {
                 // Suffix check: key + suffix
                 let target_key = format!("{}{}", key, suffix);
                 if let Some(&idx) = key_to_idx.get(target_key.as_str()) {
@@ -974,6 +1002,14 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
         for flag in data.flags.keys() {
             flag_names.insert(flag.clone());
         }
+        
+        // Reckless boost criteria: has recoil, crash damage, or mind blown recoil
+        if data.recoil.is_some() 
+            || data.has_crash_damage.unwrap_or(false)
+            || data.mind_blown_recoil.unwrap_or(false) 
+        {
+            flag_names.insert("Recoil".to_string());
+        }
     }
     let flag_count = flag_names.len();
     let use_u64 = flag_count > 32;
@@ -1030,6 +1066,16 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
          let mut flag_bits = 0u64;
          for (flag_key, _) in &data.flags {
              if let Some(pos) = flag_names.iter().position(|x| x == flag_key) {
+                 flag_bits |= 1 << pos;
+             }
+         }
+         
+         // Inject Recoil flag bit
+         if data.recoil.is_some() 
+             || data.has_crash_damage.unwrap_or(false)
+             || data.mind_blown_recoil.unwrap_or(false) 
+         {
+             if let Some(pos) = flag_names.iter().position(|x| x == "Recoil") {
                  flag_bits |= 1 << pos;
              }
          }
@@ -1163,7 +1209,7 @@ fn generate_items(out_dir: &Path, data_dir: &Path) {
         .collect();
     item_list.sort_by_key(|(_, data)| data.num.unwrap_or(0));
 
-    let count = item_list.len();
+    let count = item_list.len() + 1; // +1 for None
 
     // Generate enum variants
     let variants: Vec<TokenStream> = item_list
@@ -1171,7 +1217,7 @@ fn generate_items(out_dir: &Path, data_dir: &Path) {
         .enumerate()
         .map(|(i, (key, _))| {
             let ident = format_ident!("{}", to_valid_ident(key));
-            let idx = i as u16;
+            let idx = (i + 1) as u16; // Shift by 1
             quote! { #ident = #idx }
         })
         .collect();
@@ -1188,9 +1234,20 @@ fn generate_items(out_dir: &Path, data_dir: &Path) {
         .iter()
         .map(|(_, data)| {
             let fling_power = data.fling.as_ref().map(|f| f.base_power).unwrap_or(0);
+            let is_unremovable = data.mega_stone.is_some()
+                || data.z_move.is_some()
+                || data.on_plate.is_some()
+                || data.on_memory.is_some()
+                || data.on_drive.is_some()
+                || data.forced_forme.is_some()
+                || (data.name == "Rusted Sword")
+                || (data.name == "Rusted Shield")
+                || (data.name == "Booster Energy");
+
             quote! {
                 Item {
                     fling_power: #fling_power,
+                    is_unremovable: #is_unremovable,
                 }
             }
         })
@@ -1202,6 +1259,7 @@ fn generate_items(out_dir: &Path, data_dir: &Path) {
         #[repr(u16)]
         pub enum ItemId {
             #[default]
+            None = 0,
             #(#variants),*
         }
 
@@ -1210,6 +1268,8 @@ fn generate_items(out_dir: &Path, data_dir: &Path) {
         pub struct Item {
             /// Fling base power (0 = cannot be flung)
             pub fling_power: u8,
+            /// Whether the item can be removed by Knock Off, etc.
+            pub is_unremovable: bool,
         }
 
         impl ItemId {
@@ -1231,6 +1291,7 @@ fn generate_items(out_dir: &Path, data_dir: &Path) {
 
         /// Static item data array
         pub static ITEMS: [Item; #count] = [
+            Item { fling_power: 0, is_unremovable: false }, // None
             #(#item_data),*
         ];
     };

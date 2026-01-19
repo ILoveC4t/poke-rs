@@ -239,7 +239,7 @@ pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageR
 
     // Phase 4: Apply pre-random modifiers directly to base damage
     modifiers::apply_spread_mod(&mut ctx, &mut base_damage);
-    modifiers::apply_weather_mod(&mut ctx, &mut base_damage);
+    modifiers::apply_weather_mod_damage(&mut ctx, &mut base_damage);
     modifiers::apply_crit_mod(&mut ctx, &mut base_damage);
 
     // Phase 5: Generate all 16 damage rolls

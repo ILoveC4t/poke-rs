@@ -502,7 +502,7 @@ impl BattleState {
         // Form changes like Zygarde: Adds current HP equal to increase in Max HP?
 
         // For simplicity and standard Mega/Primal rules (where HP doesn't change), we recalculate Max HP just in case.
-        let old_max_hp = self.max_hp[entity_idx];
+        let _old_max_hp = self.max_hp[entity_idx];
         self.max_hp[entity_idx] = new_max_hp;
 
         // If HP changed (e.g. Zygarde), adjust current HP?

@@ -8,8 +8,8 @@ use super::formula::{apply_boost, apply_modifier, apply_modifier_floor, of16, of
 use super::generations::{GenMechanics, Weather, Terrain};
 use crate::abilities::{AbilityId, ABILITY_REGISTRY};
 use crate::items::ItemId;
-use crate::moves::{Move, MoveCategory, MoveFlags, MoveId};
-use crate::state::Status;
+use crate::moves::{MoveCategory, MoveFlags, MoveId};
+// use crate::state::Status;
 
 // ============================================================================
 // Ability Hook Helpers
@@ -88,74 +88,9 @@ fn apply_final_mods<G: GenMechanics>(ctx: &DamageContext<'_, G>, mut damage: u32
 
 /// Compute the effective base power after ability and item modifiers.
 pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
-    let mut bp = ctx.base_power as u32;
-    let move_name = ctx.move_data.name;
-    
-    // ========================================================================
-    // Weight-based moves (must be calculated before Technician)
-    // ========================================================================
-    
-    // Grass Knot / Low Kick: BP based on target's weight
-    // Weight is stored in 0.1kg units (fixed-point), so 200kg = 2000
-    // TODO: Apply weight modifiers from abilities (Heavy Metal 2x, Light Metal 0.5x)
-    //       and items (Float Stone 0.5x) before calculating BP.
-    //       Also handle Autotomize state reducing weight by 100kg per use.
-    if move_name == "Grass Knot" || move_name == "Low Kick" {
-        let defender_species = ctx.state.species[ctx.defender];
-        let weight = defender_species.data().weight; // 0.1kg units
-        bp = match weight {
-            w if w >= 2000 => 120, // >= 200kg
-            w if w >= 1000 => 100, // >= 100kg
-            w if w >= 500 => 80,   // >= 50kg
-            w if w >= 250 => 60,   // >= 25kg
-            w if w >= 100 => 40,   // >= 10kg
-            _ => 20,               // < 10kg
-        };
-    }
-    
-    // Heavy Slam / Heat Crash: BP based on weight ratio (attacker / defender)
-    // TODO: Apply weight modifiers (Heavy Metal, Light Metal, Float Stone, Autotomize)
-    //       to both attacker and defender weights before calculating ratio.
-    if move_name == "Heavy Slam" || move_name == "Heat Crash" {
-        let attacker_weight = ctx.state.species[ctx.attacker].data().weight;
-        let defender_weight = ctx.state.species[ctx.defender].data().weight.max(1);
-        // Multiply by 10 for precision before dividing
-        let ratio_x10 = (attacker_weight as u32 * 10) / defender_weight as u32;
-        bp = match ratio_x10 {
-            r if r >= 50 => 120, // >= 5x
-            r if r >= 40 => 100, // >= 4x
-            r if r >= 30 => 80,  // >= 3x
-            r if r >= 20 => 60,  // >= 2x
-            _ => 40,             // < 2x
-        };
-    }
-    
-    // ========================================================================
-    // HP-based moves
-    // ========================================================================
-    
-    // Eruption / Water Spout: BP = 150 * currentHP / maxHP
-    if move_name == "Eruption" || move_name == "Water Spout" {
-        let current_hp = ctx.state.hp[ctx.attacker] as u32;
-        let max_hp = ctx.state.max_hp[ctx.attacker] as u32;
-        bp = (150 * current_hp / max_hp.max(1)).max(1);
-    }
-    
-    // Flail / Reversal: BP increases as HP decreases
-    if move_name == "Flail" || move_name == "Reversal" {
-        let current_hp = ctx.state.hp[ctx.attacker] as u32;
-        let max_hp = ctx.state.max_hp[ctx.attacker] as u32;
-        // HP% thresholds: 48/255 = ~4.7%, 80/255 = ~10.2%, etc.
-        let hp_percent = (current_hp * 48) / max_hp.max(1);
-        bp = match hp_percent {
-            0..=1 => 200,   // < 4.17%
-            2..=4 => 150,   // < 10.42%
-            5..=9 => 100,   // < 20.83%
-            10..=16 => 80,  // < 35.42%
-            17..=32 => 40,  // < 68.75%
-            _ => 20,        // >= 68.75%
-        };
-    }
+    // 1. Apply special move overrides (Weight, HP, Status based)
+    // This replaces the old inline logic for Grass Knot, Eruption, Facade, etc.
+    let mut bp = super::special_moves::modify_base_power(ctx);
     
     // ========================================================================
     // Ability-based BP modifiers via hook system
@@ -164,12 +99,7 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     // Call registered OnModifyBasePower hook if available
     bp = call_base_power_hook(ctx, bp as u16) as u32;
     
-    // Reckless: 1.2x for recoil moves
-    // TODO: Reckless needs access to move's recoil property, not a flag
-    // The recoil property is stored separately in the move data JSON
-    // if ctx.attacker_ability == AbilityId::Reckless {
-    //     if move has recoil { bp = bp * 6 / 5; }
-    // }
+
 
     // Type-boosting items (e.g. Charcoal)
     if let Some(modifier) = get_type_boost_item_mod(ctx.state.items[ctx.attacker], ctx.move_type) {
@@ -182,24 +112,22 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     // - Sand Force (1.3x for Rock/Ground/Steel in Sand)
     // - Analytic (1.3x if moving last)
     // - Aerilate/Pixilate/Refrigerate/Galvanize (1.2x + type change)
-    // - Steelworker (1.5x for Steel moves)
-    // - Water Bubble (2x for Water moves)
 
-    // Facade: 2x if burned, poisoned, or paralyzed
-    if ctx.move_id == MoveId::Facade {
-        let status = ctx.attacker_status();
-        if status.intersects(Status::BURN | Status::POISON | Status::TOXIC | Status::PARALYSIS) {
-            bp *= 2;
+    // Knock Off: 1.5x BP if target has a removable item (Gen 6+)
+    if ctx.move_id == MoveId::Knockoff && ctx.gen.generation() >= 6 {
+        let def_item = ctx.state.items[ctx.defender];
+        if def_item != crate::items::ItemId::None {
+            let item_data = def_item.data();
+            if !item_data.is_unremovable {
+                bp = apply_modifier(bp, 6144); // 1.5x
+            }
         }
     }
-
-    // TODO: Knock Off: 1.5x BP if target has a removable item
-    //       Check defender item != None and item is not unremovable (Mega Stone, Z-Crystal, etc.)
-    //       Also check Klutz: item is still "present" for Knock Off boost even if Klutz negates it
 
     // TODO: Parental Bond ability: Multi-hit (2 hits), second hit at 0.25x power (Gen 7+)
     //       Requires special handling in damage pipeline to return combined damage
 
+    // TODO: Other conditional power moves that weren't in modify_base_power yet:
     // - Venoshock (2x vs poisoned)
     // - Hex (2x vs statused)
     // - Brine (2x below 50% HP)
@@ -212,6 +140,10 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     // - Gyro Ball (inverse speed ratio)
     // - Foul Play (uses target's Atk)
     
+    // Weather modifier (Gen 5+)
+    // In Gen 5+, weather boosts Base Power instead of final damage
+    apply_weather_mod_bp(ctx, &mut bp);
+
     ctx.base_power = bp.min(u16::MAX as u32) as u16;
 }
 
@@ -308,22 +240,28 @@ pub fn apply_spread_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_da
     }
 }
 
-/// Apply weather modifier.
-///
-/// Applied directly to base_damage using pokeRound.
-/// TODO: Terrain boost (Electric/Grassy/Psychic) checks ATTACKER grounding.
-///       Misty Terrain Dragon reduction checks DEFENDER grounding.
-///       Current call site may pass wrong grounding state.
-pub fn apply_weather_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_damage: &mut u32) {
-    let weather = Weather::from_u8(ctx.state.weather);
-    
-    if let Some(modifier) = ctx.gen.weather_modifier(weather, ctx.move_type) {
-        // pokeRound(OF32(baseDamage * weatherMod) / 4096)
-        *base_damage = apply_modifier(*base_damage, modifier);
+/// Apply weather modifier to base damage (Gen 2-4).
+pub fn apply_weather_mod_damage<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_damage: &mut u32) {
+    if ctx.gen.generation() >= 5 {
+        return; // Applied to BP in Gen 5+
     }
     
-    // TODO: Handle weather immunity abilities
-    // - Cloud Nine / Air Lock suppress weather effects
+    let weather = Weather::from_u8(ctx.state.weather);
+    if let Some(modifier) = ctx.gen.weather_modifier(weather, ctx.move_type) {
+        *base_damage = apply_modifier(*base_damage, modifier);
+    }
+}
+
+/// Apply weather modifier to base power (Gen 5+).
+pub fn apply_weather_mod_bp<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, bp: &mut u32) {
+    if ctx.gen.generation() < 5 {
+        return; // Applied to damage in Gen 2-4
+    }
+
+    let weather = Weather::from_u8(ctx.state.weather);
+    if let Some(modifier) = ctx.gen.weather_modifier(weather, ctx.move_type) {
+        *bp = apply_modifier(*bp, modifier);
+    }
 }
 
 /// Apply terrain modifier.

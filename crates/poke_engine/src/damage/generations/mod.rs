@@ -102,6 +102,11 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     /// Generation number (1-9, or 0 for custom)
     const GEN: u8;
     
+    /// Get the generation number at runtime
+    fn generation(&self) -> u8 {
+        Self::GEN
+    }
+    
     // ========================================================================
     // Damage Calculation Entry Point
     // ========================================================================
@@ -333,6 +338,10 @@ impl Generation {
 // Implement GenMechanics for the enum by delegating
 impl GenMechanics for Generation {
     const GEN: u8 = 0; // Runtime determined
+
+    fn generation(&self) -> u8 {
+        self.num()
+    }
 
     fn calculate_damage(&self, ctx: DamageContext<Self>) -> DamageResult {
         // Macro to avoid repetition? Rust macros here might be overkill or messy.

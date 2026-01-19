@@ -77,7 +77,7 @@ impl GenMechanics for Gen1 {
     fn calculate_damage(&self, ctx: DamageContext<Self>) -> DamageResult {
         // Gen 1 Custom Damage Formula
 
-        let move_data = ctx.move_data;
+        let _move_data = ctx.move_data;
 
         // 1. Determine Category (Type-based)
         let category = if is_type_special(ctx.move_type) {

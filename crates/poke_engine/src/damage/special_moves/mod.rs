@@ -1,12 +1,22 @@
+pub mod fixed;
+pub mod power;
+#[cfg(test)]
+mod tests;
+
 use crate::damage::context::DamageContext;
 use crate::damage::generations::{GenMechanics, Weather};
 use crate::moves::MoveId;
 use crate::types::Type;
 
+pub use fixed::get_fixed_damage;
+pub use power::{is_variable_power, modify_base_power};
+
 /// Apply special move logic that overrides standard mechanics.
 ///
 /// This handles moves like Weather Ball (changes type/power), Struggle (typeless),
 /// Flying Press (dual type), etc.
+///
+/// This mutates the `DamageContext` directly.
 pub fn apply_special_moves<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     match ctx.move_id {
         MoveId::Struggle => {
@@ -36,9 +46,28 @@ pub fn apply_special_moves<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
                 ctx.move_type = new_type;
                 ctx.base_power = 100;
 
+                // Gen 3: Update category based on new type (Physical/Special split)
+                if !ctx.gen.uses_physical_special_split() {
+                     ctx.category = if matches!(new_type, 
+                        Type::Fire | Type::Water | Type::Grass | Type::Electric | 
+                        Type::Psychic | Type::Ice | Type::Dragon | Type::Dark) {
+                         crate::moves::MoveCategory::Special
+                     } else {
+                         crate::moves::MoveCategory::Physical
+                     };
+                }
+
                 // Recalculate STAB
+                // Handle Forecast: Castform changes type to match weather (except Sand)
+                let is_forecast = ctx.attacker_ability == crate::abilities::AbilityId::Forecast;
+                let forecasts_matches = match weather {
+                    Weather::Sun | Weather::HarshSun | Weather::Rain | Weather::HeavyRain | Weather::Hail | Weather::Snow => true,
+                    _ => false,
+                };
+
                 let attacker_types = ctx.state.types[ctx.attacker];
-                ctx.has_stab = new_type == attacker_types[0] || new_type == attacker_types[1];
+                ctx.has_stab = new_type == attacker_types[0] || new_type == attacker_types[1]
+                    || (is_forecast && forecasts_matches);
 
                 // Recalculate Effectiveness
                 let def_types = ctx.state.types[ctx.defender];

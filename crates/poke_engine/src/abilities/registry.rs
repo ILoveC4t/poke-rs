@@ -84,6 +84,22 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
         on_modify_base_power: Some(damage_modifiers::tough_claws),
         ..AbilityHooks::NONE
     });
+    registry[AbilityId::Reckless as usize] = Some(AbilityHooks {
+        on_modify_base_power: Some(damage_modifiers::reckless),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Steelworker as usize] = Some(AbilityHooks {
+        on_modify_base_power: Some(damage_modifiers::steelworker),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Waterbubble as usize] = Some(AbilityHooks {
+        on_modify_base_power: Some(damage_modifiers::water_bubble),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Punkrock as usize] = Some(AbilityHooks {
+        on_modify_base_power: Some(damage_modifiers::punk_rock),
+        ..AbilityHooks::NONE
+    });
 
     // =========================================================================
     // Stat Modifiers (OnModifyAttack / OnModifyDefense)
