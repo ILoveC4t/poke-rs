@@ -837,12 +837,12 @@ mod tests {
         state_singles.format = BattleFormat::Singles;
         let ctx_singles = DamageContext::new(gen, &state_singles, 0, 6, move_id, false);
 
-        // Screens (Singles: 0.5x): 127 * 2048 / 4096 = 63.5 -> 64
+        // Screens (Singles: 0.5x): 127 * 2048 / 4096 = 63.5 -> 63 (pokeround: round half down)
 
         let rolls_singles = compute_final_damage(&ctx_singles, 100);
         let damage_singles = rolls_singles[0];
 
-        assert_eq!(damage_singles, 64, "Screens in singles should reduce damage by 0.5x");
+        assert_eq!(damage_singles, 63, "Screens in singles should reduce damage by 0.5x");
     }
 
     #[test]
