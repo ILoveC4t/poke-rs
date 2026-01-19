@@ -137,6 +137,15 @@ pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
         ..ItemHooks::NONE
     });
 
+    // =========================================================================
+    // Weight Modifiers (OnModifyWeight)
+    // =========================================================================
+
+    registry[ItemId::Floatstone as usize] = Some(ItemHooks {
+        on_modify_weight: Some(on_modify_weight_float_stone),
+        ..ItemHooks::NONE
+    });
+
     registry
 };
 

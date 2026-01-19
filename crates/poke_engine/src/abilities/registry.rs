@@ -3,6 +3,7 @@ use crate::abilities::hooks::AbilityHooks;
 use crate::abilities::implementations::{
     weather_setters, priority, intimidate,
     damage_modifiers, stat_modifiers, final_modifiers, immunity,
+    weight_modifiers,
 };
 
 pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
@@ -202,6 +203,18 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
     });
     registry[AbilityId::Eartheater as usize] = Some(AbilityHooks {
         on_type_immunity: Some(immunity::earth_eater),
+        ..AbilityHooks::NONE
+    });
+
+    // =========================================================================
+    // Weight Modifiers (OnModifyWeight)
+    // =========================================================================
+    registry[AbilityId::Heavymetal as usize] = Some(AbilityHooks {
+        on_modify_weight: Some(weight_modifiers::heavy_metal),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Lightmetal as usize] = Some(AbilityHooks {
+        on_modify_weight: Some(weight_modifiers::light_metal),
         ..AbilityHooks::NONE
     });
 

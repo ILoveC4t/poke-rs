@@ -2,6 +2,8 @@ use crate::damage::context::DamageContext;
 use crate::damage::generations::GenMechanics;
 use crate::moves::MoveId;
 use crate::state::Status;
+use crate::abilities::ABILITY_REGISTRY;
+use crate::items::ITEM_REGISTRY;
 
 /// Check if a move has variable base power (often 0 in data).
 pub fn is_variable_power(move_id: MoveId) -> bool {
@@ -11,6 +13,34 @@ pub fn is_variable_power(move_id: MoveId) -> bool {
         MoveId::Eruption | MoveId::Waterspout |
         MoveId::Flail | MoveId::Reversal
     )
+}
+
+/// Calculate effective weight of an entity, applying ability/item modifiers.
+fn get_effective_weight(state: &crate::state::BattleState, entity: usize) -> u16 {
+    let mut weight = state.weight[entity];
+    // If weight is 0 (shouldn't happen in battle but maybe test setup), fallback to species weight
+    if weight == 0 {
+        weight = state.species[entity].data().weight;
+    }
+
+    // Ability modifiers
+    let ability = state.abilities[entity];
+    if let Some(Some(hooks)) = ABILITY_REGISTRY.get(ability as usize) {
+        if let Some(hook) = hooks.on_modify_weight {
+            weight = hook(state, entity, weight);
+        }
+    }
+
+    // Item modifiers
+    let item = state.items[entity];
+    if let Some(Some(hooks)) = ITEM_REGISTRY.get(item as usize) {
+        if let Some(hook) = hooks.on_modify_weight {
+            weight = hook(state, entity, weight);
+        }
+    }
+
+    // Ensure min weight of 0.1kg
+    weight.max(1)
 }
 
 /// Modify base power based on special move logic (weight, HP, etc.)
@@ -26,14 +56,8 @@ pub fn modify_base_power<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> u32 {
     
     // Grass Knot / Low Kick: BP based on target's weight
     // Weight is stored in 0.1kg units (fixed-point), so 200kg = 2000
-    // TODO: Apply weight modifiers from abilities (Heavy Metal 2x, Light Metal 0.5x)
-    //       and items (Float Stone 0.5x) before calculating BP.
-    //       Also handle Autotomize state reducing weight by 100kg per use.
     if ctx.move_id == MoveId::Grassknot || ctx.move_id == MoveId::Lowkick {
-        let mut weight = ctx.state.weight[ctx.defender]; // 0.1kg units
-        if weight == 0 {
-            weight = ctx.state.species[ctx.defender].data().weight;
-        }
+        let weight = get_effective_weight(ctx.state, ctx.defender);
         bp = match weight {
             w if w >= 2000 => 120, // >= 200kg
             w if w >= 1000 => 100, // >= 100kg
@@ -42,20 +66,14 @@ pub fn modify_base_power<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> u32 {
             w if w >= 100 => 40,   // >= 10kg
             _ => 20,               // < 10kg
         };
-        return bp; // Prioritize weight calculation over base power (these moves usually have 0 BP in data)
+        return bp; // Prioritize weight calculation over base power
     }
     
     // Heavy Slam / Heat Crash: BP based on weight ratio (attacker / defender)
     if ctx.move_id == MoveId::Heavyslam || ctx.move_id == MoveId::Heatcrash {
-        let mut attacker_weight = ctx.state.weight[ctx.attacker];
-        if attacker_weight == 0 {
-            attacker_weight = ctx.state.species[ctx.attacker].data().weight;
-        }
-        let mut defender_weight = ctx.state.weight[ctx.defender];
-        if defender_weight == 0 {
-            defender_weight = ctx.state.species[ctx.defender].data().weight;
-        }
-        let defender_weight = defender_weight.max(1);
+        let attacker_weight = get_effective_weight(ctx.state, ctx.attacker);
+        let defender_weight = get_effective_weight(ctx.state, ctx.defender).max(1);
+
         // Multiply by 10 for precision before dividing
         let ratio_x10 = (attacker_weight as u32 * 10) / defender_weight as u32;
         bp = match ratio_x10 {

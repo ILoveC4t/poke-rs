@@ -99,6 +99,7 @@ pub struct ItemHooks {
     pub on_attacker_final_mod: Option<OnAttackerFinalMod>,
     pub on_defender_final_mod: Option<OnDefenderFinalMod>,
     pub on_type_immunity: Option<OnTypeImmunity>,
+    pub on_modify_weight: Option<fn(state: &BattleState, entity: usize, weight: u16) -> u16>,
 }
 
 impl ItemHooks {
@@ -116,6 +117,7 @@ impl ItemHooks {
         on_attacker_final_mod: None,
         on_defender_final_mod: None,
         on_type_immunity: None,
+        on_modify_weight: None,
     };
 
     /// Helper to set weather

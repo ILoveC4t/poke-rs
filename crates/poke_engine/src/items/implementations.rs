@@ -223,3 +223,16 @@ pub fn on_modify_bp_metal_coat(_state: &BattleState, _attacker: usize, _defender
 pub fn on_modify_bp_silk_scarf(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
     type_boost_bp(move_data, Type::Normal, bp)
 }
+
+// ============================================================================
+// Weight Modifiers
+// ============================================================================
+
+// Float Stone: Halves the holder's weight.
+pub fn on_modify_weight_float_stone(
+    _state: &BattleState,
+    _entity: usize,
+    weight: u16,
+) -> u16 {
+    weight / 2
+}
