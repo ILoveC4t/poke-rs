@@ -171,8 +171,14 @@ pub fn sand_force(
 ) -> u16 {
     use crate::types::Type;
     
-    // Check if weather is Sandstorm (3)
-    if state.weather == 3 {
+    // Import Weather from damage module (not abilities::weather)
+    // This provides the from_u8() method for converting BattleState.weather
+    use crate::damage::generations::Weather;
+    
+    if Weather::from_u8(state.weather) == Weather::Sand {
+        // Note: Using primary_type from move_data. Type-changing abilities like
+        // Pixilate aren't implemented yet. When they are, the hook system may
+        // need to be extended to pass the modified type.
         if matches!(move_data.primary_type, Type::Rock | Type::Ground | Type::Steel) {
             // 1.3x (5325/4096)
             (bp as u32 * 5325 / 4096) as u16
