@@ -6,6 +6,11 @@ use crate::state::BattleState;
 use crate::damage::apply_modifier;
 use std::sync::OnceLock;
 
+// Species name constants to avoid typos
+const CUBONE_NAME: &str = "cubone";
+const MAROWAK_NAME: &str = "marowak";
+const PIKACHU_NAME: &str = "pikachu";
+
 // Cached species IDs to avoid repeated string parsing in hot path
 static CUBONE_ID: OnceLock<SpeciesId> = OnceLock::new();
 static MAROWAK_ID: OnceLock<SpeciesId> = OnceLock::new();
@@ -43,6 +48,9 @@ pub fn on_modify_defense_eviolite(
 }
 
 // Thick Club: 2x Atk for Cubone or Marowak.
+// NOTE: This function is not currently used because Thick Club is filtered out by build.rs
+// due to being marked as "isNonstandard": "Past" in the items data.
+#[allow(dead_code)]
 pub fn on_modify_attack_thick_club(
     state: &BattleState,
     attacker: usize,
@@ -52,10 +60,10 @@ pub fn on_modify_attack_thick_club(
     if category == MoveCategory::Physical {
         let species = state.species[attacker];
         let cubone = CUBONE_ID.get_or_init(|| {
-            SpeciesId::from_str("cubone").expect("cubone species should exist")
+            SpeciesId::from_str(CUBONE_NAME).expect("cubone species should exist")
         });
         let marowak = MAROWAK_ID.get_or_init(|| {
-            SpeciesId::from_str("marowak").expect("marowak species should exist")
+            SpeciesId::from_str(MAROWAK_NAME).expect("marowak species should exist")
         });
         
         if species == *cubone || species == *marowak {
@@ -73,7 +81,7 @@ pub fn on_modify_attack_light_ball(
     attack: u16,
 ) -> u16 {
     let pikachu = PIKACHU_ID.get_or_init(|| {
-        SpeciesId::from_str("pikachu").expect("pikachu species should exist")
+        SpeciesId::from_str(PIKACHU_NAME).expect("pikachu species should exist")
     });
     
     if state.species[attacker] == *pikachu {
