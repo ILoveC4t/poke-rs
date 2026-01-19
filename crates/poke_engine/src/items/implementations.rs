@@ -3,11 +3,11 @@
 use crate::moves::MoveCategory;
 use crate::species::SpeciesId;
 use crate::state::BattleState;
-use crate::damage::apply_modifier;
+use crate::damage::formula::apply_modifier;
 
 
 // Assault Vest: 1.5x SpD, but can only use damaging moves.
-// The move restriction part is handled elsewhere.
+// The move restriction part is handled elsewhere (or not at all yet).
 pub fn on_modify_defense_assault_vest(
     _state: &BattleState,
     _defender: usize,
@@ -31,7 +31,7 @@ pub fn on_modify_defense_eviolite(
     defense: u16,
 ) -> u16 {
     let species_data = state.species[defender].data();
-    if species_data.has_evolutions {
+    if !species_data.evolutions.is_empty() {
         return apply_modifier(defense.into(), 6144).max(1) as u16; // 1.5x
     }
     defense
@@ -51,7 +51,7 @@ pub fn on_modify_attack_thick_club(
             SpeciesId::from_str("marowak"),
         ) {
             if species == cubone || species == marowak {
-                return apply_modifier(attack.into(), 8192).max(1) as u16;
+                return (attack as u32 * 2).max(1) as u16;
             }
         }
     }
@@ -67,7 +67,7 @@ pub fn on_modify_attack_light_ball(
 ) -> u16 {
     if let Some(pikachu) = SpeciesId::from_str("pikachu") {
         if state.species[attacker] == pikachu {
-            return apply_modifier(attack.into(), 8192).max(1) as u16;
+            return (attack as u32 * 2).max(1) as u16;
         }
     }
     attack
