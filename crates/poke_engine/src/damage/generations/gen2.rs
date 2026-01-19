@@ -2,6 +2,7 @@
 
 use super::{GenMechanics, Terrain};
 use crate::types::Type;
+use crate::damage::Modifier;
 
 /// Generation 2 mechanics.
 ///
@@ -23,8 +24,8 @@ impl GenMechanics for Gen2 {
     fn uses_physical_special_split(&self) -> bool { false }
 
     // 2.0x crit
-    fn crit_multiplier(&self) -> u16 {
-        8192 // 2.0x
+    fn crit_multiplier(&self) -> Modifier {
+        Modifier::DOUBLE // 2.0x
     }
 
     // Type chart overrides
@@ -56,7 +57,7 @@ impl GenMechanics for Gen2 {
     }
 
     // No terrain
-    fn terrain_modifier(&self, _terrain: Terrain, _move_type: Type, _is_grounded: bool) -> Option<u16> {
+    fn terrain_modifier(&self, _terrain: Terrain, _move_type: Type, _is_grounded: bool) -> Option<Modifier> {
         None
     }
 }

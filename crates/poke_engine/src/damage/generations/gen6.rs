@@ -2,6 +2,7 @@
 
 use super::{GenMechanics, Terrain};
 use crate::types::Type;
+use crate::damage::Modifier;
 
 /// Generation 6 mechanics (Pokémon X/Y/ORAS).
 ///
@@ -26,21 +27,21 @@ impl GenMechanics for Gen6 {
     }
     
     // STAB without Tera
-    fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> u16 {
-        if has_adaptability { 8192 } else { 6144 }
+    fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> Modifier {
+        if has_adaptability { Modifier::DOUBLE } else { Modifier::ONE_POINT_FIVE }
     }
     
     // Terrain was 1.5x
-    fn terrain_modifier(&self, terrain: Terrain, move_type: Type, is_grounded: bool) -> Option<u16> {
+    fn terrain_modifier(&self, terrain: Terrain, move_type: Type, is_grounded: bool) -> Option<Modifier> {
         if !is_grounded {
             return None;
         }
         
         match (terrain, move_type) {
-            (Terrain::Electric, Type::Electric) => Some(6144),
-            (Terrain::Grassy, Type::Grass) => Some(6144),
+            (Terrain::Electric, Type::Electric) => Some(Modifier::ONE_POINT_FIVE),
+            (Terrain::Grassy, Type::Grass) => Some(Modifier::ONE_POINT_FIVE),
             // Psychic Terrain didn't boost damage in Gen 6 (only priority blocking)
-            (Terrain::Misty, Type::Dragon) => Some(2048),
+            (Terrain::Misty, Type::Dragon) => Some(Modifier::HALF),
             _ => None,
         }
     }

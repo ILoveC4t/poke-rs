@@ -28,6 +28,7 @@
 
 mod context;
 mod formula;
+pub mod modifier;
 mod modifiers;
 pub mod generations;
 mod special_moves;
@@ -38,6 +39,7 @@ mod scrappy_tests;
 mod conditional_moves_tests;
 
 pub use context::DamageContext;
+pub use modifier::Modifier;
 pub use formula::{get_base_damage, pokeround, of16, of32, chain_mods, apply_modifier};
 pub use modifiers::compute_base_power;
 pub use generations::{GenMechanics, Generation, Gen9};

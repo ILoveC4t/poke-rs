@@ -5,7 +5,7 @@
 
 use crate::state::BattleState;
 use crate::moves::MoveCategory;
-use crate::damage::apply_modifier;
+use crate::damage::{apply_modifier, Modifier};
 use crate::types::Type;
 
 // =============================================================================
@@ -23,7 +23,7 @@ pub fn tinted_lens(
 ) -> u32 {
     // effectiveness: 4 = 1x, 2 = 0.5x, 1 = 0.25x
     if effectiveness < 4 {
-        apply_modifier(damage, 8192) // 2x in 4096-scale
+        apply_modifier(damage, Modifier::DOUBLE) // 2x in 4096-scale
     } else {
         damage
     }
@@ -39,7 +39,7 @@ pub fn sniper(
     damage: u32,
 ) -> u32 {
     if is_crit {
-        apply_modifier(damage, 6144) // 1.5x
+        apply_modifier(damage, Modifier::ONE_POINT_FIVE) // 1.5x
     } else {
         damage
     }
@@ -64,7 +64,7 @@ pub fn multiscale(
     damage: u32,
 ) -> u32 {
     if state.hp[defender] == state.max_hp[defender] {
-        apply_modifier(damage, 2048) // 0.5x
+        apply_modifier(damage, Modifier::HALF) // 0.5x
     } else {
         damage
     }
@@ -82,7 +82,7 @@ pub fn filter(
     damage: u32,
 ) -> u32 {
     if effectiveness > 4 {
-        apply_modifier(damage, 3072) // 0.75x
+        apply_modifier(damage, Modifier::FILTER) // 0.75x
     } else {
         damage
     }
@@ -100,10 +100,10 @@ pub fn fluffy(
     mut damage: u32,
 ) -> u32 {
     if is_contact {
-        damage = apply_modifier(damage, 2048); // 0.5x
+        damage = apply_modifier(damage, Modifier::HALF); // 0.5x
     }
     if move_type == Type::Fire {
-        damage = apply_modifier(damage, 8192); // 2x
+        damage = apply_modifier(damage, Modifier::DOUBLE); // 2x
     }
     damage
 }

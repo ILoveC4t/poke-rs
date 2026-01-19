@@ -36,7 +36,8 @@ mod tests {
 
         // Should be Fire type (Super Effective vs Grass/Poison - 2x)
         assert_eq!(result.effectiveness, 8); // 2x
-        assert_eq!(result.final_base_power, 100);
+        // 100 BP * 1.5 (Sun boost) = 150
+        assert_eq!(result.final_base_power, 150);
     }
 
     #[test]
@@ -53,7 +54,8 @@ mod tests {
 
         // Should be Water type (Super Effective vs Fire/Flying - 2x)
         assert_eq!(result.effectiveness, 8); // 2x
-        assert_eq!(result.final_base_power, 100);
+        // 100 BP * 1.5 (Rain boost) = 150
+        assert_eq!(result.final_base_power, 150);
     }
 
     #[test]

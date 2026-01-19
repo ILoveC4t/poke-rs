@@ -28,11 +28,12 @@ mod tests {
     use super::*;
     use crate::types::Type;
     use crate::damage::generations::{Weather, Terrain};
+    use crate::damage::Modifier;
     
     #[test]
     fn test_gen9_crit_multiplier() {
         let gen = Gen9;
-        assert_eq!(gen.crit_multiplier(), 6144); // 1.5x
+        assert_eq!(gen.crit_multiplier(), Modifier::ONE_POINT_FIVE); // 1.5x
     }
     
     #[test]
@@ -40,13 +41,13 @@ mod tests {
         let gen = Gen9;
         
         // Normal STAB
-        assert_eq!(gen.stab_multiplier(false, false), 6144); // 1.5x
+        assert_eq!(gen.stab_multiplier(false, false), Modifier::ONE_POINT_FIVE); // 1.5x
         
         // Adaptability STAB
-        assert_eq!(gen.stab_multiplier(true, false), 8192); // 2.0x
+        assert_eq!(gen.stab_multiplier(true, false), Modifier::DOUBLE); // 2.0x
         
         // Tera STAB
-        assert_eq!(gen.stab_multiplier(false, true), 8192); // 2.0x
+        assert_eq!(gen.stab_multiplier(false, true), Modifier::DOUBLE); // 2.0x
     }
     
     #[test]
@@ -54,14 +55,14 @@ mod tests {
         let gen = Gen9;
         
         // Sun boosts Fire
-        assert_eq!(gen.weather_modifier(Weather::Sun, Type::Fire), Some(6144));
+        assert_eq!(gen.weather_modifier(Weather::Sun, Type::Fire), Some(Modifier::ONE_POINT_FIVE));
         // Sun weakens Water
-        assert_eq!(gen.weather_modifier(Weather::Sun, Type::Water), Some(2048));
+        assert_eq!(gen.weather_modifier(Weather::Sun, Type::Water), Some(Modifier::HALF));
         
         // Rain boosts Water
-        assert_eq!(gen.weather_modifier(Weather::Rain, Type::Water), Some(6144));
+        assert_eq!(gen.weather_modifier(Weather::Rain, Type::Water), Some(Modifier::ONE_POINT_FIVE));
         // Rain weakens Fire
-        assert_eq!(gen.weather_modifier(Weather::Rain, Type::Fire), Some(2048));
+        assert_eq!(gen.weather_modifier(Weather::Rain, Type::Fire), Some(Modifier::HALF));
         
         // No effect on neutral types
         assert_eq!(gen.weather_modifier(Weather::Sun, Type::Electric), None);
@@ -72,13 +73,13 @@ mod tests {
         let gen = Gen9;
         
         // Electric Terrain boosts Electric moves for grounded Pokemon
-        assert_eq!(gen.terrain_modifier(Terrain::Electric, Type::Electric, true), Some(5325));
+        assert_eq!(gen.terrain_modifier(Terrain::Electric, Type::Electric, true), Some(Modifier::ONE_POINT_THREE));
         
         // Not grounded = no boost
         assert_eq!(gen.terrain_modifier(Terrain::Electric, Type::Electric, false), None);
         
         // Misty Terrain weakens Dragon
-        assert_eq!(gen.terrain_modifier(Terrain::Misty, Type::Dragon, true), Some(2048));
+        assert_eq!(gen.terrain_modifier(Terrain::Misty, Type::Dragon, true), Some(Modifier::HALF));
     }
     
     #[test]

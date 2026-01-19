@@ -7,6 +7,7 @@ use super::DamageContext;
 use super::DamageResult;
 use super::generations::GenMechanics;
 use super::modifiers;
+use super::Modifier;
 
 /// 16-bit overflow wrapping (simulates hardware behavior).
 /// Values that exceed 65535 wrap around.
@@ -61,11 +62,11 @@ pub fn pokeround_4096(value: u32) -> u32 {
 /// This performs: `pokeround(value * modifier / 4096)`
 /// Game Freak rounds 0.5 DOWN, not up.
 #[inline]
-pub fn apply_modifier(value: u32, modifier: u16) -> u32 {
-    if modifier == 4096 {
+pub fn apply_modifier(value: u32, modifier: Modifier) -> u32 {
+    if modifier == Modifier::ONE {
         return value;
     }
-    let product = of32(value as u64 * modifier as u64);
+    let product = of32(value as u64 * modifier.0 as u64);
     pokeround(product, 4096)
 }
 
@@ -84,12 +85,12 @@ pub fn apply_modifier_floor(value: u32, modifier_num: u32, modifier_den: u32) ->
 /// Each intermediate result uses pokeRound (0.5 rounds down).
 ///
 /// Clamps the final result to valid bounds (0.1x to 32x approximately).
-pub fn chain_mods(modifiers: &[u16]) -> u32 {
+pub fn chain_mods(modifiers: &[Modifier]) -> u32 {
     let mut result: u32 = 4096;
     
     for &modifier in modifiers {
-        if modifier != 4096 {
-            let product = of32(result as u64 * modifier as u64);
+        if modifier != Modifier::ONE {
+            let product = of32(result as u64 * modifier.0 as u64);
             result = pokeround(product, 4096);
         }
     }
@@ -277,29 +278,29 @@ mod tests {
     #[test]
     fn test_apply_modifier() {
         // 1.0x modifier
-        assert_eq!(apply_modifier(100, 4096), 100);
+        assert_eq!(apply_modifier(100, Modifier::ONE), 100);
         
         // 1.5x modifier
-        assert_eq!(apply_modifier(100, 6144), 150);
+        assert_eq!(apply_modifier(100, Modifier::ONE_POINT_FIVE), 150);
         
         // 0.5x modifier
-        assert_eq!(apply_modifier(100, 2048), 50);
+        assert_eq!(apply_modifier(100, Modifier::HALF), 50);
         
         // 2.0x modifier
-        assert_eq!(apply_modifier(100, 8192), 200);
+        assert_eq!(apply_modifier(100, Modifier::DOUBLE), 200);
     }
     
     #[test]
     fn test_chain_mods() {
         // Single 1.5x
-        assert_eq!(chain_mods(&[6144]), 6144);
+        assert_eq!(chain_mods(&[Modifier::ONE_POINT_FIVE]), 6144);
         
         // 1.5x * 1.5x = 2.25x (9216 in 4096-scale)
-        let result = chain_mods(&[6144, 6144]);
+        let result = chain_mods(&[Modifier::ONE_POINT_FIVE, Modifier::ONE_POINT_FIVE]);
         assert_eq!(result, 9216);
         
         // 1.5x * 0.5x = 0.75x (3072 in 4096-scale)
-        let result = chain_mods(&[6144, 2048]);
+        let result = chain_mods(&[Modifier::ONE_POINT_FIVE, Modifier::HALF]);
         assert_eq!(result, 3072);
     }
     
