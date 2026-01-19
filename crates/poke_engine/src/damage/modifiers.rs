@@ -77,6 +77,7 @@ fn apply_final_mods<G: GenMechanics>(
                 ctx.attacker,
                 ctx.defender,
                 ctx.effectiveness,
+                ctx.move_type,
                 ctx.category,
                 is_contact,
                 damage,
@@ -199,9 +200,6 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
         attack = call_attack_hook(ctx, attack);
         
         // TODO: Defender damage-reducing abilities (apply in final modifier chain)
-        // - Multiscale / Shadow Shield: 0.5x damage when at full HP
-        // - Filter / Prism Armor / Solid Rock: 0.75x on super-effective hits
-        // - Fluffy: 0.5x contact damage, 2x Fire damage
         // - Punk Rock: 0.5x sound-based damage
         // - Ice Scales: 0.5x special damage
     }

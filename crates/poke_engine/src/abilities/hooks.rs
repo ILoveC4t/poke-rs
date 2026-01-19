@@ -66,6 +66,7 @@ pub type OnDefenderFinalMod = fn(
     attacker: usize,
     defender: usize,
     effectiveness: u8,
+    move_type: Type,
     category: MoveCategory,
     is_contact: bool,
     damage: u32,
