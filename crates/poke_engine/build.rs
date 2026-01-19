@@ -1232,7 +1232,8 @@ fn generate_items(out_dir: &Path, data_dir: &Path) {
         .iter()
         .filter(|(_, data)| {
             data.num.map(|n| n >= 0).unwrap_or(false)
-                && data.is_nonstandard.as_ref().map(|s| s != "Past").unwrap_or(true)
+                // We want all items, even "Past" ones, to support older generations
+                // && data.is_nonstandard.as_ref().map(|s| s != "Past").unwrap_or(true)
         })
         .collect();
     item_list.sort_by_key(|(_, data)| data.num.unwrap_or(0));
