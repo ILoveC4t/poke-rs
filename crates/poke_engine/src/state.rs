@@ -645,15 +645,8 @@ impl BattleState {
                 }
             }
 
-            // Sticky Web
+            // Sticky Web: -1 Speed to grounded Pokémon
             if conditions.sticky_web && self.is_grounded(entity_idx) {
-                // -1 Speed
-                self.apply_stat_change(entity_idx, 6, -1); // 6 is Speed in 1-based index (1=Atk...5=Spe)?
-                // Wait, BOOST_STATS indices: 0=Atk, 1=Def, 2=SpA, 3=SpD, 4=Spe, 5=Acc, 6=Eva
-                // My `apply_stat_change` takes 1-based index matching `stats` array?
-                // `effective_stat` uses `stat_index`: 1=Atk...5=Spe.
-                // `apply_stat_change` uses `stat - 1` to index boosts.
-                // So Speed is 5. `boosts[4]`.
                 self.apply_stat_change(entity_idx, 5, -1);
             }
         }

@@ -86,11 +86,7 @@ impl GenMechanics for Gen1 {
             MoveCategory::Physical
         };
 
-        // 2. Stats
-        // Gen 1 Crit: Ignores modifiers (stat stages) if they are detrimental to attacker
-        // Actually, Gen 1 Crit ignores ALL stat modifiers (both attacker and defender)
-        // and halves defense? No, it doubles level.
-        // Correct Gen 1 Crit: Level * 2. Stat stages ignored.
+        // Gen 1 Crit: Level is doubled; all stat stages are ignored.
 
         let (atk_stat, def_stat) = if ctx.is_crit {
             // Use raw stats (no boosts)

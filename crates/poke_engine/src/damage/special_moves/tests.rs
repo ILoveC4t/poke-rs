@@ -103,12 +103,6 @@ fn test_reckless_ability() {
     
     // Double-Edge (Recoil move) - BP 120
     let move_id = MoveId::Doubleedge;
-    // Note: To test ability hooks, we must go through correct pipeline
-    // modifiers::compute_base_power calls hook.
-    // However, modifier::compute_base_power is static. We can call it directly?
-    // Modifiers is in `crate::damage::modifiers`.
-    // But `DamageContext` needs to be initialized.
-    
     let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
     // Move flags must be set. `ctx.move_data` is from `move_id.data()`.
     // Double-Edge data should have recoil flag if build.rs worked.
