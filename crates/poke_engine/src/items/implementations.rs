@@ -12,6 +12,10 @@ use std::sync::LazyLock;
 static CUBONE: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("cubone"));
 static MAROWAK: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("marowak"));
 static PIKACHU: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("pikachu"));
+static CLAMPERL: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("clamperl"));
+static LATIOS: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("latios"));
+static LATIAS: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("latias"));
+static DITTO: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("ditto"));
 
 
 // Assault Vest: 1.5x SpD, but can only use damaging moves.
@@ -106,6 +110,96 @@ pub fn on_modify_attack_choice_specs(
     } else {
         attack
     }
+}
+
+// Deep Sea Tooth: 2x SpA for Clamperl.
+pub fn on_modify_attack_deep_sea_tooth(
+    state: &BattleState,
+    attacker: usize,
+    category: MoveCategory,
+    attack: u16,
+) -> u16 {
+    if category == MoveCategory::Special {
+        if let Some(clamperl) = *CLAMPERL {
+            if state.species[attacker] == clamperl {
+                return apply_modifier(attack.into(), Modifier::DOUBLE).max(1) as u16;
+            }
+        }
+    }
+    attack
+}
+
+// Deep Sea Scale: 2x SpD for Clamperl.
+pub fn on_modify_defense_deep_sea_scale(
+    state: &BattleState,
+    defender: usize,
+    _attacker: usize,
+    category: MoveCategory,
+    defense: u16,
+) -> u16 {
+    if category == MoveCategory::Special {
+        if let Some(clamperl) = *CLAMPERL {
+            if state.species[defender] == clamperl {
+                return apply_modifier(defense.into(), Modifier::DOUBLE).max(1) as u16;
+            }
+        }
+    }
+    defense
+}
+
+// Soul Dew: 1.2x SpA for Latios/Latias.
+pub fn on_modify_attack_soul_dew(
+    state: &BattleState,
+    attacker: usize,
+    category: MoveCategory,
+    attack: u16,
+) -> u16 {
+    if category == MoveCategory::Special {
+        if let (Some(latios), Some(latias)) = (*LATIOS, *LATIAS) {
+            let species = state.species[attacker];
+            if species == latios || species == latias {
+                return apply_modifier(attack.into(), Modifier::ONE_POINT_TWO).max(1) as u16;
+            }
+        }
+    }
+    attack
+}
+
+// Soul Dew: 1.2x SpD for Latios/Latias.
+pub fn on_modify_defense_soul_dew(
+    state: &BattleState,
+    defender: usize,
+    _attacker: usize,
+    category: MoveCategory,
+    defense: u16,
+) -> u16 {
+    if category == MoveCategory::Special {
+        if let (Some(latios), Some(latias)) = (*LATIOS, *LATIAS) {
+            let species = state.species[defender];
+            if species == latios || species == latias {
+                return apply_modifier(defense.into(), Modifier::ONE_POINT_TWO).max(1) as u16;
+            }
+        }
+    }
+    defense
+}
+
+// Metal Powder: 2x Def for Ditto.
+pub fn on_modify_defense_metal_powder(
+    state: &BattleState,
+    defender: usize,
+    _attacker: usize,
+    category: MoveCategory,
+    defense: u16,
+) -> u16 {
+    if category == MoveCategory::Physical {
+        if let Some(ditto) = *DITTO {
+            if state.species[defender] == ditto {
+                return apply_modifier(defense.into(), Modifier::DOUBLE).max(1) as u16;
+            }
+        }
+    }
+    defense
 }
 
 // ============================================================================
