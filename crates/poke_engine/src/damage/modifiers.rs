@@ -9,9 +9,73 @@ use super::generations::{GenMechanics, Weather, Terrain};
 use super::Modifier;
 use crate::abilities::{AbilityId, ABILITY_REGISTRY};
 use crate::items::{ItemId, ITEM_REGISTRY};
-use crate::moves::{MoveCategory, MoveFlags, MoveId};
+use crate::moves::{MoveCategory, MoveFlags, MoveId, MOVE_REGISTRY};
 use crate::state::Status;
 use crate::modifier;
+
+// ============================================================================
+// Item Hook Helpers
+// ============================================================================
+
+/// Call the OnModifyBasePower hook for the attacker's item, if registered.
+fn call_item_base_power_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, bp: u16) -> u16 {
+    let attacker_item = ctx.state.items[ctx.attacker];
+    if let Some(Some(hooks)) = ITEM_REGISTRY.get(attacker_item as usize) {
+        if let Some(hook) = hooks.on_modify_base_power {
+            return hook(
+                ctx.state,
+                ctx.attacker,
+                ctx.defender,
+                ctx.move_data,
+                bp,
+            );
+        }
+    }
+    bp
+}
+
+/// Apply item final modifiers (attacker items like Life Orb, Expert Belt).
+fn apply_item_final_mods<G: GenMechanics>(
+    ctx: &DamageContext<'_, G>,
+    mut damage: u32,
+) -> u32 {
+    let attacker_item = ctx.state.items[ctx.attacker];
+    if let Some(Some(hooks)) = ITEM_REGISTRY.get(attacker_item as usize) {
+        if let Some(hook) = hooks.on_attacker_final_mod {
+            damage = hook(
+                ctx.state,
+                ctx.attacker,
+                ctx.defender,
+                ctx.effectiveness,
+                ctx.is_crit,
+                damage,
+            );
+        }
+    }
+    damage
+}
+
+// ============================================================================
+// Move Hook Helpers
+// ============================================================================
+
+/// Apply move hook conditional modifiers (Knock Off, Venoshock, Hex, Brine, etc.).
+fn call_move_base_power_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, bp: u16) -> u16 {
+    if let Some(Some(hooks)) = MOVE_REGISTRY.get(ctx.move_id as usize) {
+        // Check conditional multiplier
+        if let Some(condition) = hooks.on_base_power_condition {
+            if condition(ctx.state, ctx.attacker, ctx.defender, ctx.move_data) {
+                let multiplier = super::Modifier::new(hooks.conditional_multiplier);
+                return apply_modifier(bp as u32, multiplier).max(1) as u16;
+            }
+        }
+        // Check custom base power modifier
+        if let Some(hook) = hooks.on_modify_base_power {
+            return hook(ctx.state, ctx.attacker, ctx.defender, ctx.move_data, bp);
+        }
+    }
+    bp
+}
 
 // ============================================================================
 // Ability Hook Helpers
@@ -108,48 +172,28 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     bp = call_base_power_hook(ctx, bp as u16) as u32;
     
 
+    // ========================================================================
+    // Item-based BP modifiers via hook system
+    // ========================================================================
 
-    // Type-boosting items (e.g. Charcoal)
-    if let Some(modifier) = get_type_boost_item_mod(ctx.state.items[ctx.attacker], ctx.move_type) {
-        bp = apply_modifier(bp, modifier);
-    }
+    bp = call_item_base_power_hook(ctx, bp as u16) as u32;
     
     // TODO: Implement remaining ability BP modifiers
     // - Analytic (1.3x if moving last)
     // - Aerilate/Pixilate/Refrigerate/Galvanize (1.2x + type change)
 
-    // Knock Off: 1.5x BP if target has a removable item (Gen 6+)
-    if ctx.move_id == MoveId::Knockoff && ctx.gen.generation() >= 6 {
-        let def_item = ctx.state.items[ctx.defender];
-        if def_item != crate::items::ItemId::None {
-            let item_data = def_item.data();
-            if !item_data.is_unremovable {
-                bp = apply_modifier(bp, Modifier::ONE_POINT_FIVE); // 1.5x
-            }
-        }
+    // ========================================================================
+    // Move-based BP modifiers via hook system
+    // ========================================================================
+
+    // Knock Off (1.5x if target has removable item, Gen 6+ only)
+    // Venoshock (2x if poisoned), Hex (2x if statused), Brine (2x if below 50% HP)
+    if ctx.gen.generation() >= 6 || ctx.move_id != MoveId::Knockoff {
+        bp = call_move_base_power_hook(ctx, bp as u16) as u32;
     }
 
     // TODO: Parental Bond ability: Multi-hit (2 hits), second hit at 0.25x power (Gen 7+)
     //       Requires special handling in damage pipeline to return combined damage
-
-    // Venoshock: 2x base power if target is poisoned
-    if ctx.move_id == MoveId::Venoshock && ctx.state.status[ctx.defender].intersects(Status::POISON | Status::TOXIC) {
-        bp = apply_modifier(bp, Modifier::DOUBLE); // 2x
-    }
-
-    // Hex: 2x base power if target has any major status condition
-    if ctx.move_id == MoveId::Hex && ctx.state.status[ctx.defender] != Status::NONE {
-        bp = apply_modifier(bp, Modifier::DOUBLE); // 2x
-    }
-
-    // Brine: 2x base power if target is at or below 50% HP
-    if ctx.move_id == MoveId::Brine {
-        let hp = ctx.state.hp[ctx.defender];
-        let max_hp = ctx.state.max_hp[ctx.defender];
-        if hp * 2 <= max_hp {
-            bp = apply_modifier(bp, Modifier::DOUBLE); // 2x
-        }
-    }
 
     // TODO: Other conditional power moves that weren't in modify_base_power yet:
     // - Assurance (2x if target was hit this turn)
@@ -369,15 +413,8 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
         // Step 6: Final modifiers (chain applied with pokeRound)
         // These are modifiers that weren't applied to base damage
 
-        // Life Orb (1.3x)
-        if ctx.state.items[ctx.attacker] == ItemId::Lifeorb {
-            damage = apply_modifier(damage, Modifier::LIFE_ORB);
-        }
-
-        // Expert Belt (1.2x for super effective)
-        if ctx.state.items[ctx.attacker] == ItemId::Expertbelt && ctx.effectiveness > 4 {
-            damage = apply_modifier(damage, Modifier::ONE_POINT_TWO);
-        }
+        // Item final modifiers (Life Orb, Expert Belt, etc.)
+        damage = apply_item_final_mods(ctx, damage);
 
         // TODO(TASK-A): Metronome requires consecutive move tracking from Task D
 

@@ -122,59 +122,15 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
         let attacker_grounded = state.is_grounded(attacker);
         let defender_grounded = state.is_grounded(defender);
         
-        // Calculate type effectiveness
-        // Calculate type effectiveness with negation logic
-        let mut effectiveness = {
-            use crate::items::ItemId;
-            
-            let def_type1 = state.types[defender][0];
-            let def_type2 = state.types[defender][1];
-            
-            // Helper to get effectiveness against a single type
-            // respecting immunity overrides (Ring Target, Iron Ball/Gravity)
-            let get_single_eff = |type_to_check: Type| -> u8 {
-                // We use the gen implementation for single-type check
-                // Passing None as second type forces single-type check behavior
-                let base_eff = gen.type_effectiveness(move_type, type_to_check, None);
-                
-                if base_eff == 0 {
-                    // Check Ring Target (negates ALL type immunities)
-                    if state.items[defender] == ItemId::Ringtarget {
-                        return 4; // 1x
-                    }
-                    
-                    // Check Iron Ball / Gravity vs Flying (Ground moves only)
-                    if move_type == Type::Ground && type_to_check == Type::Flying {
-                        if state.is_grounded(defender) {
-                            // Gen 5+ mechanics: Grounded Flying types resist Ground (0.5x)
-                            // Gen 4- mechanics: Grounded Flying types take Neutral from Ground (1x)
-                            // This matches Smogon fixture expectations (Zapdos takes 1x in Gen 9, 2x in Gen 4)
-                            return if G::GEN >= 5 { 2 } else { 4 };
-                        }
-                    }
-
-                    // Scrappy / Mind's Eye: Allow Normal/Fighting to hit Ghost
-                    if type_to_check == Type::Ghost
-                        && (move_type == Type::Normal || move_type == Type::Fighting)
-                    {
-                        if attacker_ability == AbilityId::Scrappy || attacker_ability == AbilityId::Mindseye {
-                            return 4; // 1x (Neutral)
-                        }
-                    }
-                }
-                base_eff
-            };
-            
-            let eff1 = get_single_eff(def_type1);
-            let eff2 = if def_type2 != def_type1 {
-                get_single_eff(def_type2)
-            } else {
-                4 // 1x (Neutral)
-            };
-            
-            // Combine effectiveness (4 scale: 4*4/4 = 4)
-            (eff1 as u16 * eff2 as u16 / 4) as u8
-        };
+        // Calculate type effectiveness with immunity overrides
+        let mut effectiveness = super::effectiveness::calculate_effectiveness(
+            move_type,
+            defender,
+            state,
+            attacker_ability,
+            G::GEN,
+            |mv_type, def_type, _| gen.type_effectiveness(mv_type, def_type, None),
+        );
         
         // Check for ability-granted immunity (Levitate, Flash Fire, etc.)
         let defender_ability = state.abilities[defender];

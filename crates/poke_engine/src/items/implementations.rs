@@ -107,3 +107,119 @@ pub fn on_modify_attack_choice_specs(
         attack
     }
 }
+
+// ============================================================================
+// Attacker Final Modifiers
+// ============================================================================
+
+// Life Orb: 1.3x damage (5324/4096)
+pub fn on_attacker_final_mod_life_orb(
+    _state: &BattleState,
+    _attacker: usize,
+    _defender: usize,
+    _effectiveness: u8,
+    _is_crit: bool,
+    damage: u32,
+) -> u32 {
+    apply_modifier(damage, Modifier::LIFE_ORB)
+}
+
+// Expert Belt: 1.2x damage on super effective hits
+pub fn on_attacker_final_mod_expert_belt(
+    _state: &BattleState,
+    _attacker: usize,
+    _defender: usize,
+    effectiveness: u8,
+    _is_crit: bool,
+    damage: u32,
+) -> u32 {
+    if effectiveness > 4 {
+        apply_modifier(damage, Modifier::ONE_POINT_TWO)
+    } else {
+        damage
+    }
+}
+
+// ============================================================================
+// Type-Boosting Base Power Modifiers
+// ============================================================================
+
+use crate::types::Type;
+use crate::moves::Move;
+
+// Generic type-boost helper
+fn type_boost_bp(move_data: &Move, boost_type: Type, bp: u16) -> u16 {
+    if move_data.primary_type == boost_type {
+        apply_modifier(bp.into(), Modifier::ONE_POINT_TWO).max(1) as u16
+    } else {
+        bp
+    }
+}
+
+pub fn on_modify_bp_charcoal(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Fire, bp)
+}
+
+pub fn on_modify_bp_mystic_water(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Water, bp)
+}
+
+pub fn on_modify_bp_miracle_seed(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Grass, bp)
+}
+
+pub fn on_modify_bp_magnet(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Electric, bp)
+}
+
+pub fn on_modify_bp_never_melt_ice(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Ice, bp)
+}
+
+pub fn on_modify_bp_black_belt(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Fighting, bp)
+}
+
+pub fn on_modify_bp_poison_barb(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Poison, bp)
+}
+
+pub fn on_modify_bp_soft_sand(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Ground, bp)
+}
+
+pub fn on_modify_bp_sharp_beak(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Flying, bp)
+}
+
+pub fn on_modify_bp_twisted_spoon(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Psychic, bp)
+}
+
+pub fn on_modify_bp_silver_powder(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Bug, bp)
+}
+
+pub fn on_modify_bp_hard_stone(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Rock, bp)
+}
+
+pub fn on_modify_bp_spell_tag(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Ghost, bp)
+}
+
+pub fn on_modify_bp_dragon_fang(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Dragon, bp)
+}
+
+pub fn on_modify_bp_black_glasses(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Dark, bp)
+}
+
+pub fn on_modify_bp_metal_coat(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Steel, bp)
+}
+
+pub fn on_modify_bp_silk_scarf(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
+    type_boost_bp(move_data, Type::Normal, bp)
+}

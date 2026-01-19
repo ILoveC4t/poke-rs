@@ -6,7 +6,7 @@ pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
     let mut registry: [Option<ItemHooks>; ItemId::COUNT] = [None; ItemId::COUNT];
 
     // =========================================================================
-    // Item Hook Registrations
+    // Stat Modifiers (OnModifyAttack / OnModifyDefense)
     // =========================================================================
 
     registry[ItemId::Assaultvest as usize] = Some(ItemHooks {
@@ -18,12 +18,6 @@ pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
         on_modify_defense: Some(on_modify_defense_eviolite),
         ..ItemHooks::NONE
     });
-
-    // NOTE: Thick Club is filtered out in build.rs due to isNonstandard: "Past"
-    // registry[ItemId::Thickclub as usize] = Some(ItemHooks {
-    //     on_modify_attack: Some(on_modify_attack_thick_club),
-    //     ..ItemHooks::NONE
-    // });
 
     registry[ItemId::Lightball as usize] = Some(ItemHooks {
         on_modify_attack: Some(on_modify_attack_light_ball),
@@ -40,5 +34,109 @@ pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
         ..ItemHooks::NONE
     });
 
+    // =========================================================================
+    // Attacker Final Modifiers (OnAttackerFinalMod)
+    // =========================================================================
+
+    registry[ItemId::Lifeorb as usize] = Some(ItemHooks {
+        on_attacker_final_mod: Some(on_attacker_final_mod_life_orb),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Expertbelt as usize] = Some(ItemHooks {
+        on_attacker_final_mod: Some(on_attacker_final_mod_expert_belt),
+        ..ItemHooks::NONE
+    });
+
+    // =========================================================================
+    // Type-Boosting Items (OnModifyBasePower)
+    // =========================================================================
+
+    registry[ItemId::Charcoal as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_charcoal),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Mysticwater as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_mystic_water),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Miracleseed as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_miracle_seed),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Magnet as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_magnet),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Nevermeltice as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_never_melt_ice),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Blackbelt as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_black_belt),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Poisonbarb as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_poison_barb),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Softsand as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_soft_sand),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Sharpbeak as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_sharp_beak),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Twistedspoon as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_twisted_spoon),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Silverpowder as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_silver_powder),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Hardstone as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_hard_stone),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Spelltag as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_spell_tag),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Dragonfang as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_dragon_fang),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Blackglasses as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_black_glasses),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Metalcoat as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_metal_coat),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Silkscarf as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_silk_scarf),
+        ..ItemHooks::NONE
+    });
+
     registry
 };
+

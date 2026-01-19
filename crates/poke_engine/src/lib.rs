@@ -23,10 +23,8 @@ pub mod species {
     include!(concat!(env!("OUT_DIR"), "/species.rs"));
 }
 
-/// Move identifiers
-pub mod moves {
-    include!(concat!(env!("OUT_DIR"), "/moves.rs"));
-}
+/// Move identifiers and hooks
+pub mod moves;
 
 /// Item identifiers and hooks
 pub mod items;

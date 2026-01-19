@@ -32,6 +32,7 @@ pub mod modifier;
 mod modifiers;
 pub mod generations;
 mod special_moves;
+pub mod effectiveness;
 #[cfg(test)]
 mod special_moves_tests;
 #[cfg(test)]
