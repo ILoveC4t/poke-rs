@@ -355,8 +355,11 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
         // pokeRound(OF32(damageAmount * screenMod) / 4096)
         // 0.5x in singles (2048), 0.67x in doubles (2732)
         if !ctx.is_crit && ctx.has_screen(ctx.category == MoveCategory::Physical) {
-            let screen_mod = 2048u16; // 0.5x for singles
-            // TODO: 2732 (0.67x) for doubles
+            let screen_mod = if ctx.state.is_doubles() {
+                2732 // 0.67x for doubles
+            } else {
+                2048 // 0.5x for singles
+            };
             damage = apply_modifier(damage, screen_mod);
         }
         
@@ -789,6 +792,57 @@ mod tests {
 
             assert_eq!(damage, 127, "Sniper should NOT boost non-crit damage");
         }
+    }
+
+    #[test]
+    fn test_screens_doubles() {
+        use crate::state::{BattleState, BattleFormat};
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+        use crate::moves::MoveId;
+
+        let mut state = BattleState::new();
+        state.format = BattleFormat::Doubles;
+        let gen = Gen9;
+
+        // Setup: Atk 100, Def 100
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[0] = [Type::Normal, Type::Normal];
+        state.stats[0][1] = 100; // Atk
+
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[6] = [Type::Normal, Type::Normal];
+        state.stats[6][2] = 100; // Def
+
+        // Reflect active
+        state.side_conditions[1].reflect_turns = 5;
+
+        let move_id = MoveId::Tackle; // Physical
+
+        let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+        // 1. Roll 85: 85
+        // 2. STAB (1.5x): 127
+        // 3. Effectiveness (1x): 127
+        // 4. Screens (Doubles: 0.67x): 127 * 2732 / 4096 = 84.71 -> 85 (pokeround)
+
+        let rolls = compute_final_damage(&ctx, 100);
+        let damage = rolls[0];
+
+        assert_eq!(damage, 85, "Screens in doubles should reduce damage by 0.67x");
+
+        // Singles comparison
+        let mut state_singles = state; // Copy
+        state_singles.format = BattleFormat::Singles;
+        let ctx_singles = DamageContext::new(gen, &state_singles, 0, 6, move_id, false);
+
+        // Screens (Singles: 0.5x): 127 * 2048 / 4096 = 63.5 -> 64
+
+        let rolls_singles = compute_final_damage(&ctx_singles, 100);
+        let damage_singles = rolls_singles[0];
+
+        assert_eq!(damage_singles, 64, "Screens in singles should reduce damage by 0.5x");
     }
 
     #[test]
