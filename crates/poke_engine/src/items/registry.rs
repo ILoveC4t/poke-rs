@@ -34,6 +34,27 @@ pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
         ..ItemHooks::NONE
     });
 
+    registry[ItemId::Deepseatooth as usize] = Some(ItemHooks {
+        on_modify_attack: Some(on_modify_attack_deep_sea_tooth),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Deepseascale as usize] = Some(ItemHooks {
+        on_modify_defense: Some(on_modify_defense_deep_sea_scale),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Souldew as usize] = Some(ItemHooks {
+        on_modify_attack: Some(on_modify_attack_soul_dew),
+        on_modify_defense: Some(on_modify_defense_soul_dew),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Metalpowder as usize] = Some(ItemHooks {
+        on_modify_defense: Some(on_modify_defense_metal_powder),
+        ..ItemHooks::NONE
+    });
+
     // =========================================================================
     // Attacker Final Modifiers (OnAttackerFinalMod)
     // =========================================================================
