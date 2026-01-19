@@ -132,17 +132,17 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     // TODO: Parental Bond ability: Multi-hit (2 hits), second hit at 0.25x power (Gen 7+)
     //       Requires special handling in damage pipeline to return combined damage
 
-    // Venoshock: 2x damage if target is poisoned
+    // Venoshock: 2x base power if target is poisoned
     if ctx.move_id == MoveId::Venoshock && ctx.state.status[ctx.defender].intersects(Status::POISON | Status::TOXIC) {
         bp = apply_modifier(bp, 8192); // 2x
     }
 
-    // Hex: 2x damage if target has any major status condition
+    // Hex: 2x base power if target has any major status condition
     if ctx.move_id == MoveId::Hex && ctx.state.status[ctx.defender] != Status::NONE {
         bp = apply_modifier(bp, 8192); // 2x
     }
 
-    // Brine: 2x damage if target is at or below 50% HP
+    // Brine: 2x base power if target is at or below 50% HP
     if ctx.move_id == MoveId::Brine {
         let hp = ctx.state.hp[ctx.defender];
         let max_hp = ctx.state.max_hp[ctx.defender];
