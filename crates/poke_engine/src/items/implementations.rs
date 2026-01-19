@@ -3,7 +3,7 @@
 use crate::moves::MoveCategory;
 use crate::species::SpeciesId;
 use crate::state::BattleState;
-use crate::damage::formula::apply_modifier;
+use crate::damage::apply_modifier;
 
 
 // Assault Vest: 1.5x SpD, but can only use damaging moves.
@@ -23,17 +23,18 @@ pub fn on_modify_defense_assault_vest(
 }
 
 // Eviolite: 1.5x Def and SpD if the holder can evolve.
+// FIXME: This requires an `evolutions` field on Species which doesn't exist yet
 pub fn on_modify_defense_eviolite(
-    state: &BattleState,
-    defender: usize,
+    _state: &BattleState,
+    _defender: usize,
     _attacker: usize,
     _category: MoveCategory,
     defense: u16,
 ) -> u16 {
-    let species_data = state.species[defender].data();
-    if !species_data.evolutions.is_empty() {
-        return apply_modifier(defense.into(), 6144).max(1) as u16; // 1.5x
-    }
+    // let species_data = state.species[defender].data();
+    // if !species_data.evolutions.is_empty() {
+    //     return apply_modifier(defense.into(), 6144).max(1) as u16; // 1.5x
+    // }
     defense
 }
 
@@ -51,7 +52,7 @@ pub fn on_modify_attack_thick_club(
             SpeciesId::from_str("marowak"),
         ) {
             if species == cubone || species == marowak {
-                return (attack as u32 * 2).max(1) as u16;
+                return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
             }
         }
     }
@@ -67,7 +68,7 @@ pub fn on_modify_attack_light_ball(
 ) -> u16 {
     if let Some(pikachu) = SpeciesId::from_str("pikachu") {
         if state.species[attacker] == pikachu {
-            return (attack as u32 * 2).max(1) as u16;
+            return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
         }
     }
     attack

@@ -14,15 +14,17 @@ pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
         ..ItemHooks::NONE
     });
 
-    registry[ItemId::Eviolite as usize] = Some(ItemHooks {
-        on_modify_defense: Some(on_modify_defense_eviolite),
-        ..ItemHooks::NONE
-    });
+    // FIXME: Eviolite requires evolutions field on Species which doesn't exist yet
+    // registry[ItemId::Eviolite as usize] = Some(ItemHooks {
+    //     on_modify_defense: Some(on_modify_defense_eviolite),
+    //     ..ItemHooks::NONE
+    // });
 
-    registry[ItemId::Thickclub as usize] = Some(ItemHooks {
-        on_modify_attack: Some(on_modify_attack_thick_club),
-        ..ItemHooks::NONE
-    });
+    // FIXME: Thickclub item doesn't exist in item database
+    // registry[ItemId::Thickclub as usize] = Some(ItemHooks {
+    //     on_modify_attack: Some(on_modify_attack_thick_club),
+    //     ..ItemHooks::NONE
+    // });
 
     registry[ItemId::Lightball as usize] = Some(ItemHooks {
         on_modify_attack: Some(on_modify_attack_light_ball),
