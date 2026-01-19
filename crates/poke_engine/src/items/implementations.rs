@@ -3,7 +3,7 @@
 use crate::moves::MoveCategory;
 use crate::species::SpeciesId;
 use crate::state::BattleState;
-use crate::damage::apply_modifier;
+use crate::damage::{apply_modifier, Modifier};
 use std::sync::LazyLock;
 
 // Lazily-initialized constants for commonly checked species.
@@ -24,7 +24,7 @@ pub fn on_modify_defense_assault_vest(
     defense: u16,
 ) -> u16 {
     if category == MoveCategory::Special {
-        apply_modifier(defense.into(), 6144).max(1) as u16 // 1.5x
+        apply_modifier(defense.into(), Modifier::ONE_POINT_FIVE).max(1) as u16 // 1.5x
     } else {
         defense
     }
@@ -58,7 +58,7 @@ pub fn on_modify_attack_thick_club(
         let species = state.species[attacker];
         if let (Some(cubone), Some(marowak)) = (*CUBONE, *MAROWAK) {
             if species == cubone || species == marowak {
-                return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
+                return apply_modifier(attack.into(), Modifier::DOUBLE).max(1) as u16; // 2x
             }
         }
     }
@@ -74,7 +74,7 @@ pub fn on_modify_attack_light_ball(
 ) -> u16 {
     if let Some(pikachu) = *PIKACHU {
         if state.species[attacker] == pikachu {
-            return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
+            return apply_modifier(attack.into(), Modifier::DOUBLE).max(1) as u16; // 2x
         }
     }
     attack
@@ -88,7 +88,7 @@ pub fn on_modify_attack_choice_band(
     attack: u16,
 ) -> u16 {
     if category == MoveCategory::Physical {
-        apply_modifier(attack.into(), 6144).max(1) as u16 // 1.5x
+        apply_modifier(attack.into(), Modifier::ONE_POINT_FIVE).max(1) as u16 // 1.5x
     } else {
         attack
     }
@@ -102,7 +102,7 @@ pub fn on_modify_attack_choice_specs(
     attack: u16,
 ) -> u16 {
     if category == MoveCategory::Special {
-        apply_modifier(attack.into(), 6144).max(1) as u16 // 1.5x
+        apply_modifier(attack.into(), Modifier::ONE_POINT_FIVE).max(1) as u16 // 1.5x
     } else {
         attack
     }

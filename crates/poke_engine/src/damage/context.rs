@@ -9,6 +9,7 @@ use crate::moves::{Move, MoveCategory, MoveId};
 use crate::state::BattleState;
 use crate::types::Type;
 use super::generations::GenMechanics;
+use super::Modifier;
 
 /// Context for a single damage calculation.
 ///
@@ -220,8 +221,8 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
     
     /// Apply a 4096-scale modifier to the chain.
     #[inline]
-    pub fn apply_mod(&mut self, modifier: u16) {
-        if modifier != 4096 {
+    pub fn apply_mod(&mut self, modifier: Modifier) {
+        if modifier != Modifier::ONE {
             self.chain_mod = super::formula::apply_modifier(self.chain_mod, modifier);
         }
     }

@@ -31,7 +31,7 @@ pub use gen2::Gen2;
 pub use gen1::Gen1;
 
 use crate::types::Type;
-use crate::damage::{DamageContext, DamageResult};
+use crate::damage::{DamageContext, DamageResult, Modifier};
 
 /// Fixed-point scale for modifiers (4096 = 1.0x)
 pub const MOD_SCALE: u16 = 4096;
@@ -125,8 +125,8 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     
     /// Critical hit multiplier in 4096-scale.
     /// Gen 6+: 1.5x (6144), Gen 2-5: 2.0x (8192), Gen 1: special formula
-    fn crit_multiplier(&self) -> u16 {
-        6144 // 1.5x for Gen 6+
+    fn crit_multiplier(&self) -> Modifier {
+        Modifier::ONE_POINT_FIVE // 1.5x for Gen 6+
     }
     
     /// STAB (Same Type Attack Bonus) multiplier in 4096-scale.
@@ -134,26 +134,26 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     /// # Arguments
     /// * `has_adaptability` - Whether the attacker has Adaptability
     /// * `is_tera_stab` - Whether this is a Tera-boosted STAB (Gen 9 only)
-    fn stab_multiplier(&self, has_adaptability: bool, is_tera_stab: bool) -> u16 {
+    fn stab_multiplier(&self, has_adaptability: bool, is_tera_stab: bool) -> Modifier {
         match (has_adaptability, is_tera_stab) {
-            (true, _) => 8192,      // 2.0x with Adaptability
-            (false, true) => 8192,  // 2.0x with Tera STAB
-            (false, false) => 6144, // 1.5x normal STAB
+            (true, _) => Modifier::DOUBLE,      // 2.0x with Adaptability
+            (false, true) => Modifier::DOUBLE,  // 2.0x with Tera STAB
+            (false, false) => Modifier::ONE_POINT_FIVE, // 1.5x normal STAB
         }
     }
     
     /// Weather damage modifier in 4096-scale.
     ///
     /// Returns `Some(modifier)` if weather affects this move type, `None` otherwise.
-    fn weather_modifier(&self, weather: Weather, move_type: Type) -> Option<u16> {
+    fn weather_modifier(&self, weather: Weather, move_type: Type) -> Option<Modifier> {
         match (weather, move_type) {
             // Sun boosts Fire, weakens Water
-            (Weather::Sun | Weather::HarshSun, Type::Fire) => Some(6144),  // 1.5x
-            (Weather::Sun | Weather::HarshSun, Type::Water) => Some(2048), // 0.5x
+            (Weather::Sun | Weather::HarshSun, Type::Fire) => Some(Modifier::ONE_POINT_FIVE),  // 1.5x
+            (Weather::Sun | Weather::HarshSun, Type::Water) => Some(Modifier::HALF), // 0.5x
             
             // Rain boosts Water, weakens Fire
-            (Weather::Rain | Weather::HeavyRain, Type::Water) => Some(6144), // 1.5x
-            (Weather::Rain | Weather::HeavyRain, Type::Fire) => Some(2048),  // 0.5x
+            (Weather::Rain | Weather::HeavyRain, Type::Water) => Some(Modifier::ONE_POINT_FIVE), // 1.5x
+            (Weather::Rain | Weather::HeavyRain, Type::Fire) => Some(Modifier::HALF),  // 0.5x
             
             // Harsh Sun: Water moves fail entirely (handled elsewhere)
             // Heavy Rain: Fire moves fail entirely (handled elsewhere)
@@ -166,17 +166,17 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     ///
     /// Returns `Some(modifier)` if terrain affects this move, `None` otherwise.
     /// Note: Terrain only affects grounded Pokémon.
-    fn terrain_modifier(&self, terrain: Terrain, move_type: Type, is_grounded: bool) -> Option<u16> {
+    fn terrain_modifier(&self, terrain: Terrain, move_type: Type, is_grounded: bool) -> Option<Modifier> {
         if !is_grounded {
             return None;
         }
         
         match (terrain, move_type) {
-            (Terrain::Electric, Type::Electric) => Some(5325), // 1.3x (Gen 8+)
-            (Terrain::Grassy, Type::Grass) => Some(5325),      // 1.3x
-            (Terrain::Psychic, Type::Psychic) => Some(5325),   // 1.3x
+            (Terrain::Electric, Type::Electric) => Some(Modifier::ONE_POINT_THREE), // 1.3x (Gen 8+)
+            (Terrain::Grassy, Type::Grass) => Some(Modifier::ONE_POINT_THREE),      // 1.3x
+            (Terrain::Psychic, Type::Psychic) => Some(Modifier::ONE_POINT_THREE),   // 1.3x
             // Misty Terrain: 0.5x to Dragon moves hitting grounded targets
-            (Terrain::Misty, Type::Dragon) => Some(2048),      // 0.5x
+            (Terrain::Misty, Type::Dragon) => Some(Modifier::HALF),      // 0.5x
             _ => None,
         }
     }
@@ -276,8 +276,8 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     
     /// Burn damage reduction multiplier for Physical moves (4096-scale).
     /// Default: 0.5x (2048). Returns None if burn doesn't reduce damage.
-    fn burn_modifier(&self) -> u16 {
-        2048 // 0.5x
+    fn burn_modifier(&self) -> Modifier {
+        Modifier::HALF // 0.5x
     }
 }
 
@@ -575,7 +575,7 @@ impl GenMechanics for Generation {
         }
     }
     
-    fn crit_multiplier(&self) -> u16 {
+    fn crit_multiplier(&self) -> Modifier {
         match self {
             Generation::Gen1(g) => g.crit_multiplier(),
             Generation::Gen2(g) => g.crit_multiplier(),
@@ -589,7 +589,7 @@ impl GenMechanics for Generation {
         }
     }
     
-    fn stab_multiplier(&self, has_adaptability: bool, is_tera_stab: bool) -> u16 {
+    fn stab_multiplier(&self, has_adaptability: bool, is_tera_stab: bool) -> Modifier {
         match self {
             Generation::Gen1(g) => g.stab_multiplier(has_adaptability, is_tera_stab),
             Generation::Gen2(g) => g.stab_multiplier(has_adaptability, is_tera_stab),
@@ -603,7 +603,7 @@ impl GenMechanics for Generation {
         }
     }
     
-    fn weather_modifier(&self, weather: Weather, move_type: Type) -> Option<u16> {
+    fn weather_modifier(&self, weather: Weather, move_type: Type) -> Option<Modifier> {
         match self {
             Generation::Gen1(g) => g.weather_modifier(weather, move_type),
             Generation::Gen2(g) => g.weather_modifier(weather, move_type),
@@ -617,7 +617,7 @@ impl GenMechanics for Generation {
         }
     }
     
-    fn terrain_modifier(&self, terrain: Terrain, move_type: Type, is_grounded: bool) -> Option<u16> {
+    fn terrain_modifier(&self, terrain: Terrain, move_type: Type, is_grounded: bool) -> Option<Modifier> {
         match self {
             Generation::Gen1(g) => g.terrain_modifier(terrain, move_type, is_grounded),
             Generation::Gen2(g) => g.terrain_modifier(terrain, move_type, is_grounded),
@@ -746,7 +746,7 @@ impl GenMechanics for Generation {
         }
     }
     
-    fn burn_modifier(&self) -> u16 {
+    fn burn_modifier(&self) -> Modifier {
         match self {
             Generation::Gen1(g) => g.burn_modifier(),
             Generation::Gen2(g) => g.burn_modifier(),

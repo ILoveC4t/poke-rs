@@ -2,6 +2,7 @@
 
 use super::{GenMechanics, Terrain};
 use crate::types::Type;
+use crate::damage::Modifier;
 
 /// Generation 8 mechanics (Pokémon Sword/Shield).
 ///
@@ -30,22 +31,22 @@ impl GenMechanics for Gen8 {
     }
     
     // STAB without Tera
-    fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> u16 {
-        if has_adaptability { 8192 } else { 6144 }
+    fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> Modifier {
+        if has_adaptability { Modifier::DOUBLE } else { Modifier::ONE_POINT_FIVE }
     }
     
     // Terrain was 1.5x initially, then nerfed to 1.3x in later patches
     // Using 1.3x as the final value
-    fn terrain_modifier(&self, terrain: Terrain, move_type: Type, is_grounded: bool) -> Option<u16> {
+    fn terrain_modifier(&self, terrain: Terrain, move_type: Type, is_grounded: bool) -> Option<Modifier> {
         if !is_grounded {
             return None;
         }
         
         match (terrain, move_type) {
-            (Terrain::Electric, Type::Electric) => Some(5325), // 1.3x
-            (Terrain::Grassy, Type::Grass) => Some(5325),
-            (Terrain::Psychic, Type::Psychic) => Some(5325),
-            (Terrain::Misty, Type::Dragon) => Some(2048),      // 0.5x
+            (Terrain::Electric, Type::Electric) => Some(Modifier::ONE_POINT_THREE), // 1.3x
+            (Terrain::Grassy, Type::Grass) => Some(Modifier::ONE_POINT_THREE),
+            (Terrain::Psychic, Type::Psychic) => Some(Modifier::ONE_POINT_THREE),
+            (Terrain::Misty, Type::Dragon) => Some(Modifier::HALF),      // 0.5x
             _ => None,
         }
     }

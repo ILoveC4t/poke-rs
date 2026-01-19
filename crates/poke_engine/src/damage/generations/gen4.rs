@@ -2,6 +2,7 @@
 
 use super::GenMechanics;
 use crate::types::Type;
+use crate::damage::Modifier;
 
 /// Generation 4 mechanics (Pokémon DPPt/HGSS).
 ///
@@ -16,17 +17,17 @@ impl GenMechanics for Gen4 {
     const GEN: u8 = 4;
     
     // 2.0x crit multiplier
-    fn crit_multiplier(&self) -> u16 {
-        8192
+    fn crit_multiplier(&self) -> Modifier {
+        Modifier::DOUBLE
     }
     
     // STAB without Tera
-    fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> u16 {
-        if has_adaptability { 8192 } else { 6144 }
+    fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> Modifier {
+        if has_adaptability { Modifier::DOUBLE } else { Modifier::ONE_POINT_FIVE }
     }
     
     // No terrain
-    fn terrain_modifier(&self, _terrain: super::Terrain, _move_type: crate::types::Type, _is_grounded: bool) -> Option<u16> {
+    fn terrain_modifier(&self, _terrain: super::Terrain, _move_type: crate::types::Type, _is_grounded: bool) -> Option<Modifier> {
         None
     }
 

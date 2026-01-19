@@ -2,6 +2,7 @@
 
 use super::GenMechanics;
 use crate::types::Type;
+use crate::damage::Modifier;
 
 /// Generation 3 mechanics (Pokémon RSE/FRLG).
 ///
@@ -17,8 +18,8 @@ impl GenMechanics for Gen3 {
     const GEN: u8 = 3;
     
     // 2.0x crit multiplier
-    fn crit_multiplier(&self) -> u16 {
-        8192
+    fn crit_multiplier(&self) -> Modifier {
+        Modifier::DOUBLE
     }
     
     // No physical/special split - type determines category
@@ -27,12 +28,12 @@ impl GenMechanics for Gen3 {
     }
     
     // STAB - Adaptability didn't exist until Gen 4
-    fn stab_multiplier(&self, _has_adaptability: bool, _is_tera_stab: bool) -> u16 {
-        6144 // Always 1.5x
+    fn stab_multiplier(&self, _has_adaptability: bool, _is_tera_stab: bool) -> Modifier {
+        Modifier::ONE_POINT_FIVE // Always 1.5x
     }
     
     // No terrain
-    fn terrain_modifier(&self, _terrain: super::Terrain, _move_type: Type, _is_grounded: bool) -> Option<u16> {
+    fn terrain_modifier(&self, _terrain: super::Terrain, _move_type: Type, _is_grounded: bool) -> Option<Modifier> {
         None
     }
 
