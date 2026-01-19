@@ -67,7 +67,7 @@ pub fn on_modify_attack_light_ball(
 ) -> u16 {
     if let Some(pikachu) = SpeciesId::from_str("pikachu") {
         if state.species[attacker] == pikachu {
-            return (attack as u32 * 2).max(1) as u16;
+            return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
         }
     }
     attack
