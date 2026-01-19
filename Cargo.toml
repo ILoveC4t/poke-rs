@@ -3,5 +3,6 @@ resolver = "2"
 members = [
     # Battle Engine
     "crates/poke_engine",
+    "crates/poke_engine_codegen",
     "crates/test_runner",
 ]

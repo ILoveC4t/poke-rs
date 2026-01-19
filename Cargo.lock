@@ -425,8 +425,17 @@ version = "0.1.0"
 dependencies = [
  "bitflags",
  "criterion",
- "heck 0.4.1",
  "phf",
+ "poke_engine_codegen",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "poke_engine_codegen"
+version = "0.1.0"
+dependencies = [
+ "heck 0.4.1",
  "phf_codegen",
  "proc-macro2",
  "quote",
