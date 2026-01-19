@@ -48,9 +48,14 @@ fn call_attack_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, attack: u16) ->
 
 /// Apply final modifiers from both attacker and defender abilities.
 /// Order: attacker mods first, then defender mods (per Smogon order).
-fn apply_final_mods<G: GenMechanics>(ctx: &DamageContext<'_, G>, mut damage: u32) -> u32 {
+fn apply_final_mods<G: GenMechanics>(
+    ctx: &DamageContext<'_, G>,
+    mut damage: u32,
+    attacker_hooks: Option<&crate::abilities::AbilityHooks>,
+    defender_hooks: Option<&crate::abilities::AbilityHooks>,
+) -> u32 {
     // Attacker's ability (Tinted Lens, Sniper)
-    if let Some(Some(hooks)) = ABILITY_REGISTRY.get(ctx.attacker_ability as usize) {
+    if let Some(hooks) = attacker_hooks {
         if let Some(hook) = hooks.on_attacker_final_mod {
             damage = hook(
                 ctx.state,
@@ -62,9 +67,9 @@ fn apply_final_mods<G: GenMechanics>(ctx: &DamageContext<'_, G>, mut damage: u32
             );
         }
     }
-    
+
     // Defender's ability (Multiscale, Filter, Fluffy)
-    if let Some(Some(hooks)) = ABILITY_REGISTRY.get(ctx.defender_ability as usize) {
+    if let Some(hooks) = defender_hooks {
         if let Some(hook) = hooks.on_defender_final_mod {
             let is_contact = ctx.move_data.flags.contains(MoveFlags::CONTACT);
             damage = hook(
@@ -78,7 +83,7 @@ fn apply_final_mods<G: GenMechanics>(ctx: &DamageContext<'_, G>, mut damage: u32
             );
         }
     }
-    
+
     damage
 }
 
@@ -309,6 +314,9 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
         return rolls; // All zeros
     }
     
+    let attacker_hooks = ABILITY_REGISTRY.get(ctx.attacker_ability as usize).and_then(|a| a.as_ref());
+    let defender_hooks = ABILITY_REGISTRY.get(ctx.defender_ability as usize).and_then(|a| a.as_ref());
+
     for i in 0..16 {
         // Step 1: Random roll (85-100%)
         // floor(OF32(baseAmount * (85 + i)) / 100)
@@ -368,7 +376,7 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
         // TODO(TASK-A): Metronome requires consecutive move tracking from Task D
 
         // Ability final modifiers (attacker: Tinted Lens, Sniper; defender: Multiscale, Filter)
-        damage = apply_final_mods(ctx, damage);
+        damage = apply_final_mods(ctx, damage, attacker_hooks, defender_hooks);
         
         // Minimum damage is 1 (unless immune)
         rolls[i] = damage.max(1).min(u16::MAX as u32) as u16;
