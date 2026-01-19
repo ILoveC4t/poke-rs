@@ -35,6 +35,7 @@ mod special_moves;
 mod special_moves_tests;
 #[cfg(test)]
 mod scrappy_tests;
+mod conditional_moves_tests;
 
 pub use context::DamageContext;
 pub use formula::{get_base_damage, pokeround, of16, of32, chain_mods, apply_modifier};
