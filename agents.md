@@ -22,21 +22,25 @@
 
 # TESTS
 **Recommended:** Use the AI-friendly test runner.
-`cargo run -p test_runner`
 
-**How it works:**
-The runner executes `cargo test` (excluding itself to avoid locks) and parses the output into structured JSON.
-It handles build failures, test failures, and fixture results.
+> [!IMPORTANT]
+> **ALWAYS** follow this workflow when implementing changes:
+> 1.  **Before starting:** Run `cargo run -p test_runner -- run` to establish a baseline.
+> 2.  **After implementation:** Run `cargo run -p test_runner -- run` to verify your changes.
+> 3.  **Regression Check:** Run `cargo run -p test_runner -- analyze --base oldest` to ensure no regressions occurred compared to the session start.
+
+**Basic Usage:**
+- Run all tests: `cargo run -p test_runner -- run`
+- Filter tests: `cargo run -p test_runner -- run --filter damage`
+- Specific package: `cargo run -p test_runner -- run -p poke_engine`
+
+**Analysis:**
+- Compare vs previous run: `cargo run -p test_runner -- analyze`
+- Compare vs oldest run: `cargo run -p test_runner -- analyze --base oldest`
 
 **Results:**
-- Summary: `.test_runs/latest.json` (Structured results, failure list, stats)
-- Raw Output: `.test_runs/last_output.txt` (Full stdout/stderr for debugging)
-- History: `.test_runs/<timestamp>.json`
-
-**Options:**
-- Filter tests: `cargo run -p test_runner -- --filter damage`
-- Specific package: `cargo run -p test_runner -- -p poke_engine`
-- Pass args to cargo test: `cargo run -p test_runner -- -- --nocapture`
+- Summary: `.test_runs/latest.json`
+- Raw Output: `.test_runs/last_output.txt`
 
 **Benchmarks:** `cargo bench -p poke_engine`
 

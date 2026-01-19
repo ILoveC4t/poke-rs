@@ -503,7 +503,7 @@ fn test_damage_calculations() {
                     skipped += 1;
                 } else {
                     failed += 1;
-                    if errors.len() < 20 {
+                    if true {
                         errors.push(format!("[{}] {}: {}", case.id, case.test_name, e));
                     }
                 }
@@ -521,7 +521,7 @@ fn test_damage_calculations() {
              skipped_moves);
     
     if !errors.is_empty() {
-        println!("\nFirst {} errors:", errors.len().min(20));
+        println!("\nAll {} errors:", errors.len());
         for err in &errors {
             println!("  {}", err);
         }
