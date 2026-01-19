@@ -6,7 +6,9 @@ use crate::state::BattleState;
 use crate::damage::formula::apply_modifier;
 use std::sync::LazyLock;
 
-// Compile-time constants for commonly checked species to avoid runtime string parsing
+// Lazily-initialized constants for commonly checked species.
+// These are parsed once on first access and cached, eliminating repeated
+// string parsing overhead in the hot path of damage calculation.
 static CUBONE: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("cubone"));
 static MAROWAK: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("marowak"));
 static PIKACHU: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("pikachu"));
