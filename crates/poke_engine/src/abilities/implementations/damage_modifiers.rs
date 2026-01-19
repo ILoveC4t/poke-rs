@@ -153,7 +153,7 @@ pub fn sheer_force(
     move_data: &Move,
     bp: u16,
 ) -> u16 {
-    if move_data.flags.contains(MoveFlags::HASSECONDARYEFFECTS) {
+    if move_data.flags.contains(MoveFlags::HAS_SECONDARY_EFFECTS) {
         // 1.3x (5325/4096)
         (bp as u32 * 5325 / 4096) as u16
     } else {

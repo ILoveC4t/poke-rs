@@ -39,6 +39,7 @@ mod conditional_moves_tests;
 
 pub use context::DamageContext;
 pub use formula::{get_base_damage, pokeround, of16, of32, chain_mods, apply_modifier};
+pub use modifiers::compute_base_power;
 pub use generations::{GenMechanics, Generation, Gen9};
 
 use crate::moves::MoveId;
