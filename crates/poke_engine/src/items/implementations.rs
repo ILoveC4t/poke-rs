@@ -4,6 +4,14 @@ use crate::moves::MoveCategory;
 use crate::species::SpeciesId;
 use crate::state::BattleState;
 use crate::damage::formula::apply_modifier;
+use std::sync::LazyLock;
+
+// Lazily-initialized constants for commonly checked species.
+// These are parsed once on first access and cached, eliminating repeated
+// string parsing overhead in the hot path of damage calculation.
+static CUBONE: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("cubone"));
+static MAROWAK: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("marowak"));
+static PIKACHU: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("pikachu"));
 
 
 // Assault Vest: 1.5x SpD, but can only use damaging moves.
@@ -46,10 +54,7 @@ pub fn on_modify_attack_thick_club(
 ) -> u16 {
     if category == MoveCategory::Physical {
         let species = state.species[attacker];
-        if let (Some(cubone), Some(marowak)) = (
-            SpeciesId::from_str("cubone"),
-            SpeciesId::from_str("marowak"),
-        ) {
+        if let (Some(cubone), Some(marowak)) = (*CUBONE, *MAROWAK) {
             if species == cubone || species == marowak {
                 return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
             }
@@ -65,7 +70,7 @@ pub fn on_modify_attack_light_ball(
     _category: MoveCategory,
     attack: u16,
 ) -> u16 {
-    if let Some(pikachu) = SpeciesId::from_str("pikachu") {
+    if let Some(pikachu) = *PIKACHU {
         if state.species[attacker] == pikachu {
             return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
         }
