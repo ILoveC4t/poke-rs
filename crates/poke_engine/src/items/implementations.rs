@@ -4,17 +4,14 @@ use crate::moves::MoveCategory;
 use crate::species::SpeciesId;
 use crate::state::BattleState;
 use crate::damage::apply_modifier;
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
-// Species name constants to avoid typos
-const CUBONE_NAME: &str = "cubone";
-const MAROWAK_NAME: &str = "marowak";
-const PIKACHU_NAME: &str = "pikachu";
-
-// Cached species IDs to avoid repeated string parsing in hot path
-static CUBONE_ID: OnceLock<SpeciesId> = OnceLock::new();
-static MAROWAK_ID: OnceLock<SpeciesId> = OnceLock::new();
-static PIKACHU_ID: OnceLock<SpeciesId> = OnceLock::new();
+// Lazily-initialized constants for commonly checked species.
+// These are parsed once on first access and cached, eliminating repeated
+// string parsing overhead in the hot path of damage calculation.
+static CUBONE: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("cubone"));
+static MAROWAK: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("marowak"));
+static PIKACHU: LazyLock<Option<SpeciesId>> = LazyLock::new(|| SpeciesId::from_str("pikachu"));
 
 
 // Assault Vest: 1.5x SpD, but can only use damaging moves.
@@ -59,15 +56,10 @@ pub fn on_modify_attack_thick_club(
 ) -> u16 {
     if category == MoveCategory::Physical {
         let species = state.species[attacker];
-        let cubone = CUBONE_ID.get_or_init(|| {
-            SpeciesId::from_str(CUBONE_NAME).expect("cubone species should exist")
-        });
-        let marowak = MAROWAK_ID.get_or_init(|| {
-            SpeciesId::from_str(MAROWAK_NAME).expect("marowak species should exist")
-        });
-        
-        if species == *cubone || species == *marowak {
-            return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
+        if let (Some(cubone), Some(marowak)) = (*CUBONE, *MAROWAK) {
+            if species == cubone || species == marowak {
+                return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
+            }
         }
     }
     attack
@@ -80,12 +72,10 @@ pub fn on_modify_attack_light_ball(
     _category: MoveCategory,
     attack: u16,
 ) -> u16 {
-    let pikachu = PIKACHU_ID.get_or_init(|| {
-        SpeciesId::from_str(PIKACHU_NAME).expect("pikachu species should exist")
-    });
-    
-    if state.species[attacker] == *pikachu {
-        return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
+    if let Some(pikachu) = *PIKACHU {
+        if state.species[attacker] == pikachu {
+            return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
+        }
     }
     attack
 }
