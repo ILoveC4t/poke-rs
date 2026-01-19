@@ -5,9 +5,3 @@ members = [
     "crates/poke_engine",
     "crates/test_runner",
 ]
-
-[source.crates-io]
-replace-with = "vendored-sources"
-
-[source.vendored-sources]
-directory = "vendor"
