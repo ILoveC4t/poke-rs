@@ -210,10 +210,9 @@ async function processTestFile(filePath: string): Promise<CapturedCase[]> {
             const result = calculate(gen, attacker, defender, move, field);
 
             // ID will be assigned later to ensure deterministic order
-            const caseId = '';
 
             fileCases.push({
-                id: caseId,
+                id: '',
                 gen: gen.num,
                 testName: currentTestName,
                 attacker: serializePokemon(attacker),
