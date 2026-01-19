@@ -7,7 +7,7 @@ use super::context::DamageContext;
 use super::formula::{apply_boost, apply_modifier, apply_modifier_floor, of16, of32, pokeround};
 use super::generations::{GenMechanics, Weather, Terrain};
 use crate::abilities::{AbilityId, ABILITY_REGISTRY};
-use crate::items::ItemId;
+use crate::items::{ItemId, ITEM_REGISTRY};
 use crate::moves::{MoveCategory, MoveFlags, MoveId};
 // use crate::state::Status;
 
@@ -192,36 +192,25 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
     // Ability modifiers for attack (via hook system)
     if ctx.gen.has_abilities() {
         attack = call_attack_hook(ctx, attack);
-        
-        // TODO: Defender damage-reducing abilities (apply in final modifier chain)
-        // - Multiscale / Shadow Shield: 0.5x damage when at full HP
-        // - Filter / Prism Armor / Solid Rock: 0.75x on super-effective hits
-        // - Fluffy: 0.5x contact damage, 2x Fire damage
-        // - Punk Rock: 0.5x sound-based damage
-        // - Ice Scales: 0.5x special damage
     }
     
     // Item modifiers
     let attacker_item = ctx.state.items[ctx.attacker];
-    let _defender_item = ctx.state.items[ctx.defender];
-    
-    // Choice Band: 1.5x Atk
-    if attacker_item == ItemId::Choiceband && ctx.category == MoveCategory::Physical {
-        attack = of16(attack as u32 * 3 / 2);
+    let defender_item = ctx.state.items[ctx.defender];
+
+    // Attacker item attack modifiers
+    if let Some(Some(hooks)) = ITEM_REGISTRY.get(attacker_item as usize) {
+        if let Some(hook) = hooks.on_modify_attack {
+            attack = hook(ctx.state, ctx.attacker, ctx.category, attack);
+        }
     }
-    
-    // Choice Specs: 1.5x SpA
-    if attacker_item == ItemId::Choicespecs && ctx.category == MoveCategory::Special {
-        attack = of16(attack as u32 * 3 / 2);
+
+    // Defender item defense modifiers
+    if let Some(Some(hooks)) = ITEM_REGISTRY.get(defender_item as usize) {
+        if let Some(hook) = hooks.on_modify_defense {
+            defense = hook(ctx.state, ctx.defender, ctx.attacker, ctx.category, defense);
+        }
     }
-    
-    // TODO: More item modifiers
-    // - Assault Vest (1.5x SpD)
-    // - Eviolite (1.5x Def/SpD if not fully evolved)
-    // - Deep Sea Scale/Tooth (Clamperl)
-    // - Metal Powder/Quick Powder (Ditto)
-    // - Thick Club (Cubone/Marowak 2x Atk)
-    // - Light Ball (Pikachu 2x Atk/SpA)
     
     (attack.max(1), defense.max(1))
 }
@@ -436,7 +425,59 @@ fn has_contact_ability_boost(ability: AbilityId, move_flags: MoveFlags) -> Optio
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{state::{BattleState, Status}, damage::{DamageContext, Gen9}, species::SpeciesId, types::Type, items::ItemId, moves::{MoveId, MoveCategory}};
     
+    #[test]
+    fn test_stat_modifying_items() {
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Attacker
+        state.stats[0][1] = 100; // Atk
+        state.stats[0][3] = 100; // SpA
+
+        // Defender
+        state.stats[6][2] = 100; // Def
+        state.stats[6][4] = 100; // SpD
+
+        // 1. Assault Vest (1.5x SpD)
+        state.items[6] = ItemId::Assaultvest;
+        let special_move = MoveId::Surf; // Special
+        let ctx = DamageContext::new(gen, &state, 0, 6, special_move, false);
+        let (_, def) = compute_effective_stats(&ctx);
+        assert_eq!(def, 150, "Assault Vest should boost Sp. Defense by 1.5x");
+
+        // 2. Eviolite (1.5x Def/SpD for pre-evo)
+        state.items[6] = ItemId::Eviolite;
+        state.species[6] = SpeciesId::from_str("chansey").unwrap(); // Can evolve
+        let physical_move = MoveId::Tackle; // Physical
+        let ctx_phys = DamageContext::new(gen, &state, 0, 6, physical_move, false);
+        let (_, def_phys) = compute_effective_stats(&ctx_phys);
+        assert_eq!(def_phys, 150, "Eviolite should boost Defense by 1.5x for Chansey");
+
+        let ctx_spec = DamageContext::new(gen, &state, 0, 6, special_move, false);
+        let (_, def_spec) = compute_effective_stats(&ctx_spec);
+        assert_eq!(def_spec, 150, "Eviolite should boost Sp. Defense by 1.5x for Chansey");
+
+        // 3. Thick Club (2x Atk for Cubone/Marowak)
+        state.items[0] = ItemId::Thickclub;
+        state.species[0] = SpeciesId::from_str("cubone").unwrap();
+        let ctx_club = DamageContext::new(gen, &state, 0, 6, physical_move, false);
+        let (atk_club, _) = compute_effective_stats(&ctx_club);
+        assert_eq!(atk_club, 200, "Thick Club should double Attack for Cubone");
+
+        // 4. Light Ball (2x Atk/SpA for Pikachu)
+        state.items[0] = ItemId::Lightball;
+        state.species[0] = SpeciesId::from_str("pikachu").unwrap();
+        let ctx_light_phys = DamageContext::new(gen, &state, 0, 6, physical_move, false);
+        let (atk_light_phys, _) = compute_effective_stats(&ctx_light_phys);
+        assert_eq!(atk_light_phys, 200, "Light Ball should double Attack for Pikachu");
+
+        let ctx_light_spec = DamageContext::new(gen, &state, 0, 6, special_move, false);
+        let (atk_light_spec, _) = compute_effective_stats(&ctx_light_spec);
+        assert_eq!(atk_light_spec, 200, "Light Ball should double Sp. Attack for Pikachu");
+    }
+
     #[test]
     fn test_type_boost_items() {
         use crate::types::Type;
