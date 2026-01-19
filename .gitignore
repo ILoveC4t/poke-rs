@@ -1,5 +1,5 @@
-.serena/
-
+/.serena
+/fixtures-temp
 /target
 
 # Test run history
