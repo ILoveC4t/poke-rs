@@ -119,11 +119,70 @@ pub fn punk_rock(
     }
 }
 
-// TODO: Sheer Force - 1.3x for moves with secondary effects, disables those effects
-// pub fn sheer_force(...) -> u16
+/// Rivalry: 1.25x for same gender, 0.75x for opposite gender
+pub fn rivalry(
+    state: &BattleState,
+    attacker: usize,
+    defender: usize,
+    _move_data: &Move,
+    bp: u16,
+) -> u16 {
+    use crate::entities::Gender;
+    
+    let attacker_gender = state.gender[attacker];
+    let defender_gender = state.gender[defender];
+    
+    if attacker_gender != Gender::Genderless && defender_gender != Gender::Genderless {
+        if attacker_gender == defender_gender {
+            // 1.25x (5120/4096)
+            (bp as u32 * 5120 / 4096) as u16
+        } else {
+            // 0.75x (3072/4096)
+            (bp as u32 * 3072 / 4096) as u16
+        }
+    } else {
+        bp
+    }
+}
 
-// TODO: Sand Force - 1.3x for Rock/Ground/Steel moves in Sandstorm
-// pub fn sand_force(...) -> u16
+/// Sheer Force: 1.3x for moves with secondary effects (also disables those effects)
+pub fn sheer_force(
+    _state: &BattleState,
+    _attacker: usize,
+    _defender: usize,
+    move_data: &Move,
+    bp: u16,
+) -> u16 {
+    if move_data.flags.contains(MoveFlags::HASSECONDARYEFFECTS) {
+        // 1.3x (5325/4096)
+        (bp as u32 * 5325 / 4096) as u16
+    } else {
+        bp
+    }
+}
+
+/// Sand Force: 1.3x for Rock/Ground/Steel moves in Sandstorm
+pub fn sand_force(
+    state: &BattleState,
+    _attacker: usize,
+    _defender: usize,
+    move_data: &Move,
+    bp: u16,
+) -> u16 {
+    use crate::types::Type;
+    
+    // Check if weather is Sandstorm (3)
+    if state.weather == 3 {
+        if matches!(move_data.primary_type, Type::Rock | Type::Ground | Type::Steel) {
+            // 1.3x (5325/4096)
+            (bp as u32 * 5325 / 4096) as u16
+        } else {
+            bp
+        }
+    } else {
+        bp
+    }
+}
 
 // TODO: Analytic - 1.3x if moving last
 // pub fn analytic(...) -> u16

@@ -7,7 +7,6 @@ use super::context::DamageContext;
 use super::formula::{apply_boost, apply_modifier, apply_modifier_floor, of16, of32, pokeround};
 use super::generations::{GenMechanics, Weather, Terrain};
 use crate::abilities::{AbilityId, ABILITY_REGISTRY};
-use crate::entities::Gender;
 use crate::items::ItemId;
 use crate::moves::{MoveCategory, MoveFlags, MoveId};
 // use crate::state::Status;
@@ -112,37 +111,6 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
         bp = apply_modifier(bp, modifier);
     }
     
-    // Rivalry (+/- 25% based on gender)
-    if ctx.attacker_ability == AbilityId::Rivalry {
-        let attacker_gender = ctx.state.gender[ctx.attacker];
-        let defender_gender = ctx.state.gender[ctx.defender];
-
-        if attacker_gender != Gender::Genderless && defender_gender != Gender::Genderless {
-            if attacker_gender == defender_gender {
-                bp = apply_modifier(bp, 5120); // 1.25x
-            } else {
-                bp = apply_modifier(bp, 3072); // 0.75x
-            }
-        }
-    }
-
-    // Sheer Force (1.3x)
-    if ctx.attacker_ability == AbilityId::Sheerforce {
-        if ctx.move_data.flags.contains(MoveFlags::HAS_SECONDARY_EFFECTS) {
-            bp = apply_modifier(bp, 5325); // 1.3x
-        }
-    }
-
-    // Sand Force (1.3x for Rock/Ground/Steel in Sand)
-    if ctx.attacker_ability == AbilityId::Sandforce {
-        if Weather::from_u8(ctx.state.weather) == Weather::Sand {
-            use crate::types::Type;
-            if matches!(ctx.move_type, Type::Rock | Type::Ground | Type::Steel) {
-                bp = apply_modifier(bp, 5325); // 1.3x
-            }
-        }
-    }
-
     // TODO: Implement remaining ability BP modifiers
     // - Analytic (1.3x if moving last)
     // - Aerilate/Pixilate/Refrigerate/Galvanize (1.2x + type change)
