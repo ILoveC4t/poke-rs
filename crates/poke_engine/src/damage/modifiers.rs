@@ -355,11 +355,9 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
         // pokeRound(OF32(damageAmount * screenMod) / 4096)
         // 0.5x in singles (2048), 0.67x in doubles (2732)
         if !ctx.is_crit && ctx.has_screen(ctx.category == MoveCategory::Physical) {
-            let screen_mod = if ctx.state.is_doubles() {
-                2732 // 0.67x for doubles
-            } else {
-                2048 // 0.5x for singles
-            };
+            let screen_mod = ctx
+                .state
+                .get_screen_modifier(ctx.defender, ctx.category);
             damage = apply_modifier(damage, screen_mod);
         }
         
