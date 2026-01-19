@@ -140,8 +140,16 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
         on_defender_final_mod: Some(final_modifiers::multiscale),
         ..AbilityHooks::NONE
     });
+    registry[AbilityId::Shadowshield as usize] = Some(AbilityHooks {
+        on_defender_final_mod: Some(final_modifiers::multiscale),
+        ..AbilityHooks::NONE
+    });
     registry[AbilityId::Filter as usize] = Some(AbilityHooks {
         on_defender_final_mod: Some(final_modifiers::filter),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Fluffy as usize] = Some(AbilityHooks {
+        on_defender_final_mod: Some(final_modifiers::fluffy),
         ..AbilityHooks::NONE
     });
     registry[AbilityId::Solidrock as usize] = Some(AbilityHooks {

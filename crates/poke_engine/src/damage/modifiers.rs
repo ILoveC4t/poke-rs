@@ -77,6 +77,7 @@ fn apply_final_mods<G: GenMechanics>(
                 ctx.attacker,
                 ctx.defender,
                 ctx.effectiveness,
+                ctx.move_type,
                 ctx.category,
                 is_contact,
                 damage,
