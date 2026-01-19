@@ -1,0 +1,132 @@
+use crate::state::BattleState;
+use crate::moves::{MoveId, MoveCategory, Move};
+use crate::types::Type;
+use crate::abilities::{Weather, Terrain};
+
+/// Called when a Pokemon switches in (after hazards)
+pub type OnSwitchIn = fn(state: &mut BattleState, switched_idx: usize);
+
+/// Called during turn ordering to modify move priority
+pub type OnModifyPriority = fn(state: &BattleState, attacker: usize, move_id: MoveId, base_priority: i8) -> i8;
+
+/// Called immediately before a move is executed
+pub type OnBeforeMove = fn(state: &mut BattleState, attacker: usize, move_id: MoveId);
+
+/// Called during damage calculation to modify damage (legacy, prefer new hooks)
+pub type OnModifyDamage = fn(state: &BattleState, attacker: usize, defender: usize, damage: u16) -> u16;
+
+/// Called after damage has been dealt
+pub type OnAfterDamage = fn(state: &mut BattleState, attacker: usize, defender: usize, damage: u16);
+
+/// Called when a stat boost is applied to modify the stage change
+pub type OnStatChange = fn(change: i8) -> i8;
+
+/// Called during base power calculation
+/// Uses &MoveData for full access to flags, type, category, and other properties.
+pub type OnModifyBasePower = fn(
+    state: &BattleState,
+    attacker: usize,
+    defender: usize,
+    move_data: &Move,
+    bp: u16,
+) -> u16;
+
+/// Called during stat calculation to modify attack stat
+pub type OnModifyAttack = fn(
+    state: &BattleState,
+    attacker: usize,
+    category: MoveCategory,
+    attack: u16,
+) -> u16;
+
+/// Called during stat calculation to modify defense stat
+pub type OnModifyDefense = fn(
+    state: &BattleState,
+    defender: usize,
+    attacker: usize,
+    category: MoveCategory,
+    defense: u16,
+) -> u16;
+
+/// Attacker's post-damage modifier
+/// Applied BEFORE defender modifiers in the damage chain.
+pub type OnAttackerFinalMod = fn(
+    state: &BattleState,
+    attacker: usize,
+    defender: usize,
+    effectiveness: u8,
+    is_crit: bool,
+    damage: u32,
+) -> u32;
+
+/// Defender's damage reduction
+/// Applied AFTER attacker modifiers in the damage chain.
+pub type OnDefenderFinalMod = fn(
+    state: &BattleState,
+    attacker: usize,
+    defender: usize,
+    effectiveness: u8,
+    category: MoveCategory,
+    is_contact: bool,
+    damage: u32,
+) -> u32;
+
+/// Called to check type immunity
+/// Returns true if the item grants immunity.
+pub type OnTypeImmunity = fn(
+    state: &BattleState,
+    defender: usize,
+    move_type: Type,
+) -> bool;
+
+// ============================================================================
+// ItemHooks Struct
+// ============================================================================
+
+#[derive(Clone, Copy, Default)]
+pub struct ItemHooks {
+    // Existing hooks
+    pub on_switch_in: Option<OnSwitchIn>,
+    pub on_modify_priority: Option<OnModifyPriority>,
+    pub on_before_move: Option<OnBeforeMove>,
+    pub on_modify_damage: Option<OnModifyDamage>,
+    pub on_after_damage: Option<OnAfterDamage>,
+    pub on_stat_change: Option<OnStatChange>,
+    // New damage-phase hooks
+    pub on_modify_base_power: Option<OnModifyBasePower>,
+    pub on_modify_attack: Option<OnModifyAttack>,
+    pub on_modify_defense: Option<OnModifyDefense>,
+    pub on_attacker_final_mod: Option<OnAttackerFinalMod>,
+    pub on_defender_final_mod: Option<OnDefenderFinalMod>,
+    pub on_type_immunity: Option<OnTypeImmunity>,
+}
+
+impl ItemHooks {
+    /// Empty hooks (default)
+    pub const NONE: Self = Self {
+        on_switch_in: None,
+        on_modify_priority: None,
+        on_before_move: None,
+        on_modify_damage: None,
+        on_after_damage: None,
+        on_stat_change: None,
+        on_modify_base_power: None,
+        on_modify_attack: None,
+        on_modify_defense: None,
+        on_attacker_final_mod: None,
+        on_defender_final_mod: None,
+        on_type_immunity: None,
+    };
+
+    /// Helper to set weather
+    pub fn set_weather(state: &mut BattleState, weather: Weather, turns: u8) {
+        state.weather = weather as u8;
+        state.weather_turns = turns;
+    }
+
+    /// Helper to set terrain
+    pub fn set_terrain(state: &mut BattleState, terrain: Terrain, turns: u8) {
+        state.terrain = terrain as u8;
+        state.terrain_turns = turns;
+    }
+}

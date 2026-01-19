@@ -28,10 +28,8 @@ pub mod moves {
     include!(concat!(env!("OUT_DIR"), "/moves.rs"));
 }
 
-/// Item identifiers
-pub mod items {
-    include!(concat!(env!("OUT_DIR"), "/items.rs"));
-}
+/// Item identifiers and hooks
+pub mod items;
 
 /// Terrain definitions
 pub mod terrains {
