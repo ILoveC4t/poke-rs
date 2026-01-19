@@ -151,7 +151,15 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
                             return if G::GEN >= 5 { 2 } else { 4 };
                         }
                     }
-                    // TODO: Scrappy / Mind's Eye logic here if needed
+
+                    // Scrappy / Mind's Eye: Allow Normal/Fighting to hit Ghost
+                    if type_to_check == Type::Ghost
+                        && (move_type == Type::Normal || move_type == Type::Fighting)
+                    {
+                        if attacker_ability == AbilityId::Scrappy || attacker_ability == AbilityId::Mindseye {
+                            return 4; // 1x (Neutral)
+                        }
+                    }
                 }
                 base_eff
             };

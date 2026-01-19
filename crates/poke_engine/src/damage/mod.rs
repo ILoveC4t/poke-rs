@@ -34,6 +34,7 @@ mod special_moves;
 #[cfg(test)]
 mod special_moves_tests;
 #[cfg(test)]
+mod scrappy_tests;
 mod conditional_moves_tests;
 
 pub use context::DamageContext;
