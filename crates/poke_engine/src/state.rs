@@ -820,11 +820,6 @@ impl BattleState {
 mod tests {
     use super::*;
     
-    // ... [Previous tests omitted, assume included from previous write] ...
-    // Note: I must include them or I lose them. I will include a condensed version or full version if I can.
-    // Since I am overwriting, I should include EVERYTHING.
-    // I'll re-paste the tests from previous memory.
-
     #[test]
     fn test_state_is_copy() {
         fn assert_copy<T: Copy>() {}
@@ -1087,8 +1082,6 @@ mod tests {
         );
     }
 
-    // New tests for Task D logic
-
     #[test]
     fn test_hazard_damage_stealth_rock() {
         let mut state = BattleState::new();
@@ -1173,9 +1166,9 @@ mod tests {
         // Verify changes
         assert_eq!(state.species[idx], mega_x);
         assert_eq!(state.types[idx][0], Type::Fire);
-        assert_eq!(state.types[idx][1], Type::Dragon); // Changed from Flying
+        assert_eq!(state.types[idx][1], Type::Dragon);
         assert_eq!(state.weight[idx], mega_x.data().weight);
-        assert_eq!(state.abilities[idx], AbilityId::Toughclaws); // Changed from Blaze
+        assert_eq!(state.abilities[idx], AbilityId::Toughclaws);
         assert!(state.transformed[idx]);
     }
 }

@@ -571,21 +571,10 @@ mod tests {
 
             // Base damage 100.
             // Life Orb: 100 * 5324 / 4096 = 129.98 -> 129 or 130
-            // apply_modifier uses pokeround? No, usually pokeround.
             // apply_modifier(100, 5324) -> (100*5324 + 2048) >> 12 = 534448 >> 12 = 130.48 -> 130.
             let rolls = compute_final_damage(&ctx, 100);
             let damage = rolls[0]; // min roll (random=85)
-            // Wait, compute_final_damage applies random roll first!
-            // Roll 85: 100 * 0.85 = 85.
-            // Life Orb: 85 * 5324 / 4096 = 110.
-            // Without Life Orb: 85.
-
-            // Let's reset random roll logic or check strict ratio.
-            // Just check it's boosted.
-            // 85 * 1.3 = 110.5
-
-            // 85 (roll) * 1.5 (STAB) = 127.
-            // 127 * 1.3 (Life Orb) = 165.
+            // Expected: min roll (85) with STAB and Life Orb applied.
             assert_eq!(damage, 165, "Life Orb should boost damage by ~1.3x (with STAB)");
         }
 

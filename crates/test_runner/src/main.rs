@@ -42,20 +42,7 @@ fn main() {
             analyze::execute(args);
         }
         None => {
-            // Default to 'run' with empty args if no subcommand provided
-            // This maintains backward compatibility for simple "cargo run -p test_runner" usage if needed,
-            // though it's better to be explicit.
-            // Let's print help if no command, or default to run?
-            // The prompt asked for "proper extensible cli", so forcing subcommand is better practice.
-            // But for ease of use let's default to run if user didn't specify.
-            // Actually, if we use just `cargo run`, we might want to run everything.
-            
-            // However, clap will fail if it sees arguments it doesn't recognize as a subcommand.
-            // So if user does `cargo run -- --filter foo`, clap will fail because --filter is a flag of `run`, NOT root.
-            // To fix this we would need to flatten `RunArgs` into `Cli`.
-            // But we want subcommands.
-            
-            // Let's force usage of `run`.
+            // Require explicit subcommand to avoid flag ambiguity at the root.
             use clap::CommandFactory;
             let mut cmd = Cli::command();
             cmd.print_help().unwrap();

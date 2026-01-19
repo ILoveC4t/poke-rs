@@ -89,30 +89,5 @@ pub fn filter(
 }
 
 // TODO: Fluffy - 0.5x contact damage, 2x Fire damage
-// pub fn fluffy(
-//     _state: &BattleState,
-//     _attacker: usize,
-//     _defender: usize,
-//     _effectiveness: u8,
-//     _category: MoveCategory,
-//     is_contact: bool,
-//     damage: u32,
-// ) -> u32 {
-//     // Needs move type check for Fire - would need additional param
-// }
-
 // TODO: Ice Scales - 0.5x special damage
-// pub fn ice_scales(
-//     _state: &BattleState,
-//     _attacker: usize,
-//     _defender: usize,
-//     _effectiveness: u8,
-//     category: MoveCategory,
-//     _is_contact: bool,
-//     damage: u32,
-// ) -> u32 {
-//     if category == MoveCategory::Special { apply_modifier(damage, 2048) } else { damage }
-// }
-
 // TODO: Punk Rock - 0.5x sound-based damage
-// pub fn punk_rock(...) -> u32
