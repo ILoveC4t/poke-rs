@@ -51,7 +51,7 @@ pub fn on_modify_attack_thick_club(
             SpeciesId::from_str("marowak"),
         ) {
             if species == cubone || species == marowak {
-                return (attack as u32 * 2).max(1) as u16;
+                return apply_modifier(attack.into(), 8192).max(1) as u16; // 2x
             }
         }
     }
