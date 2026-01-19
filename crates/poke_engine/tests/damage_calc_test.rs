@@ -26,17 +26,21 @@ use std::io::BufReader;
 fn get_target_gen() -> Option<u8> {
     // Check environment variable first
     if let Ok(gen_str) = std::env::var("POKE_TEST_GEN") {
+        // "ALL" or "all" means all generations
+        if gen_str.eq_ignore_ascii_case("all") {
+            return None;
+        }
         if let Ok(gen) = gen_str.parse::<u8>() {
             return Some(gen);
         }
     }
     
-    // Default: Gen 9 only
-    Some(9)
+    // Default: All generations
+    None
 }
 
 /// Whether to fail on unimplemented features or skip them.
-const STRICT_MODE: bool = false;
+const STRICT_MODE: bool = true;
 
 // ============================================================================
 // Fixture Data Structures

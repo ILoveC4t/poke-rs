@@ -128,7 +128,13 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
         let def_type1 = state.types[defender][0];
         let def_type2 = state.types[defender][1];
         let def_type2_opt = if def_type2 != def_type1 { Some(def_type2) } else { None };
-        let effectiveness = gen.type_effectiveness(move_type, def_type1, def_type2_opt);
+        let mut effectiveness = gen.type_effectiveness(move_type, def_type1, def_type2_opt);
+        
+        // Check for ability-granted immunity (Levitate, Flash Fire, etc.)
+        let defender_ability = state.abilities[defender];
+        if effectiveness > 0 {
+            effectiveness = Self::check_ability_immunity(state, defender, defender_ability, move_type, effectiveness);
+        }
         
         // Determine category (respect Physical/Special split)
         let category = if move_data.category == MoveCategory::Status {
@@ -210,5 +216,26 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
         } else {
             conditions.light_screen_turns > 0
         }
+    }
+    
+    /// Check if an ability grants immunity to a move type.
+    /// Returns 0 (immune) if the ability blocks the move, otherwise returns original effectiveness.
+    fn check_ability_immunity(
+        state: &BattleState,
+        defender: usize,
+        ability: AbilityId,
+        move_type: Type,
+        effectiveness: u8,
+    ) -> u8 {
+        use crate::abilities::ABILITY_REGISTRY;
+        
+        if let Some(Some(hooks)) = ABILITY_REGISTRY.get(ability as usize) {
+            if let Some(hook) = hooks.on_type_immunity {
+                if hook(state, defender, move_type) {
+                    return 0; // Immune
+                }
+            }
+        }
+        effectiveness
     }
 }

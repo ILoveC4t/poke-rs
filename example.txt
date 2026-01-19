@@ -1,0 +1,308 @@
+warning: unused variable: `find_related`
+   --> crates\poke_engine\build.rs:715:17
+    |
+715 |             let find_related = |suffix: &str| -> u16 {
+    |                 ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_find_related`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `gen` is never read
+   --> crates\poke_engine\build.rs:117:5
+    |
+112 | struct ItemData {
+    |        -------- field in this struct
+...
+117 |     gen: u8,
+    |     ^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `poke_engine` (build script) generated 2 warnings
+warning: unused import: `Move`
+  --> crates\poke_engine\src\damage\modifiers.rs:11:20
+   |
+11 | use crate::moves::{Move, MoveCategory, MoveFlags, MoveId};
+   |                    ^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `old_max_hp`
+   --> crates\poke_engine\src\state.rs:505:13
+    |
+505 |         let old_max_hp = self.max_hp[entity_idx];
+    |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_old_max_hp`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `move_data`
+  --> crates\poke_engine\src\damage\generations\gen1.rs:80:13
+   |
+80 |         let move_data = ctx.move_data;
+   |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_move_data`
+
+warning: `poke_engine` (lib) generated 3 warnings (run `cargo fix --lib -p poke_engine` to apply 3 suggestions)
+   Compiling poke_engine v0.1.0 (C:\Users\Admin\Documents\poke-rs\crates\poke_engine)
+warning: field `function` is never read
+   --> crates\poke_engine\src\entities.rs:460:13
+    |
+457 |         CalcStat {
+    |         -------- field in this variant
+...
+460 |             function: String,
+    |             ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `id`, `function`, `input`, and `expected` are never read
+   --> crates\poke_engine\src\entities.rs:471:13
+    |
+470 |         DisplayStat {
+    |         ----------- fields in this variant
+471 |             id: String,
+    |             ^^
+472 |             #[serde(rename = "fn")]
+473 |             function: String,
+    |             ^^^^^^^^
+474 |             input: String,
+    |             ^^^^^
+475 |             expected: String,
+    |             ^^^^^^^^
+
+warning: fields `id`, `function`, `input`, and `expected` are never read
+   --> crates\poke_engine\src\entities.rs:478:13
+    |
+477 |         DvIv {
+    |         ---- fields in this variant
+478 |             id: String,
+    |             ^^
+479 |             #[serde(rename = "fn")]
+480 |             function: String,
+    |             ^^^^^^^^
+481 |             input: u8,
+    |             ^^^^^
+482 |             expected: u8,
+    |             ^^^^^^^^
+
+warning: fields `id`, `function`, `gen`, `stat`, `boost`, and `expected` are never read
+   --> crates\poke_engine\src\entities.rs:485:13
+    |
+484 |         GetModifiedStat {
+    |         --------------- fields in this variant
+485 |             id: String,
+    |             ^^
+486 |             #[serde(rename = "fn")]
+487 |             function: String,
+    |             ^^^^^^^^
+488 |             gen: u8,
+    |             ^^^
+489 |             stat: u16,
+    |             ^^^^
+490 |             boost: i8,
+    |             ^^^^^
+491 |             expected: u16,
+    |             ^^^^^^^^
+
+warning: fields `id`, `function`, `input`, and `expected` are never read
+   --> crates\poke_engine\src\entities.rs:494:13
+    |
+493 |         GetHPDV {
+    |         ------- fields in this variant
+494 |             id: String,
+    |             ^^
+495 |             #[serde(rename = "fn")]
+496 |             function: String,
+    |             ^^^^^^^^
+497 |             input: serde_json::Value,
+    |             ^^^^^
+498 |             expected: u8,
+    |             ^^^^^^^^
+
+warning: `poke_engine` (lib test) generated 8 warnings (3 duplicates)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.60s
+     Running unittests src\lib.rs (target\debug\deps\poke_engine-49cc7715577eb97e.exe)
+
+running 71 tests
+test abilities::tests::test_drizzle_hook ... ok
+test damage::formula::tests::test_apply_modifier ... ok
+test abilities::tests::test_registry_lookup ... ok
+test damage::formula::tests::test_apply_modifier_floor ... ok
+test abilities::tests::test_prankster_hook ... ok
+test damage::formula::tests::test_base_damage ... ok
+test damage::formula::tests::test_chain_mods ... ok
+test damage::generations::gen2::tests::test_gen2_steel_resistance ... ok
+test damage::formula::tests::test_of16 ... ok
+test damage::formula::tests::test_of32 ... ok
+test damage::formula::tests::test_pokeround ... ok
+test damage::formula::tests::test_random_rolls ... ok
+test damage::formula::tests::test_boost_application ... ok
+test damage::generations::gen1::tests::test_gen1_psychic_immune_to_ghost ... ok
+test damage::generations::gen9::tests::test_gen9_crit_multiplier ... ok
+test damage::generations::gen1::tests::test_gen1_damage_basic ... ok
+test damage::generations::gen9::tests::test_gen9_features ... ok
+
+thread 'damage::tests::test_type_immunity' (28264) panicked at crates\poke_engine\src\damage\mod.rs:360:9:
+Ghost/Poison is not immune to Ground
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test damage::generations::gen9::tests::test_gen9_stab ... ok
+test damage::generations::gen9::tests::test_gen9_terrain ... ok
+test damage::generations::gen9::tests::test_gen9_weather ... ok
+test damage::modifiers::tests::test_facade_damage ... ok
+test damage::modifiers::tests::test_item_modifiers ... ok
+test damage::modifiers::tests::test_tinted_lens ... ok
+test damage::modifiers::tests::test_type_boost_items ... ok
+test damage::special_moves_tests::tests::test_flying_press ... ok
+test damage::special_moves_tests::tests::test_freeze_dry ... ok
+test damage::special_moves_tests::tests::test_struggle_vs_ghost ... ok
+test damage::special_moves_tests::tests::test_thousand_arrows ... ok
+test damage::special_moves_tests::tests::test_weather_ball_rain ... ok
+test damage::special_moves_tests::tests::test_weather_ball_sun ... ok
+test damage::tests::test_basic_damage_calc ... ok
+test entities::tests::test_default_ability_lookup ... ok
+stats.json: 7 passed, 0 failed
+test damage::tests::test_type_immunity ... FAILED
+test entities::tests::test_gender_determination ... ok
+test entities::tests::test_mega_config ... ok
+test entities::tests::test_mega_y_config ... ok
+test entities::tests::test_pp_initialization ... ok
+test entities::tests::test_spawn ... ok
+test entities::tests::test_shedinja_hp ... ok
+test entities::tests::test_stat_calculation ... ok
+test entities::tests::test_weight_override ... ok
+test state::tests::test_apply_forme_change ... ok
+test state::tests::test_effective_speed_items ... ok
+test state::tests::test_effective_speed_modifiers ... ok
+pokemon.json: 4 passed, 16 skipped
+test entities::tests::test_stats_from_fixture ... ok
+test state::tests::test_effective_speed_paralysis ... ok
+test state::tests::test_effective_speed_stacking ... ok
+test state::tests::test_effective_speed_tailwind ... ok
+test state::tests::test_effective_speed_weather_abilities ... ok
+test state::tests::test_entity_index ... ok
+test state::tests::test_grounded_logic ... ok
+test state::tests::test_hazard_damage_spikes ... ok
+test state::tests::test_hazard_damage_stealth_rock ... ok
+test state::tests::test_screen_modifier ... ok
+test state::tests::test_stat_boost ... ok
+test state::tests::test_state_is_copy ... ok
+test state::tests::test_toxic_spikes_absorption ... ok
+test entities::tests::test_pokemon_json ... ok
+test state::tests::test_turn_order_priority ... ok
+test state::tests::test_turn_order_speed ... ok
+test state::tests::test_turn_order_tie ... ok
+test state::tests::test_turn_order_trick_room ... ok
+test tests::test_ability_lookup ... ok
+test tests::test_form_base_species ... ok
+test tests::test_item_lookup ... ok
+test tests::test_move_data_and_terrain ... ok
+test tests::test_nature_modifiers ... ok
+test tests::test_species_lookup ... ok
+test tests::test_type_effectiveness ... ok
+test tests::test_type_lookup ... ok
+stats-full.json calcStat: 44 passed, 0 failed
+test entities::tests::test_stats_full_calcstat_cases ... ok
+
+failures:
+
+failures:
+    damage::tests::test_type_immunity
+
+test result: FAILED. 70 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`
+     Running unittests src\bin\fixture_runner.rs (target\debug\deps\fixture_runner-a1e11029ecc49893.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\bin\test_summary.rs (target\debug\deps\test_summary-38003e0b3587c0b2.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\damage_calc_test.rs (target\debug\deps\damage_calc_test-57854431de84db30.exe)
+
+running 3 tests
+test test_weather_parsing ... ok
+test test_terrain_parsing ... ok
+Loaded 432 damage test cases
+
+=== Damage Calc Test Results ===
+Passed:  214
+Failed:  218
+Skipped: 0 (gen filter: 0, species: 0, moves: 0)
+
+First 20 errors:
+  [gen4-Grass-Knot--gen-4--0] Grass Knot (gen 4): Roll 0 mismatch: expected 190, got 0
+  Full expected: [190, 192, 194, 196, 198, 200, 202, 206, 208, 210, 212, 214, 216, 218, 220, 224]
+  Full actual: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  [gen5-Grass-Knot--gen-5--1] Grass Knot (gen 5): Roll 0 mismatch: expected 190, got 0
+  Full expected: [190, 192, 194, 196, 198, 200, 202, 206, 208, 210, 212, 214, 216, 218, 220, 224]
+  Full actual: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  [gen6-Grass-Knot--gen-6--2] Grass Knot (gen 6): Roll 0 mismatch: expected 190, got 0
+  Full expected: [190, 192, 194, 196, 198, 200, 202, 206, 208, 210, 212, 214, 216, 218, 220, 224]
+  Full actual: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  [gen7-Grass-Knot--gen-7--3] Grass Knot (gen 7): Roll 0 mismatch: expected 190, got 0
+  Full expected: [190, 192, 194, 196, 198, 200, 202, 206, 208, 210, 212, 214, 216, 218, 220, 224]
+  Full actual: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  [gen4-Arceus-Plate--gen-4--4] Arceus Plate (gen 4): Roll 0 mismatch: expected 194, got 121
+  Full expected: [194, 196, 200, 202, 204, 206, 208, 210, 212, 216, 218, 220, 222, 224, 226, 230]
+  Full actual: [121, 123, 124, 126, 127, 129, 130, 132, 133, 135, 136, 138, 139, 141, 142, 144]
+  [gen5-Arceus-Plate--gen-5--5] Arceus Plate (gen 5): Roll 0 mismatch: expected 194, got 121
+  Full expected: [194, 196, 200, 202, 204, 206, 208, 210, 212, 216, 218, 220, 222, 224, 226, 230]
+  Full actual: [121, 123, 124, 126, 127, 129, 130, 132, 133, 135, 136, 138, 139, 141, 142, 144]
+  [gen6-Arceus-Plate--gen-6--6] Arceus Plate (gen 6): Roll 0 mismatch: expected 194, got 121
+  Full expected: [194, 196, 200, 202, 204, 206, 208, 210, 212, 216, 218, 220, 222, 224, 226, 230]
+  Full actual: [121, 123, 124, 126, 127, 129, 130, 132, 133, 135, 136, 138, 139, 141, 142, 144]
+  [gen7-Arceus-Plate--gen-7--7] Arceus Plate (gen 7): Roll 0 mismatch: expected 194, got 121
+  Full expected: [194, 196, 200, 202, 204, 206, 208, 210, 212, 216, 218, 220, 222, 224, 226, 230]
+  Full actual: [121, 123, 124, 126, 127, 129, 130, 132, 133, 135, 136, 138, 139, 141, 142, 144]
+  [gen1-Comet-Punch--gen-1--26] Comet Punch (gen 1): Roll 0 mismatch: expected 36, got 54
+  [gen2-Comet-Punch--gen-2--27] Comet Punch (gen 2): Roll 0 mismatch: expected 36, got 54
+  [gen3-Comet-Punch--gen-3--28] Comet Punch (gen 3): Roll 0 mismatch: expected 44, got 43
+  Full expected: [44, 44, 45, 45, 46, 46, 47, 47, 48, 48, 49, 49, 50, 50, 51, 52]
+  Full actual: [43, 45, 45, 45, 46, 46, 46, 48, 48, 48, 49, 49, 49, 51, 51, 52]
+  [gen1-Critical-hits-ignore-attack-decreases--gen-1--44] Critical hits ignore attack decreases (gen 1): Roll 0 mismatch: expected 799, got 342
+  [gen1-Critical-hits-ignore-attack-decreases--gen-1--45] Critical hits ignore attack decreases (gen 1): Roll 0 mismatch: expected 102, got 114
+  [gen2-Critical-hits-ignore-attack-decreases--gen-2--46] Critical hits ignore attack decreases (gen 2): Roll 0 mismatch: expected 850, got 342
+  [gen2-Critical-hits-ignore-attack-decreases--gen-2--47] Critical hits ignore attack decreases (gen 2): Roll 0 mismatch: expected 149, got 114
+  [gen3-Critical-hits-ignore-attack-decreases--gen-3--48] Critical hits ignore attack decreases (gen 3): Roll 0 mismatch: expected 729, got 273
+  Full expected: [729, 737, 746, 755, 763, 772, 780, 789, 797, 806, 815, 823, 832, 840, 849, 858]
+  Full actual: [273, 276, 279, 282, 286, 289, 292, 295, 298, 302, 305, 308, 311, 315, 318, 321]
+  [gen3-Critical-hits-ignore-attack-decreases--gen-3--49] Critical hits ignore attack decreases (gen 3): Roll 0 mismatch: expected 182, got 91
+  Full expected: [182, 184, 187, 189, 191, 193, 195, 197, 199, 202, 204, 206, 208, 210, 212, 215]
+  Full actual: [91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 104, 105, 106, 107]
+  [gen4-Critical-hits-ignore-attack-decreases--gen-4--50] Critical hits ignore attack decreases (gen 4): Roll 0 mismatch: expected 729, got 273
+  Full expected: [729, 737, 746, 755, 763, 772, 780, 789, 797, 806, 815, 823, 832, 840, 849, 858]
+  Full actual: [273, 276, 279, 282, 286, 289, 292, 295, 298, 302, 305, 308, 311, 315, 318, 321]
+  [gen4-Critical-hits-ignore-attack-decreases--gen-4--51] Critical hits ignore attack decreases (gen 4): Roll 0 mismatch: expected 182, got 91
+  Full expected: [182, 184, 187, 189, 191, 193, 195, 197, 199, 202, 204, 206, 208, 210, 212, 215]
+  Full actual: [91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 104, 105, 106, 107]
+  [gen5-Critical-hits-ignore-attack-decreases--gen-5--52] Critical hits ignore attack decreases (gen 5): Roll 0 mismatch: expected 364, got 273
+  Full expected: [364, 368, 373, 377, 381, 386, 390, 394, 398, 403, 407, 411, 416, 420, 424, 429]
+  Full actual: [273, 276, 279, 282, 286, 289, 292, 295, 298, 302, 305, 308, 311, 315, 318, 321]
+
+thread 'test_damage_calculations' (26188) panicked at crates\poke_engine\tests\damage_calc_test.rs:532:9:
+218 test cases failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test test_damage_calculations ... FAILED
+
+failures:
+
+failures:
+    test_damage_calculations
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `--test damage_calc_test`
+   Doc-tests poke_engine
+
+running 1 test
+test crates\poke_engine\src\lib.rs - damage (line 61) ... ignored
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: 2 targets failed:
+    `--lib`
+    `--test damage_calc_test`

@@ -6,10 +6,81 @@
 use super::context::DamageContext;
 use super::formula::{apply_boost, apply_modifier, apply_modifier_floor, of16, of32, pokeround};
 use super::generations::{GenMechanics, Weather, Terrain};
-use crate::abilities::AbilityId;
+use crate::abilities::{AbilityId, ABILITY_REGISTRY};
 use crate::items::ItemId;
-use crate::moves::{MoveCategory, MoveFlags, MoveId};
+use crate::moves::{Move, MoveCategory, MoveFlags, MoveId};
 use crate::state::Status;
+
+// ============================================================================
+// Ability Hook Helpers
+// ============================================================================
+
+/// Call the OnModifyBasePower hook for the attacker's ability, if registered.
+fn call_base_power_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, bp: u16) -> u16 {
+    if let Some(Some(hooks)) = ABILITY_REGISTRY.get(ctx.attacker_ability as usize) {
+        if let Some(hook) = hooks.on_modify_base_power {
+            return hook(
+                ctx.state,
+                ctx.attacker,
+                ctx.defender,
+                ctx.move_data,
+                bp,
+            );
+        }
+    }
+    bp
+}
+
+/// Call the OnModifyAttack hook for the attacker's ability, if registered.
+fn call_attack_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, attack: u16) -> u16 {
+    if let Some(Some(hooks)) = ABILITY_REGISTRY.get(ctx.attacker_ability as usize) {
+        if let Some(hook) = hooks.on_modify_attack {
+            return hook(
+                ctx.state,
+                ctx.attacker,
+                ctx.category,
+                attack,
+            );
+        }
+    }
+    attack
+}
+
+/// Apply final modifiers from both attacker and defender abilities.
+/// Order: attacker mods first, then defender mods (per Smogon order).
+fn apply_final_mods<G: GenMechanics>(ctx: &DamageContext<'_, G>, mut damage: u32) -> u32 {
+    // Attacker's ability (Tinted Lens, Sniper)
+    if let Some(Some(hooks)) = ABILITY_REGISTRY.get(ctx.attacker_ability as usize) {
+        if let Some(hook) = hooks.on_attacker_final_mod {
+            damage = hook(
+                ctx.state,
+                ctx.attacker,
+                ctx.defender,
+                ctx.effectiveness,
+                ctx.is_crit,
+                damage,
+            );
+        }
+    }
+    
+    // Defender's ability (Multiscale, Filter, Fluffy)
+    if let Some(Some(hooks)) = ABILITY_REGISTRY.get(ctx.defender_ability as usize) {
+        if let Some(hook) = hooks.on_defender_final_mod {
+            let is_contact = ctx.move_data.flags.contains(MoveFlags::CONTACT);
+            damage = hook(
+                ctx.state,
+                ctx.attacker,
+                ctx.defender,
+                ctx.effectiveness,
+                ctx.category,
+                is_contact,
+                damage,
+            );
+        }
+    }
+    
+    damage
+}
 
 // ============================================================================
 // Phase 1: Base Power Computation
@@ -87,13 +158,11 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     }
     
     // ========================================================================
-    // Ability-based BP modifiers (after weight calc for Technician interaction)
+    // Ability-based BP modifiers via hook system
     // ========================================================================
     
-    // Technician: 1.5x for moves with BP <= 60
-    if ctx.attacker_ability == AbilityId::Technician && bp <= 60 {
-        bp = bp * 3 / 2;
-    }
+    // Call registered OnModifyBasePower hook if available
+    bp = call_base_power_hook(ctx, bp as u16) as u32;
     
     // Reckless: 1.2x for recoil moves
     // TODO: Reckless needs access to move's recoil property, not a flag
@@ -101,20 +170,6 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     // if ctx.attacker_ability == AbilityId::Reckless {
     //     if move has recoil { bp = bp * 6 / 5; }
     // }
-    
-    // Iron Fist: 1.2x for punch moves
-    if ctx.attacker_ability == AbilityId::Ironfist {
-        if ctx.move_data.flags.intersects(MoveFlags::PUNCH) {
-            bp = bp * 6 / 5;
-        }
-    }
-    
-    // Tough Claws: 1.3x for contact moves
-    if ctx.attacker_ability == AbilityId::Toughclaws {
-        if ctx.move_data.flags.intersects(MoveFlags::CONTACT) {
-            bp = bp * 5461 / 4096; // 1.333... in fixed-point
-        }
-    }
 
     // Type-boosting items (e.g. Charcoal)
     if let Some(modifier) = get_type_boost_item_mod(ctx.state.items[ctx.attacker], ctx.move_type) {
@@ -202,24 +257,10 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
         defense = apply_boost(defense, def_boost);
     }
     
-    // Ability modifiers for attack
+    // Ability modifiers for attack (via hook system)
     if ctx.gen.has_abilities() {
-        // Hustle: 1.5x Attack (accuracy penalty handled elsewhere)
-        if ctx.attacker_ability == AbilityId::Hustle && ctx.category == MoveCategory::Physical {
-            attack = of16(attack as u32 * 3 / 2);
-        }
+        attack = call_attack_hook(ctx, attack);
         
-        // TODO: More attack-modifying abilities
-        // - Pure Power / Huge Power (2x Atk)
-        // - Flower Gift (1.5x Atk in Sun)
-        // - Guts (1.5x Atk when statused)
-        // - Defeatist (0.5x when below 50% HP)
-        // - Slow Start (0.5x for 5 turns)
-        // - Stakeout (2x if target switches in)
-        // - Gorilla Tactics (1.5x Atk, locked into one move)
-        // - Solar Power (1.5x SpA in Sun)
-        // - Plus/Minus (1.5x SpA with partner)
-    
         // TODO: Defender damage-reducing abilities (apply in final modifier chain)
         // - Multiscale / Shadow Shield: 0.5x damage when at full HP
         // - Filter / Prism Armor / Solid Rock: 0.75x on super-effective hits
@@ -388,14 +429,8 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
 
         // TODO(TASK-A): Metronome requires consecutive move tracking from Task D
 
-        // Tinted Lens: 2x damage if "not very effective"
-        if ctx.attacker_ability == AbilityId::Tintedlens && ctx.effectiveness < 4 {
-            damage = apply_modifier(damage, 8192);
-        }
-
-        // TODO: Sniper (6144 = 1.5x for crits)
-        // TODO: Solid Rock / Filter (3072 = 0.75x for super effective)
-        // TODO: Multiscale / Shadow Shield (2048 = 0.5x at full HP)
+        // Ability final modifiers (attacker: Tinted Lens, Sniper; defender: Multiscale, Filter)
+        damage = apply_final_mods(ctx, damage);
         
         // Minimum damage is 1 (unless immune)
         rolls[i] = damage.max(1).min(u16::MAX as u32) as u16;
