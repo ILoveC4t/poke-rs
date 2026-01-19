@@ -3,7 +3,7 @@
 use crate::moves::MoveCategory;
 use crate::species::SpeciesId;
 use crate::state::BattleState;
-use crate::damage::formula::apply_modifier;
+use crate::damage::apply_modifier;
 use std::sync::LazyLock;
 
 // Lazily-initialized constants for commonly checked species.
@@ -31,21 +31,23 @@ pub fn on_modify_defense_assault_vest(
 }
 
 // Eviolite: 1.5x Def and SpD if the holder can evolve.
+// NOTE: This is currently disabled because evolution data is not yet available in Species struct.
+// TODO: Add evolution data to Species and implement proper Eviolite logic.
 pub fn on_modify_defense_eviolite(
-    state: &BattleState,
-    defender: usize,
+    _state: &BattleState,
+    _defender: usize,
     _attacker: usize,
     _category: MoveCategory,
     defense: u16,
 ) -> u16 {
-    let species_data = state.species[defender].data();
-    if !species_data.evolutions.is_empty() {
-        return apply_modifier(defense.into(), 6144).max(1) as u16; // 1.5x
-    }
+    // Evolution data not yet implemented
     defense
 }
 
 // Thick Club: 2x Atk for Cubone or Marowak.
+// NOTE: This function is not currently used because Thick Club is filtered out by build.rs
+// due to being marked as "isNonstandard": "Past" in the items data.
+#[allow(dead_code)]
 pub fn on_modify_attack_thick_club(
     state: &BattleState,
     attacker: usize,
