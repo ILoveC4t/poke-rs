@@ -7,6 +7,7 @@
 //!   cargo bench --package poke_engine --bench state_clone
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+const BATCH_INNER: usize = 1_000;
 use poke_engine::{BattleState, PokemonConfig};
 
 /// Set up a fully populated battle state (12 Pokémon, all fields populated)
@@ -57,8 +58,10 @@ fn bench_state_copy(c: &mut Criterion) {
     
     c.bench_function("state_copy", |b| {
         b.iter(|| {
-            let copied: BattleState = black_box(state);
-            black_box(copied)
+            for _ in 0..BATCH_INNER {
+                let copied: BattleState = black_box(state);
+                black_box(copied);
+            }
         })
     });
 }
@@ -68,8 +71,10 @@ fn bench_state_clone(c: &mut Criterion) {
     
     c.bench_function("state_clone", |b| {
         b.iter(|| {
-            let cloned = black_box(state).clone();
-            black_box(cloned)
+            for _ in 0..BATCH_INNER {
+                let cloned = black_box(state).clone();
+                black_box(cloned);
+            }
         })
     });
 }
@@ -106,11 +111,11 @@ fn bench_state_size(c: &mut Criterion) {
         let state = setup_full_battle();
         
         b.iter(|| {
-            // Direct memory copy (what Copy does under the hood)
-            let dest: BattleState = unsafe {
-                std::ptr::read(&state as *const BattleState)
-            };
-            black_box(dest)
+            for _ in 0..(BATCH_INNER / 10) {
+                // Direct memory copy (what Copy does under the hood)
+                let dest: BattleState = unsafe { std::ptr::read(&state as *const BattleState) };
+                black_box(dest);
+            }
         })
     });
 }

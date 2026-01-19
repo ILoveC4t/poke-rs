@@ -1,14 +1,44 @@
 use crate::items::ItemId;
 use crate::items::hooks::ItemHooks;
+use crate::items::implementations::*;
 
 pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
-    let registry: [Option<ItemHooks>; ItemId::COUNT] = [None; ItemId::COUNT];
+    let mut registry: [Option<ItemHooks>; ItemId::COUNT] = [None; ItemId::COUNT];
 
     // =========================================================================
     // Item Hook Registrations
     // =========================================================================
-    // Example:
-    // registry[ItemId::Lifeorb as usize] = Some(ItemHooks { ... });
+
+    registry[ItemId::Assaultvest as usize] = Some(ItemHooks {
+        on_modify_defense: Some(on_modify_defense_assault_vest),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Eviolite as usize] = Some(ItemHooks {
+        on_modify_defense: Some(on_modify_defense_eviolite),
+        ..ItemHooks::NONE
+    });
+
+    // NOTE: Thick Club is filtered out in build.rs due to isNonstandard: "Past"
+    // registry[ItemId::Thickclub as usize] = Some(ItemHooks {
+    //     on_modify_attack: Some(on_modify_attack_thick_club),
+    //     ..ItemHooks::NONE
+    // });
+
+    registry[ItemId::Lightball as usize] = Some(ItemHooks {
+        on_modify_attack: Some(on_modify_attack_light_ball),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Choiceband as usize] = Some(ItemHooks {
+        on_modify_attack: Some(on_modify_attack_choice_band),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Choicespecs as usize] = Some(ItemHooks {
+        on_modify_attack: Some(on_modify_attack_choice_specs),
+        ..ItemHooks::NONE
+    });
 
     registry
 };

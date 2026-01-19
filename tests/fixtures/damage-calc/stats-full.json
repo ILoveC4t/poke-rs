@@ -1,8 +1,8 @@
 {
   "meta": {
     "source": "smogon/damage-calc/calc/src/test/stats.test.ts",
-    "calcPath": "c:\\Users\\Admin\\Documents\\poke-rs\\fixtures-temp\\damage-calc",
-    "generatedAt": "2026-01-18T23:25:36.501Z",
+    "calcPath": "/home/runner/work/poke-rs/poke-rs/fixtures-temp/damage-calc",
+    "generatedAt": "2026-01-19T03:55:07.121Z",
     "caseCount": 100
   },
   "cases": [

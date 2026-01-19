@@ -1,7 +1,7 @@
 //! Build script that parses JSON data files from smogon/pokemon-showdown
 //! and generates optimized Rust types for the battle engine.
 
-use heck::ToPascalCase;
+use heck::{ToPascalCase, ToShoutySnakeCase};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use serde::Deserialize;
@@ -24,6 +24,15 @@ fn to_valid_ident(key: &str) -> String {
     } else {
         pascal
     }
+}
+
+/// Check if a move has secondary effects for Sheer Force boost criteria.
+/// Returns true if the move has secondary or secondaries fields (that are not null),
+/// or if it has the explicit has_sheer_force flag set.
+fn has_secondary_effects(data: &MoveData) -> bool {
+    data.secondary.as_ref().map_or(false, |v| !v.is_null())
+        || data.secondaries.as_ref().map_or(false, |v| !v.is_null())
+        || data.has_sheer_force.unwrap_or(false)
 }
 
 // ============================================================================
@@ -109,6 +118,12 @@ struct MoveData {
     #[allow(dead_code)]
     #[serde(rename = "struggleRecoil")]
     struggle_recoil: Option<bool>,
+
+    // Fields for Sheer Force
+    secondary: Option<serde_json::Value>,
+    secondaries: Option<serde_json::Value>,
+    #[serde(rename = "hasSheerForce")]
+    has_sheer_force: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -1010,6 +1025,11 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
         {
             flag_names.insert("Recoil".to_string());
         }
+
+        // Sheer Force boost criteria: has secondary effects or explicit flag
+        if has_secondary_effects(data) {
+            flag_names.insert("HasSecondaryEffects".to_string());
+        }
     }
     let flag_count = flag_names.len();
     let use_u64 = flag_count > 32;
@@ -1019,7 +1039,7 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
         .iter()
         .enumerate()
         .map(|(i, name)| {
-            let ident = format_ident!("{}", to_valid_ident(name).to_uppercase());
+            let ident = format_ident!("{}", name.to_shouty_snake_case());
             let val = if use_u64 {
                 let v = 1u64 << i;
                 quote! { #v }
@@ -1079,6 +1099,14 @@ fn generate_moves(out_dir: &Path, data_dir: &Path) {
                  flag_bits |= 1 << pos;
              }
          }
+
+         // Inject HasSecondaryEffects flag bit
+         if has_secondary_effects(data) {
+             if let Some(pos) = flag_names.iter().position(|x| x == "HasSecondaryEffects") {
+                 flag_bits |= 1 << pos;
+             }
+         }
+
          let flag_bits_lit = if use_u64 {
              quote! { #flag_bits }
          } else {

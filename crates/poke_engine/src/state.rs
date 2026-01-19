@@ -232,6 +232,17 @@ pub struct BattleState {
     
     /// Gravity turns remaining
     pub gravity_turns: u8,
+
+    /// Battle Format (Singles, Doubles)
+    pub format: BattleFormat,
+}
+
+/// Battle format
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum BattleFormat {
+    #[default]
+    Singles,
+    Doubles,
 }
 
 impl Default for BattleState {
@@ -280,6 +291,7 @@ impl BattleState {
             trick_room_turns: 0,
             gravity: false,
             gravity_turns: 0,
+            format: BattleFormat::default(),
         }
     }
     
@@ -313,10 +325,7 @@ impl BattleState {
     /// Check if doubles format
     #[inline]
     pub const fn is_doubles(&self) -> bool {
-        // FIXME: Add format field to BattleState or infer?
-        // For now assume singles if active is [0, 6], doubles if [0, 1, 6, 7] etc.
-        // Or assume singles for simplicity until format is added.
-        false
+        matches!(self.format, BattleFormat::Doubles)
     }
 
     /// Get effective speed accounting for all modifiers.

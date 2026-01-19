@@ -7,9 +7,9 @@ use super::context::DamageContext;
 use super::formula::{apply_boost, apply_modifier, apply_modifier_floor, of16, of32, pokeround};
 use super::generations::{GenMechanics, Weather, Terrain};
 use crate::abilities::{AbilityId, ABILITY_REGISTRY};
-use crate::items::ItemId;
+use crate::items::{ItemId, ITEM_REGISTRY};
 use crate::moves::{MoveCategory, MoveFlags, MoveId};
-// use crate::state::Status;
+use crate::state::Status;
 
 // ============================================================================
 // Ability Hook Helpers
@@ -113,9 +113,6 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     }
     
     // TODO: Implement remaining ability BP modifiers
-    // - Rivalry (+/- 25% based on gender)
-    // - Sheer Force (1.3x, disables secondary effects)
-    // - Sand Force (1.3x for Rock/Ground/Steel in Sand)
     // - Analytic (1.3x if moving last)
     // - Aerilate/Pixilate/Refrigerate/Galvanize (1.2x + type change)
 
@@ -133,10 +130,26 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     // TODO: Parental Bond ability: Multi-hit (2 hits), second hit at 0.25x power (Gen 7+)
     //       Requires special handling in damage pipeline to return combined damage
 
+    // Venoshock: 2x base power if target is poisoned
+    if ctx.move_id == MoveId::Venoshock && ctx.state.status[ctx.defender].intersects(Status::POISON | Status::TOXIC) {
+        bp = apply_modifier(bp, 8192); // 2x
+    }
+
+    // Hex: 2x base power if target has any major status condition
+    if ctx.move_id == MoveId::Hex && ctx.state.status[ctx.defender] != Status::NONE {
+        bp = apply_modifier(bp, 8192); // 2x
+    }
+
+    // Brine: 2x base power if target is at or below 50% HP
+    if ctx.move_id == MoveId::Brine {
+        let hp = ctx.state.hp[ctx.defender];
+        let max_hp = ctx.state.max_hp[ctx.defender];
+        if hp * 2 <= max_hp {
+            bp = apply_modifier(bp, 8192); // 2x
+        }
+    }
+
     // TODO: Other conditional power moves that weren't in modify_base_power yet:
-    // - Venoshock (2x vs poisoned)
-    // - Hex (2x vs statused)
-    // - Brine (2x below 50% HP)
     // - Assurance (2x if target was hit this turn)
     // - Payback (2x if target moved first)
     // - Avalanche / Revenge (2x if hit by target this turn)
@@ -198,33 +211,25 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
     // Ability modifiers for attack (via hook system)
     if ctx.gen.has_abilities() {
         attack = call_attack_hook(ctx, attack);
-        
-        // TODO: Defender damage-reducing abilities (apply in final modifier chain)
-        // - Punk Rock: 0.5x sound-based damage
-        // - Ice Scales: 0.5x special damage
     }
     
     // Item modifiers
     let attacker_item = ctx.state.items[ctx.attacker];
-    let _defender_item = ctx.state.items[ctx.defender];
-    
-    // Choice Band: 1.5x Atk
-    if attacker_item == ItemId::Choiceband && ctx.category == MoveCategory::Physical {
-        attack = of16(attack as u32 * 3 / 2);
+    let defender_item = ctx.state.items[ctx.defender];
+
+    // Attacker item attack modifiers
+    if let Some(Some(hooks)) = ITEM_REGISTRY.get(attacker_item as usize) {
+        if let Some(hook) = hooks.on_modify_attack {
+            attack = hook(ctx.state, ctx.attacker, ctx.category, attack);
+        }
     }
-    
-    // Choice Specs: 1.5x SpA
-    if attacker_item == ItemId::Choicespecs && ctx.category == MoveCategory::Special {
-        attack = of16(attack as u32 * 3 / 2);
+
+    // Defender item defense modifiers
+    if let Some(Some(hooks)) = ITEM_REGISTRY.get(defender_item as usize) {
+        if let Some(hook) = hooks.on_modify_defense {
+            defense = hook(ctx.state, ctx.defender, ctx.attacker, ctx.category, defense);
+        }
     }
-    
-    // TODO: More item modifiers
-    // - Assault Vest (1.5x SpD)
-    // - Eviolite (1.5x Def/SpD if not fully evolved)
-    // - Deep Sea Scale/Tooth (Clamperl)
-    // - Metal Powder/Quick Powder (Ditto)
-    // - Thick Club (Cubone/Marowak 2x Atk)
-    // - Light Ball (Pikachu 2x Atk/SpA)
     
     (attack.max(1), defense.max(1))
 }
@@ -353,8 +358,9 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
         // pokeRound(OF32(damageAmount * screenMod) / 4096)
         // 0.5x in singles (2048), 0.67x in doubles (2732)
         if !ctx.is_crit && ctx.has_screen(ctx.category == MoveCategory::Physical) {
-            let screen_mod = 2048u16; // 0.5x for singles
-            // TODO: 2732 (0.67x) for doubles
+            let screen_mod = ctx
+                .state
+                .get_screen_modifier(ctx.defender, ctx.category);
             damage = apply_modifier(damage, screen_mod);
         }
         
@@ -442,7 +448,62 @@ fn has_contact_ability_boost(ability: AbilityId, move_flags: MoveFlags) -> Optio
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{state::{BattleState, Status}, damage::{DamageContext, Gen9}, species::SpeciesId, types::Type, items::ItemId, moves::{MoveId, MoveCategory}};
     
+    #[test]
+    fn test_stat_modifying_items() {
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Attacker
+        state.stats[0][1] = 100; // Atk
+        state.stats[0][3] = 100; // SpA
+
+        // Defender
+        state.stats[6][2] = 100; // Def
+        state.stats[6][4] = 100; // SpD
+
+        // 1. Assault Vest (1.5x SpD)
+        state.items[6] = ItemId::Assaultvest;
+        let special_move = MoveId::Surf; // Special
+        let ctx = DamageContext::new(gen, &state, 0, 6, special_move, false);
+        let (_, def) = compute_effective_stats(&ctx);
+        assert_eq!(def, 150, "Assault Vest should boost Sp. Defense by 1.5x");
+
+        // 2. Eviolite (1.5x Def/SpD for pre-evo)
+        state.items[6] = ItemId::Eviolite;
+        state.species[6] = SpeciesId::from_str("chansey").unwrap(); // Can evolve
+        let physical_move = MoveId::Tackle; // Physical
+        let ctx_phys = DamageContext::new(gen, &state, 0, 6, physical_move, false);
+        let (_, def_phys) = compute_effective_stats(&ctx_phys);
+        assert_eq!(def_phys, 150, "Eviolite should boost Defense by 1.5x for Chansey");
+
+        let ctx_spec = DamageContext::new(gen, &state, 0, 6, special_move, false);
+        let (_, def_spec) = compute_effective_stats(&ctx_spec);
+        assert_eq!(def_spec, 150, "Eviolite should boost Sp. Defense by 1.5x for Chansey");
+
+        // 3. Thick Club (2x Atk for Cubone/Marowak)
+        // NOTE: Thick Club item is filtered out in build.rs as nonstandard,
+        // but the implementation and test are maintained for completeness
+        state.items[0] = ItemId::None; // Use None since Thickclub is not available
+        state.species[0] = SpeciesId::from_str("cubone").unwrap();
+        // Skipping actual test since ItemId::Thickclub doesn't exist
+        // let ctx_club = DamageContext::new(gen, &state, 0, 6, physical_move, false);
+        // let (atk_club, _) = compute_effective_stats(&ctx_club);
+        // assert_eq!(atk_club, 200, "Thick Club should double Attack for Cubone");
+
+        // 4. Light Ball (2x Atk/SpA for Pikachu)
+        state.items[0] = ItemId::Lightball;
+        state.species[0] = SpeciesId::from_str("pikachu").unwrap();
+        let ctx_light_phys = DamageContext::new(gen, &state, 0, 6, physical_move, false);
+        let (atk_light_phys, _) = compute_effective_stats(&ctx_light_phys);
+        assert_eq!(atk_light_phys, 200, "Light Ball should double Attack for Pikachu");
+
+        let ctx_light_spec = DamageContext::new(gen, &state, 0, 6, special_move, false);
+        let (atk_light_spec, _) = compute_effective_stats(&ctx_light_spec);
+        assert_eq!(atk_light_spec, 200, "Light Ball should double Sp. Attack for Pikachu");
+    }
+
     #[test]
     fn test_type_boost_items() {
         use crate::types::Type;
@@ -790,6 +851,57 @@ mod tests {
     }
 
     #[test]
+    fn test_screens_doubles() {
+        use crate::state::{BattleState, BattleFormat};
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+        use crate::moves::MoveId;
+
+        let mut state = BattleState::new();
+        state.format = BattleFormat::Doubles;
+        let gen = Gen9;
+
+        // Setup: Atk 100, Def 100
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[0] = [Type::Normal, Type::Normal];
+        state.stats[0][1] = 100; // Atk
+
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[6] = [Type::Normal, Type::Normal];
+        state.stats[6][2] = 100; // Def
+
+        // Reflect active
+        state.side_conditions[1].reflect_turns = 5;
+
+        let move_id = MoveId::Tackle; // Physical
+
+        let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+        // 1. Roll 85: 85
+        // 2. STAB (1.5x): 127
+        // 3. Effectiveness (1x): 127
+        // 4. Screens (Doubles: 0.67x): 127 * 2732 / 4096 = 84.71 -> 85 (pokeround)
+
+        let rolls = compute_final_damage(&ctx, 100);
+        let damage = rolls[0];
+
+        assert_eq!(damage, 85, "Screens in doubles should reduce damage by 0.67x");
+
+        // Singles comparison
+        let mut state_singles = state; // Copy
+        state_singles.format = BattleFormat::Singles;
+        let ctx_singles = DamageContext::new(gen, &state_singles, 0, 6, move_id, false);
+
+        // Screens (Singles: 0.5x): 127 * 2048 / 4096 = 63.5 -> 63 (pokeround: round half down)
+
+        let rolls_singles = compute_final_damage(&ctx_singles, 100);
+        let damage_singles = rolls_singles[0];
+
+        assert_eq!(damage_singles, 63, "Screens in singles should reduce damage by 0.5x");
+    }
+
+    #[test]
     fn test_filter() {
         use crate::state::BattleState;
         use crate::damage::{DamageContext, Gen9};
@@ -845,6 +957,160 @@ mod tests {
             let damage = rolls[0];
 
             assert_eq!(damage, 127, "Filter should NOT reduce neutral damage");
+        }
+    }
+
+    #[test]
+    fn test_rivalry() {
+        use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
+        use crate::entities::Gender;
+
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Setup: Atk 100
+        state.species[0] = SpeciesId::from_str("nidorino").unwrap_or(SpeciesId(33)); // Male
+        state.types[0] = [Type::Poison, Type::Poison];
+        state.stats[0][1] = 100;
+        state.abilities[0] = AbilityId::Rivalry;
+        state.gender[0] = Gender::Male;
+
+        state.species[6] = SpeciesId::from_str("nidorino").unwrap_or(SpeciesId(33));
+        state.types[6] = [Type::Poison, Type::Poison];
+        state.stats[6][2] = 100;
+        state.gender[6] = Gender::Male;
+
+        let move_id = MoveId::Tackle;
+
+        // Case 1: Same Gender (Male vs Male) -> 1.25x
+        {
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            compute_base_power(&mut ctx);
+            // Tackle BP 40. 40 * 1.25 = 50.
+            // 40 * 5120 / 4096 = 50.
+            assert_eq!(ctx.base_power, 50, "Rivalry should boost same gender BP by 1.25x");
+        }
+
+        // Case 2: Opposite Gender (Male vs Female) -> 0.75x
+        {
+            state.gender[6] = Gender::Female;
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            compute_base_power(&mut ctx);
+            // 40 * 0.75 = 30.
+            // 40 * 3072 / 4096 = 30.
+            assert_eq!(ctx.base_power, 30, "Rivalry should reduce opposite gender BP by 0.75x");
+        }
+
+        // Case 3: Genderless (Male vs Genderless) -> 1x
+        {
+            state.gender[6] = Gender::Genderless;
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 40, "Rivalry should not affect genderless targets");
+        }
+    }
+
+    #[test]
+    fn test_sheer_force() {
+        use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
+
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Setup: Atk 100
+        state.species[0] = SpeciesId::from_str("tauros").unwrap_or(SpeciesId(128));
+        state.types[0] = [Type::Normal, Type::Normal];
+        state.stats[0][1] = 100;
+        state.abilities[0] = AbilityId::Sheerforce;
+
+        state.species[6] = SpeciesId::from_str("tauros").unwrap_or(SpeciesId(128));
+        state.types[6] = [Type::Normal, Type::Normal];
+        state.stats[6][2] = 100;
+
+        // Case 1: Move with secondary effect (Thunderbolt) -> 1.3x
+        {
+            let move_id = MoveId::Thunderbolt; // BP 90, has 10% para
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+            // Note: Verify Thunderbolt has secondary effect flag generated by build.rs
+            // If this fails, build.rs logic might be wrong or Thunderbolt data missing secondary
+
+            compute_base_power(&mut ctx);
+            // 90 * 1.3 = 117.
+            // 90 * 5325 / 4096 = 117.004... -> 117.
+            assert_eq!(ctx.base_power, 117, "Sheer Force should boost move with secondary effect by 1.3x");
+        }
+
+        // Case 2: Move without secondary effect (Earthquake) -> 1x
+        {
+            let move_id = MoveId::Earthquake; // BP 100, no secondary
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 100, "Sheer Force should not boost move without secondary effect");
+        }
+    }
+
+    #[test]
+    fn test_sand_force() {
+        use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
+
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Setup: Atk 100
+        state.species[0] = SpeciesId::from_str("probopass").unwrap_or(SpeciesId(476));
+        state.types[0] = [Type::Rock, Type::Steel];
+        state.stats[0][1] = 100;
+        state.abilities[0] = AbilityId::Sandforce;
+
+        state.species[6] = SpeciesId::from_str("probopass").unwrap_or(SpeciesId(476));
+        state.types[6] = [Type::Rock, Type::Steel];
+        state.stats[6][2] = 100;
+
+        // Case 1: Sandstorm + Rock Move -> 1.3x
+        {
+            state.weather = 3; // Sand
+            let move_id = MoveId::Rockthrow; // BP 50, Rock
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+            compute_base_power(&mut ctx);
+            // 50 * 1.3 = 65.
+            assert_eq!(ctx.base_power, 65, "Sand Force should boost Rock moves in Sand");
+        }
+
+        // Case 2: No Weather -> 1x
+        {
+            state.weather = 0;
+            let move_id = MoveId::Rockthrow;
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 50, "Sand Force should not boost without Sand");
+        }
+
+        // Case 3: Sandstorm + Non-boosted Type (e.g. Normal) -> 1x
+        {
+            state.weather = 3;
+            let move_id = MoveId::Tackle; // Normal
+            let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+            compute_base_power(&mut ctx);
+            assert_eq!(ctx.base_power, 40, "Sand Force should not boost Normal moves");
         }
     }
 }
