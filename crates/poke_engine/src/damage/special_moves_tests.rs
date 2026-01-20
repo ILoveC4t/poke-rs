@@ -59,6 +59,60 @@ mod tests {
     }
 
     #[test]
+    fn test_weather_ball_sand() {
+        let mut state = BattleState::new();
+        PokemonConfig::from_str("pikachu").unwrap().level(50).spawn(&mut state, 0, 0);
+        PokemonConfig::from_str("charizard").unwrap().level(50).spawn(&mut state, 1, 0);
+
+        // Set Sand
+        state.weather = Weather::Sand as u8;
+
+        let move_id = MoveId::Weatherball;
+        let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+
+        // Should be Rock type (Super Effective vs Fire/Flying - 4x)
+        assert_eq!(result.effectiveness, 16); // 4x
+        // 100 BP (No Sand boost for Rock)
+        assert_eq!(result.final_base_power, 100);
+    }
+
+    #[test]
+    fn test_weather_ball_snow() {
+        let mut state = BattleState::new();
+        PokemonConfig::from_str("pikachu").unwrap().level(50).spawn(&mut state, 0, 0);
+        PokemonConfig::from_str("garchomp").unwrap().level(50).spawn(&mut state, 1, 0); // Dragon/Ground
+
+        // Set Snow
+        state.weather = Weather::Snow as u8;
+
+        let move_id = MoveId::Weatherball;
+        let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+
+        // Should be Ice type (Super Effective vs Dragon/Ground - 4x)
+        assert_eq!(result.effectiveness, 16); // 4x
+        // 100 BP (No Snow boost for Ice)
+        assert_eq!(result.final_base_power, 100);
+    }
+
+    #[test]
+    fn test_weather_ball_no_weather() {
+        let mut state = BattleState::new();
+        PokemonConfig::from_str("pikachu").unwrap().level(50).spawn(&mut state, 0, 0);
+        PokemonConfig::from_str("gengar").unwrap().level(50).spawn(&mut state, 1, 0); // Ghost/Poison
+
+        // No weather
+        state.weather = Weather::None as u8;
+
+        let move_id = MoveId::Weatherball;
+        let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+
+        // Should be Normal type (Immune vs Ghost - 0x)
+        assert_eq!(result.effectiveness, 0); // 0x
+        // 50 BP
+        assert_eq!(result.final_base_power, 50);
+    }
+
+    #[test]
     fn test_flying_press() {
         let mut state = BattleState::new();
         PokemonConfig::from_str("hawlucha").unwrap().level(50).spawn(&mut state, 0, 0);
