@@ -74,7 +74,7 @@ impl GenMechanics for Gen1 {
         m
     }
 
-    fn calculate_damage(&self, ctx: DamageContext<Self>) -> DamageResult {
+    fn calculate_damage(&self, ctx: &DamageContext<Self>) -> DamageResult {
         // Gen 1 Custom Damage Formula
 
         let _move_data = ctx.move_data;

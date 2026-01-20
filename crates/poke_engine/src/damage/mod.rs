@@ -166,9 +166,8 @@ pub fn calculate_damage_with_overrides<G: GenMechanics>(
     // Apply special move overrides (e.g. Weather Ball, Struggle, Flying Press)
     special_moves::apply_special_moves(&mut ctx);
 
-    // Delegate to standard formula (Gen 3+)
-    // TODO: Delegate to gen.calculate_damage(&ctx) once trait is updated
-    formula::calculate_standard(ctx)
+    // Delegate to generation-specific logic
+    gen.calculate_damage(&ctx)
 }
 
 #[cfg(test)]
