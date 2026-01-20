@@ -110,13 +110,28 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
     ) -> Self {
         let move_data = move_id.data();
         let attacker_types = state.types[attacker];
-        let move_type = move_data.primary_type;
+        let mut move_type = move_data.primary_type;
+
+        let attacker_ability = state.abilities[attacker];
+
+        // Ability Type Changes (Aerilate, Pixilate, Refrigerate, Galvanize, Normalize, Liquid Voice)
+        // Note: These override the base type for effectiveness and STAB calculation.
+        match attacker_ability {
+            AbilityId::Aerilate if move_type == Type::Normal => move_type = Type::Flying,
+            AbilityId::Pixilate if move_type == Type::Normal => move_type = Type::Fairy,
+            AbilityId::Refrigerate if move_type == Type::Normal => move_type = Type::Ice,
+            AbilityId::Galvanize if move_type == Type::Normal => move_type = Type::Electric,
+            AbilityId::Normalize => move_type = Type::Normal,
+            AbilityId::Liquidvoice if move_data.flags.contains(crate::moves::MoveFlags::SOUND) => {
+                move_type = Type::Water;
+            }
+            _ => {}
+        }
         
         // Check STAB
         let has_stab = move_type == attacker_types[0] || move_type == attacker_types[1];
         
         // Check Adaptability
-        let attacker_ability = state.abilities[attacker];
         let has_adaptability = attacker_ability == AbilityId::Adaptability;
         
         // Check if grounded

@@ -37,6 +37,8 @@ pub mod effectiveness;
 mod special_moves_tests;
 #[cfg(test)]
 mod scrappy_tests;
+#[cfg(test)]
+mod ate_tests;
 mod conditional_moves_tests;
 
 pub use context::DamageContext;
