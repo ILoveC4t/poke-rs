@@ -47,6 +47,7 @@ pub struct PokedexEntry {
     pub gender_ratio: Option<HashMap<String, f64>>,
     #[serde(rename = "otherFormes")]
     pub other_formes: Option<Vec<String>>,
+    pub evos: Option<Vec<String>>,
 }
 
 #[derive(Deserialize)]

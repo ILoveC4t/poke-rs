@@ -145,7 +145,12 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
 
             // Flags
             // Shedinja always has 1 HP (mechanics/stats.md)
-            let flags: u8 = if entry.name == "Shedinja" { 1 << 0 } else { 0 };
+            let mut flags: u8 = if entry.name == "Shedinja" { 1 << 0 } else { 0 };
+
+            // NFE flag
+            if entry.evos.as_ref().map(|v| !v.is_empty()).unwrap_or(false) {
+                flags |= 1 << 1;
+            }
 
             // Gender Ratio
             let gender_ratio_tokens = match entry.gender.as_deref() {
@@ -288,6 +293,8 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
 
         /// Flag: Shedinja's HP is always 1
         pub const FLAG_FORCE_1_HP: u8 = 1 << 0;
+        /// Flag: Species is Not Fully Evolved (NFE)
+        pub const FLAG_NFE: u8 = 1 << 1;
 
         impl SpeciesId {
             /// Total number of species

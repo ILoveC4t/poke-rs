@@ -35,16 +35,17 @@ pub fn on_modify_defense_assault_vest(
 }
 
 // Eviolite: 1.5x Def and SpD if the holder can evolve.
-// NOTE: This is currently disabled because evolution data is not yet available in Species struct.
-// TODO: Add evolution data to Species and implement proper Eviolite logic.
 pub fn on_modify_defense_eviolite(
-    _state: &BattleState,
-    _defender: usize,
+    state: &BattleState,
+    defender: usize,
     _attacker: usize,
     _category: MoveCategory,
     defense: u16,
 ) -> u16 {
-    // Evolution data not yet implemented
+    let species = state.species[defender].data();
+    if species.flags & crate::species::FLAG_NFE != 0 {
+        return apply_modifier(defense.into(), Modifier::ONE_POINT_FIVE).max(1) as u16;
+    }
     defense
 }
 

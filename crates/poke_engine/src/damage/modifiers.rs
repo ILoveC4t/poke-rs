@@ -515,15 +515,11 @@ mod tests {
         let physical_move = MoveId::Tackle; // Physical
         let ctx_phys = DamageContext::new(gen, &state, 0, 6, physical_move, false);
         let (_, def_phys) = compute_effective_stats(&ctx_phys);
-        // FIXME: Eviolite logic is currently stubbed to return base defense
-        // assert_eq!(def_phys, 150, "Eviolite should boost Defense by 1.5x for Chansey");
-        assert_eq!(def_phys, 100, "Eviolite is not yet implemented (should be 100)");
+        assert_eq!(def_phys, 150, "Eviolite should boost Defense by 1.5x for Chansey");
 
         let ctx_spec = DamageContext::new(gen, &state, 0, 6, special_move, false);
         let (_, def_spec) = compute_effective_stats(&ctx_spec);
-        // FIXME: Eviolite logic is currently stubbed
-        // assert_eq!(def_spec, 150, "Eviolite should boost Sp. Defense by 1.5x for Chansey");
-        assert_eq!(def_spec, 100, "Eviolite is not yet implemented (should be 100)");
+        assert_eq!(def_spec, 150, "Eviolite should boost Sp. Defense by 1.5x for Chansey");
 
         // 3. Thick Club (2x Atk for Cubone/Marowak)
         // NOTE: Thick Club item is filtered out in build.rs as nonstandard,
