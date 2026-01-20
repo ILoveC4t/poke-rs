@@ -123,3 +123,61 @@ fn test_reckless_ability() {
     crate::damage::modifiers::compute_base_power(&mut ctx);
     assert_eq!(ctx.base_power, 40, "Reckless should not boost non-recoil moves");
 }
+
+#[test]
+fn test_weight_modifiers() {
+    let mut state = BattleState::new();
+    let gen = Gen9;
+
+    // Test Case 1: Heavy Metal (x2)
+    // Base 100kg (1000 units) -> 200kg (2000 units) -> Grass Knot BP 120 (>=200kg)
+    state.weight[6] = 1000;
+    state.abilities[6] = crate::abilities::AbilityId::Heavymetal;
+
+    let move_id = MoveId::Grassknot;
+    let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+    let bp = power::modify_base_power(&mut ctx);
+    assert_eq!(bp, 120, "Heavy Metal should double weight to 200kg");
+
+    // Test Case 2: Light Metal (x0.5)
+    // Base 100kg (1000 units) -> 50kg (500 units) -> Grass Knot BP 80 (>=50kg)
+    state.abilities[6] = crate::abilities::AbilityId::Lightmetal;
+    let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+    let bp = power::modify_base_power(&mut ctx);
+    assert_eq!(bp, 80, "Light Metal should halve weight to 50kg");
+
+    // Test Case 3: Float Stone (x0.5)
+    // Base 100kg -> 50kg -> BP 80
+    state.abilities[6] = crate::abilities::AbilityId::Noability;
+    state.items[6] = crate::items::ItemId::Floatstone;
+    let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+    let bp = power::modify_base_power(&mut ctx);
+    assert_eq!(bp, 80, "Float Stone should halve weight to 50kg");
+
+    // Test Case 4: Light Metal + Float Stone (x0.25)
+    // Base 100kg -> 25kg -> BP 60 (>=25kg)
+    state.abilities[6] = crate::abilities::AbilityId::Lightmetal;
+    state.items[6] = crate::items::ItemId::Floatstone;
+    let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+    let bp = power::modify_base_power(&mut ctx);
+    assert_eq!(bp, 60, "Light Metal + Float Stone should quarter weight to 25kg");
+
+    // Test Case 5: Heavy Slam
+    // Attacker: 100kg + Heavy Metal -> 200kg
+    // Defender: 50kg
+    // Ratio: 200/50 = 4. BP = 100 (>=4x)
+
+    state.weight[0] = 1000;
+    state.abilities[0] = crate::abilities::AbilityId::Heavymetal;
+    state.items[0] = crate::items::ItemId::default();
+
+    state.weight[6] = 500;
+    state.abilities[6] = crate::abilities::AbilityId::Noability;
+    state.items[6] = crate::items::ItemId::default();
+
+    let move_id = MoveId::Heavyslam;
+    let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+    let bp = power::modify_base_power(&mut ctx);
+    assert_eq!(bp, 100, "Heavy Slam should account for attacker Heavy Metal");
+}
