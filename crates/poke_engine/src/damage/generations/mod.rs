@@ -115,8 +115,8 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     ///
     /// The default implementation uses the standard Gen 3+ formula.
     /// Gen 1-2 overrides this with their specific logic.
-    fn calculate_damage(&self, ctx: DamageContext<Self>) -> DamageResult {
-        crate::damage::formula::calculate_standard(ctx)
+    fn calculate_damage(&self, ctx: &DamageContext<Self>) -> DamageResult {
+        crate::damage::formula::calculate_standard(*ctx)
     }
 
     // ========================================================================
@@ -343,7 +343,7 @@ impl GenMechanics for Generation {
         self.num()
     }
 
-    fn calculate_damage(&self, ctx: DamageContext<Self>) -> DamageResult {
+    fn calculate_damage(&self, ctx: &DamageContext<Self>) -> DamageResult {
         // Macro to avoid repetition? Rust macros here might be overkill or messy.
         // We just manually unwrap and reconstruct context.
         match self {
@@ -370,7 +370,7 @@ impl GenMechanics for Generation {
                     attacker_ability: ctx.attacker_ability,
                     defender_ability: ctx.defender_ability,
                 };
-                g.calculate_damage(inner)
+                g.calculate_damage(&inner)
             },
             Generation::Gen2(g) => {
                 let inner = DamageContext {
@@ -395,7 +395,7 @@ impl GenMechanics for Generation {
                     attacker_ability: ctx.attacker_ability,
                     defender_ability: ctx.defender_ability,
                 };
-                g.calculate_damage(inner)
+                g.calculate_damage(&inner)
             },
             Generation::Gen3(g) => {
                 let inner = DamageContext {
@@ -420,7 +420,7 @@ impl GenMechanics for Generation {
                     attacker_ability: ctx.attacker_ability,
                     defender_ability: ctx.defender_ability,
                 };
-                g.calculate_damage(inner)
+                g.calculate_damage(&inner)
             },
             Generation::Gen4(g) => {
                 let inner = DamageContext {
@@ -445,7 +445,7 @@ impl GenMechanics for Generation {
                     attacker_ability: ctx.attacker_ability,
                     defender_ability: ctx.defender_ability,
                 };
-                g.calculate_damage(inner)
+                g.calculate_damage(&inner)
             },
             Generation::Gen5(g) => {
                  let inner = DamageContext {
@@ -470,7 +470,7 @@ impl GenMechanics for Generation {
                     attacker_ability: ctx.attacker_ability,
                     defender_ability: ctx.defender_ability,
                 };
-                g.calculate_damage(inner)
+                g.calculate_damage(&inner)
             },
             Generation::Gen6(g) => {
                  let inner = DamageContext {
@@ -495,7 +495,7 @@ impl GenMechanics for Generation {
                     attacker_ability: ctx.attacker_ability,
                     defender_ability: ctx.defender_ability,
                 };
-                g.calculate_damage(inner)
+                g.calculate_damage(&inner)
             },
             Generation::Gen7(g) => {
                  let inner = DamageContext {
@@ -520,7 +520,7 @@ impl GenMechanics for Generation {
                     attacker_ability: ctx.attacker_ability,
                     defender_ability: ctx.defender_ability,
                 };
-                g.calculate_damage(inner)
+                g.calculate_damage(&inner)
             },
             Generation::Gen8(g) => {
                  let inner = DamageContext {
@@ -545,7 +545,7 @@ impl GenMechanics for Generation {
                     attacker_ability: ctx.attacker_ability,
                     defender_ability: ctx.defender_ability,
                 };
-                g.calculate_damage(inner)
+                g.calculate_damage(&inner)
             },
             Generation::Gen9(g) => {
                  let inner = DamageContext {
@@ -570,7 +570,7 @@ impl GenMechanics for Generation {
                     attacker_ability: ctx.attacker_ability,
                     defender_ability: ctx.defender_ability,
                 };
-                g.calculate_damage(inner)
+                g.calculate_damage(&inner)
             },
         }
     }

@@ -15,6 +15,7 @@ use super::Modifier;
 ///
 /// This struct is passed through the modifier pipeline, accumulating
 /// multipliers and flags as each stage processes it.
+#[derive(Clone, Copy)]
 pub struct DamageContext<'a, G: GenMechanics> {
     /// Generation mechanics
     pub gen: G,
