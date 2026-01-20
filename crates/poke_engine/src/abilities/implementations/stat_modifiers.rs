@@ -3,12 +3,13 @@
 //! Called via `OnModifyAttack` or `OnModifyDefense` during stat calculation.
 
 use crate::state::{BattleState, Status};
-use crate::moves::MoveCategory;
+use crate::moves::{MoveCategory, MoveId};
 
 /// Hustle: 1.5x Attack for physical moves (accuracy penalty handled elsewhere)
 pub fn hustle(
     _state: &BattleState,
     _attacker: usize,
+    _move_id: MoveId,
     category: MoveCategory,
     attack: u16,
 ) -> u16 {
@@ -23,9 +24,14 @@ pub fn hustle(
 pub fn huge_power(
     _state: &BattleState,
     _attacker: usize,
+    move_id: MoveId,
     _category: MoveCategory,
     attack: u16,
 ) -> u16 {
+    // Huge Power does not boost Body Press (which uses Defense)
+    if move_id == MoveId::Bodypress {
+        return attack;
+    }
     attack.saturating_mul(2)
 }
 
@@ -33,9 +39,15 @@ pub fn huge_power(
 pub fn guts(
     state: &BattleState,
     attacker: usize,
+    move_id: MoveId,
     category: MoveCategory,
     attack: u16,
 ) -> u16 {
+    // Guts does not boost Body Press
+    if move_id == MoveId::Bodypress {
+        return attack;
+    }
+
     let status = state.status[attacker];
     if status != Status::NONE && category == MoveCategory::Physical {
         attack * 3 / 2
@@ -48,6 +60,7 @@ pub fn guts(
 pub fn gorilla_tactics(
     _state: &BattleState,
     _attacker: usize,
+    _move_id: MoveId,
     category: MoveCategory,
     attack: u16,
 ) -> u16 {
@@ -62,6 +75,7 @@ pub fn gorilla_tactics(
 pub fn defeatist(
     state: &BattleState,
     attacker: usize,
+    _move_id: MoveId,
     _category: MoveCategory,
     attack: u16,
 ) -> u16 {
@@ -115,6 +129,7 @@ fn calculate_paradox_boost(
 pub fn protosynthesis(
     state: &BattleState,
     attacker: usize,
+    move_id: MoveId,
     category: MoveCategory,
     attack: u16,
 ) -> u16 {
@@ -127,10 +142,13 @@ pub fn protosynthesis(
     // Check condition
     if matches!(weather, Weather::Sun | Weather::HarshSun) || item == ItemId::Boosterenergy {
         // Determine if we are calculating the highest stat
-        // This function is hooked to OnModifyAttack.
-        // OnModifyAttack is called for Attack (Physical) or SpA (Special).
-
-        let stat_idx = if category == MoveCategory::Physical { 1 } else { 3 };
+        let stat_idx = if move_id == MoveId::Bodypress {
+            2 // Body Press uses Defense
+        } else if category == MoveCategory::Physical {
+            1 // Attack
+        } else {
+            3 // Sp. Attack
+        };
         calculate_paradox_boost(state, attacker, attack, stat_idx)
     } else {
         attack
@@ -141,6 +159,7 @@ pub fn protosynthesis(
 pub fn quark_drive(
     state: &BattleState,
     attacker: usize,
+    move_id: MoveId,
     category: MoveCategory,
     attack: u16,
 ) -> u16 {
@@ -151,7 +170,13 @@ pub fn quark_drive(
     let item = state.items[attacker];
 
     if terrain == Terrain::Electric || item == ItemId::Boosterenergy {
-        let stat_idx = if category == MoveCategory::Physical { 1 } else { 3 };
+        let stat_idx = if move_id == MoveId::Bodypress {
+            2 // Body Press uses Defense
+        } else if category == MoveCategory::Physical {
+            1 // Attack
+        } else {
+            3 // Sp. Attack
+        };
         calculate_paradox_boost(state, attacker, attack, stat_idx)
     } else {
         attack

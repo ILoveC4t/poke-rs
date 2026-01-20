@@ -35,6 +35,7 @@ pub type OnModifyBasePower = fn(
 pub type OnModifyAttack = fn(
     state: &BattleState,
     attacker: usize,
+    move_id: crate::moves::MoveId,
     category: MoveCategory,
     attack: u16,
 ) -> u16;

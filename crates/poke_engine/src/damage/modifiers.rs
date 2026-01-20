@@ -104,6 +104,7 @@ fn call_attack_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, attack: u16) ->
             return hook(
                 ctx.state,
                 ctx.attacker,
+                ctx.move_id,
                 ctx.category,
                 attack,
             );
@@ -262,7 +263,6 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
     
     let atk_boost = ctx.state.boosts[atk_source_idx][atk_boost_idx];
     let def_boost = ctx.state.boosts[ctx.defender][def_boost_idx];
-
     
     // Critical hit rules:
     // - Ignore attacker's negative offensive boosts
