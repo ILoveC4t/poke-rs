@@ -1,4 +1,4 @@
-use crate::state::{BattleState, TurnOrder};
+use crate::state::BattleState;
 use crate::damage::{DamageContext, Gen9, compute_base_power};
 use crate::species::SpeciesId;
 use crate::types::Type;
