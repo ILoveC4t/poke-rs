@@ -45,8 +45,22 @@ pub fn sniper(
     }
 }
 
-// TODO: Neuroforce - 1.25x on super-effective hits
-// pub fn neuroforce(...) -> u32
+/// Neuroforce: 1.25x damage on super-effective hits
+pub fn neuroforce(
+    _state: &BattleState,
+    _attacker: usize,
+    _defender: usize,
+    effectiveness: u8,
+    _is_crit: bool,
+    damage: u32,
+) -> u32 {
+    if effectiveness > 4 {
+        // 1.25x = 5/4 = 1.25
+        apply_modifier(damage, Modifier::new(5120))
+    } else {
+        damage
+    }
+}
 
 // =============================================================================
 // Defender Final Modifiers
@@ -108,8 +122,25 @@ pub fn fluffy(
     damage
 }
 
-// TODO: Ice Scales - 0.5x special damage
-// TODO: Punk Rock - 0.5x sound-based damage
+/// Ice Scales: 0.5x special damage
+pub fn ice_scales(
+    _state: &BattleState,
+    _attacker: usize,
+    _defender: usize,
+    _effectiveness: u8,
+    _move_type: Type,
+    category: MoveCategory,
+    _is_contact: bool,
+    damage: u32,
+) -> u32 {
+    if category == MoveCategory::Special {
+        apply_modifier(damage, Modifier::HALF)
+    } else {
+        damage
+    }
+}
+
+// TODO: Punk Rock - 0.5x sound-based damage (Defender side)
 
 #[cfg(test)]
 mod tests {

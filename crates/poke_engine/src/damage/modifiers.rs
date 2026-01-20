@@ -225,16 +225,44 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
 ///
 /// Returns (attack, defense).
 pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (u16, u16) {
-    let (atk_idx, def_idx) = ctx.get_stat_indices();
-    
-    let mut attack = ctx.state.stats[ctx.attacker][atk_idx];
+    let (mut atk_idx, mut def_idx) = ctx.get_stat_indices();
+
+    // ========================================================================
+    // Special Move Logic: Stat Swaps (Body Press, Psyshock, Foul Play)
+    // ========================================================================
+
+    // Body Press: Use Defense as Attack
+    if ctx.move_id == MoveId::Bodypress {
+        atk_idx = 2; // Defense
+    }
+
+    // Psyshock / Psystrike / Secret Sword: Use Defense as target Defense (even if special)
+    if matches!(ctx.move_id, MoveId::Psyshock | MoveId::Psystrike | MoveId::Secretsword) {
+        def_idx = 2; // Defense
+    }
+
+    // Foul Play: Use Target's Attack
+    let use_target_atk = ctx.move_id == MoveId::Foulplay;
+    let atk_source_idx = if use_target_atk { ctx.defender } else { ctx.attacker };
+
+    let mut attack = ctx.state.stats[atk_source_idx][atk_idx];
     let mut defense = ctx.state.stats[ctx.defender][def_idx];
     
     // Get boost stages
     // Boost indices: 0=Atk, 1=Def, 2=SpA, 3=SpD, 4=Spe
-    let atk_boost_idx = if atk_idx == 1 { 0 } else { 2 }; // Atk or SpA
+    // Note: If using Body Press (Def), boost index is 1 (Def)
+    let atk_boost_idx = match atk_idx {
+        1 => 0, // Atk
+        2 => 1, // Def (Body Press)
+        3 => 2, // SpA
+        _ => 0, // Fallback
+    };
+
     let def_boost_idx = if def_idx == 2 { 1 } else { 3 }; // Def or SpD
     
+    let atk_boost = ctx.state.boosts[atk_source_idx][atk_boost_idx];
+    let def_boost = ctx.state.boosts[ctx.defender][def_boost_idx];
+
     let atk_boost = ctx.state.boosts[ctx.attacker][atk_boost_idx];
     let def_boost = ctx.state.boosts[ctx.defender][def_boost_idx];
     
