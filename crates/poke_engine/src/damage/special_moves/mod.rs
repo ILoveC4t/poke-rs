@@ -29,10 +29,9 @@ pub fn apply_special_moves<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
 
         MoveId::Weatherball => {
             let weather = Weather::from_u8(ctx.state.weather);
-            // TODO: Weather Ball gets 2x power in weather (50 -> 100), but we also need
-            //       to apply weather damage boost (1.5x for matching type). Currently
-            //       only type/power change is handled; weather boost is applied separately
-            //       but tests expect combined 1.5x effect on top of 100 BP.
+            // Weather Ball gets 2x power in weather (50 -> 100).
+            // The 1.5x weather damage modifier (for Fire/Water) is applied
+            // by the standard damage pipeline once the type is updated.
             let (new_type, power) = match weather {
                 Weather::Sun | Weather::HarshSun => (Type::Fire, 100),
                 Weather::Rain | Weather::HeavyRain => (Type::Water, 100),
