@@ -69,7 +69,7 @@ pub fn modify_base_power<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> u32 {
         let defender_weight = get_modified_weight(ctx.state, ctx.defender, ctx.defender_ability);
 
         // Multiply by 10 for precision before dividing
-        let ratio_x10 = (attacker_weight * 10) / defender_weight.max(1);
+        let ratio_x10 = (attacker_weight * 10) / defender_weight;
         bp = match ratio_x10 {
             r if r >= 50 => 120, // >= 5x
             r if r >= 40 => 100, // >= 4x
