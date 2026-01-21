@@ -56,7 +56,7 @@ mod tests {
         // Base damage = floor(22 * 90 * 1 / 50) + 2 = 41.
         // Min Roll (0.85) -> 34.
 
-        assert!(result.min >= 34, "Strong Jaw should boost Bite (got {})", result.min);
+        assert!(result_with.min >= 34, "Strong Jaw should boost Bite (got {})", result_with.min);
     }
 
     #[test]
