@@ -1,0 +1,219 @@
+warning: field `is_nonstandard` is never read
+   --> crates\poke_engine_codegen\src\models.rs:108:9
+    |
+101 | pub struct ItemData {
+    |            -------- field in this struct
+...
+108 |     pub is_nonstandard: Option<String>,
+    |         ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `poke_engine_codegen` (lib) generated 1 warning
+    Checking poke_engine v0.1.0 (C:\Users\Admin\Documents\poke-rs\crates\poke_engine)
+warning: `poke_engine_codegen` (lib test) generated 1 warning (1 duplicate)
+error: unknown start of token: \
+ --> crates\poke_engine\src\abilities\implementations\mod.rs:7:18
+  |
+7 | pub mod immunity;\r\npub mod speed;
+  |                  ^
+
+error: unknown start of token: \
+ --> crates\poke_engine\src\abilities\implementations\mod.rs:7:20
+  |
+7 | pub mod immunity;\r\npub mod speed;
+  |                    ^
+
+error: expected one of `!` or `::`, found `npub`
+ --> crates\poke_engine\src\abilities\implementations\mod.rs:7:21
+  |
+7 | pub mod immunity;\r\npub mod speed;
+  |                     ^^^^ expected one of `!` or `::`
+
+warning: unused import: `crate::items::ItemId`
+ --> crates\poke_engine\src\moves\hooks.rs:8:5
+  |
+8 | use crate::items::ItemId;
+  |     ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `crate::terrains::TerrainId`
+  --> crates\poke_engine\src\state.rs:12:5
+   |
+12 | use crate::terrains::TerrainId;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `of16`
+ --> crates\poke_engine\src\damage\modifiers.rs:7:73
+  |
+7 | use super::formula::{apply_boost, apply_modifier, apply_modifier_floor, of16, of32, pokeround};
+  |                                                                         ^^^^
+
+warning: unused import: `crate::state::Status`
+  --> crates\poke_engine\src\damage\modifiers.rs:13:5
+   |
+13 | use crate::state::Status;
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::state::BattleState`
+  --> crates\poke_engine\src\damage\ate_tests.rs:1:5
+   |
+ 1 | use crate::state::BattleState;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> crates\poke_engine\src\damage\mod.rs:42:1
+   |
+42 | mod ate_tests;
+   | ^^^^^^^^^^^^^^
+
+warning: unused imports: `DamageContext`, `Gen9`, and `compute_base_power`
+  --> crates\poke_engine\src\damage\ate_tests.rs:2:21
+   |
+ 2 | use crate::damage::{DamageContext, Gen9, compute_base_power};
+   |                     ^^^^^^^^^^^^^  ^^^^  ^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> crates\poke_engine\src\damage\mod.rs:42:1
+   |
+42 | mod ate_tests;
+   | ^^^^^^^^^^^^^^
+
+warning: unused import: `crate::species::SpeciesId`
+  --> crates\poke_engine\src\damage\ate_tests.rs:3:5
+   |
+ 3 | use crate::species::SpeciesId;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> crates\poke_engine\src\damage\mod.rs:42:1
+   |
+42 | mod ate_tests;
+   | ^^^^^^^^^^^^^^
+
+warning: unused import: `crate::types::Type`
+  --> crates\poke_engine\src\damage\ate_tests.rs:4:5
+   |
+ 4 | use crate::types::Type;
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> crates\poke_engine\src\damage\mod.rs:42:1
+   |
+42 | mod ate_tests;
+   | ^^^^^^^^^^^^^^
+
+warning: unused import: `crate::abilities::AbilityId`
+  --> crates\poke_engine\src\damage\ate_tests.rs:5:5
+   |
+ 5 | use crate::abilities::AbilityId;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> crates\poke_engine\src\damage\mod.rs:42:1
+   |
+42 | mod ate_tests;
+   | ^^^^^^^^^^^^^^
+
+warning: unused import: `crate::moves::MoveId`
+  --> crates\poke_engine\src\damage\ate_tests.rs:6:5
+   |
+ 6 | use crate::moves::MoveId;
+   |     ^^^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> crates\poke_engine\src\damage\mod.rs:42:1
+   |
+42 | mod ate_tests;
+   | ^^^^^^^^^^^^^^
+
+warning: unused imports: `BattleState` and `Status`
+  --> crates\poke_engine\src\damage\conditional_moves_tests.rs:1:20
+   |
+ 1 | use crate::state::{BattleState, Status};
+   |                    ^^^^^^^^^^^  ^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> crates\poke_engine\src\damage\mod.rs:43:1
+   |
+43 | mod conditional_moves_tests;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `DamageContext`, `Gen9`, and `compute_base_power`
+  --> crates\poke_engine\src\damage\conditional_moves_tests.rs:2:21
+   |
+ 2 | use crate::damage::{DamageContext, Gen9, compute_base_power};
+   |                     ^^^^^^^^^^^^^  ^^^^  ^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> crates\poke_engine\src\damage\mod.rs:43:1
+   |
+43 | mod conditional_moves_tests;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::species::SpeciesId`
+  --> crates\poke_engine\src\damage\conditional_moves_tests.rs:3:5
+   |
+ 3 | use crate::species::SpeciesId;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> crates\poke_engine\src\damage\mod.rs:43:1
+   |
+43 | mod conditional_moves_tests;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::types::Type`
+  --> crates\poke_engine\src\damage\conditional_moves_tests.rs:4:5
+   |
+ 4 | use crate::types::Type;
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> crates\poke_engine\src\damage\mod.rs:43:1
+   |
+43 | mod conditional_moves_tests;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::moves::MoveId`
+  --> crates\poke_engine\src\damage\conditional_moves_tests.rs:5:5
+   |
+ 5 | use crate::moves::MoveId;
+   |     ^^^^^^^^^^^^^^^^^^^^
+   |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+  --> crates\poke_engine\src\damage\mod.rs:43:1
+   |
+43 | mod conditional_moves_tests;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `MoveCategory`, `Status`, and `types::Type`
+   --> crates\poke_engine\src\damage\modifiers.rs:581:38
+    |
+581 | ...leState, Status}, damage::{DamageContext, Gen9}, species::SpeciesId, types::Type, items::ItemId, moves::{MoveId, MoveCategory}};
+    |             ^^^^^^                                                      ^^^^^^^^^^^                                 ^^^^^^^^^^^^
+
+warning: unused import: `MoveCategory`
+ --> crates\poke_engine\src\damage\missing_implementations_test.rs:8:32
+  |
+8 |     use crate::moves::{MoveId, MoveCategory};
+  |                                ^^^^^^^^^^^^
+
+warning: unused import: `crate::items::ItemId`
+ --> crates\poke_engine\src\damage\missing_implementations_test.rs:9:9
+  |
+9 |     use crate::items::ItemId;
+  |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::entities::PokemonConfig`
+  --> crates\poke_engine\src\damage\missing_implementations_test.rs:10:9
+   |
+10 |     use crate::entities::PokemonConfig;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `poke_engine` (lib) generated 15 warnings
+error: could not compile `poke_engine` (lib) due to 3 previous errors; 15 warnings emitted
+warning: build failed, waiting for other jobs to finish...
+warning: `poke_engine` (lib test) generated 7 warnings (3 duplicates)
+error: could not compile `poke_engine` (lib test) due to 3 previous errors; 7 warnings emitted

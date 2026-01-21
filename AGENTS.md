@@ -14,11 +14,12 @@
 - **Priority:** Finish full damage-fixture coverage before implementing combat simulation/turn engine (`BattleQueue`), and iterate on ability implementations as needed.
 
 # FIX PATTERNS
-- **Ability modifier:** `damage/modifiers.rs` (`compute_base_power` or `compute_effective_stats`), check `ctx.attacker_ability`.
-- **Item modifier:** `damage/modifiers.rs`, use `ctx.state.items[attacker/defender]`.
-- **Type immunity overrides:** `damage/context.rs` (effectiveness calculation).
-- **Special move behavior:** `damage/special_moves.rs`.
-- **Note:** The ability registry exists and is wired into the damage pipeline (Type Immunities, Weather, etc. implemented); prefer adding ability effects to `crates/poke_engine/src/abilities/` and hooking them into the damage pipeline as needed.
+- **Ability modifier:** Implement hooks in `crates/poke_engine/src/abilities/implementations/` and register them in `modifiers.rs` or `hooks.rs`. Avoid adding inline checks in `damage/modifiers.rs`.
+- **Item modifier:** Implement hooks in `crates/poke_engine/src/items/implementations/` and register in `items/registry.rs`.
+- **Move logic:** Implement hooks in `crates/poke_engine/src/moves/implementations.rs` and register in `moves/registry.rs`.
+- **Type immunity overrides:** Use `OnTypeImmunity` hook in `abilities/implementations/immunity.rs`.
+- **Status/State:** Use `BattleState::set_status` which respects immunity hooks.
+- **Note:** The ability/move/item registries are fully wired. Always prefer adding a new hook type over adding hardcoded logic to `modifiers.rs` or `state.rs`.
 
 ## TESTS — Exact commands to run
 

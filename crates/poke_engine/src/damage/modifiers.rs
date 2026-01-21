@@ -33,6 +33,22 @@ const BOOST_INDEX_SP_DEFENSE: usize = 3;
 const BOOST_INDEX_SPEED: usize = 4;
 
 // ============================================================================
+// Screen-Breaking Move Detection
+// ============================================================================
+
+/// Screen-breaking moves ignore Reflect/Light Screen/Aurora Veil.
+/// These moves break screens after dealing damage, but the damage itself is not reduced.
+fn is_screen_breaker(move_id: MoveId) -> bool {
+    move_id.data().flags.contains(MoveFlags::BREAKS_SCREENS)
+}
+
+/// Check if attacker has Mold Breaker or variants (Teravolt, Turboblaze).
+/// These abilities bypass the target's defensive abilities.
+fn has_mold_breaker(ability: AbilityId) -> bool {
+    ability.flags().contains(crate::abilities::AbilityFlags::MOLD_BREAKER)
+}
+
+// ============================================================================
 // Item Hook Helpers
 // ============================================================================
 
@@ -133,7 +149,13 @@ fn call_attack_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, attack: u16) ->
 }
 
 /// Call the OnModifyDefense hook for the defender's ability, if registered.
+/// Bypassed by Mold Breaker, Teravolt, and Turboblaze.
 fn call_defense_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, defense: u16) -> u16 {
+    // Mold Breaker bypasses defender's defensive ability hooks
+    if has_mold_breaker(ctx.attacker_ability) {
+        return defense;
+    }
+    
     let defender_ability = ctx.state.abilities[ctx.defender];
     if let Some(Some(hooks)) = ABILITY_REGISTRY.get(defender_ability as usize) {
         if let Some(hook) = hooks.on_modify_defense {
@@ -149,7 +171,33 @@ fn call_defense_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, defense: u16) 
     defense
 }
 
-/// Apply final modifiers from both attacker and defender abilities.
+
+
+/// Check if status damage reduction should be ignored (Guts, Facade).
+fn should_ignore_status_damage_reduction<G: GenMechanics>(
+    ctx: &DamageContext<'_, G>,
+    status: Status,
+) -> bool {
+    // Check ability (Guts)
+    if let Some(Some(hooks)) = ABILITY_REGISTRY.get(ctx.attacker_ability as usize) {
+        if let Some(hook) = hooks.on_ignore_status_damage_reduction {
+            if hook(ctx.state, ctx.attacker, status) {
+                return true;
+            }
+        }
+    }
+
+    // Check move (Facade)
+    if let Some(Some(hooks)) = MOVE_REGISTRY.get(ctx.move_id as usize) {
+        if let Some(hook) = hooks.on_ignore_status_damage_reduction {
+            if hook(ctx.state, ctx.attacker, status) {
+                return true;
+            }
+        }
+    }
+    
+    false
+}
 /// Order: attacker mods first, then defender mods (per Smogon order).
 fn apply_final_mods<G: GenMechanics>(
     ctx: &DamageContext<'_, G>,
@@ -172,19 +220,22 @@ fn apply_final_mods<G: GenMechanics>(
     }
 
     // Defender's ability (Multiscale, Filter, Fluffy)
-    if let Some(hooks) = defender_hooks {
-        if let Some(hook) = hooks.on_defender_final_mod {
-            let is_contact = ctx.move_data.flags.contains(MoveFlags::CONTACT);
-            damage = hook(
-                ctx.state,
-                ctx.attacker,
-                ctx.defender,
-                ctx.effectiveness,
-                ctx.move_type,
-                ctx.category,
-                is_contact,
-                damage,
-            );
+    // Bypassed by Mold Breaker, Teravolt, and Turboblaze
+    if !has_mold_breaker(ctx.attacker_ability) {
+        if let Some(hooks) = defender_hooks {
+            if let Some(hook) = hooks.on_defender_final_mod {
+                let is_contact = ctx.move_data.flags.contains(MoveFlags::CONTACT);
+                damage = hook(
+                    ctx.state,
+                    ctx.attacker,
+                    ctx.defender,
+                    ctx.effectiveness,
+                    ctx.move_type,
+                    ctx.category,
+                    is_contact,
+                    damage,
+                );
+            }
         }
     }
 
@@ -356,12 +407,29 @@ pub fn apply_spread_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_da
     }
 }
 
+/// Check if weather is suppressed by any active ability (Cloud Nine, Air Lock).
+fn is_weather_suppressed(state: &BattleState) -> bool {
+    // Check both active Pokémon (Singles assumption for now)
+    for &idx in &state.active {
+        let ability = state.abilities[idx as usize];
+        if ability.flags().contains(crate::abilities::AbilityFlags::SUPPRESSES_WEATHER) {
+            return true;
+        }
+    }
+    false
+}
+
 /// Apply weather modifier to base damage (Gen 2-4).
 pub fn apply_weather_mod_damage<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_damage: &mut u32) {
     if ctx.gen.generation() >= 5 {
         return; // Applied to BP in Gen 5+
     }
     
+    // Check suppression
+    if is_weather_suppressed(ctx.state) {
+        return;
+    }
+
     let weather = Weather::from_u8(ctx.state.weather);
     if let Some(modifier) = ctx.gen.weather_modifier(weather, ctx.move_type) {
         *base_damage = apply_modifier(*base_damage, modifier);
@@ -372,6 +440,11 @@ pub fn apply_weather_mod_damage<G: GenMechanics>(ctx: &mut DamageContext<'_, G>,
 pub fn apply_weather_mod_bp<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, bp: &mut u32) {
     if ctx.gen.generation() < 5 {
         return; // Applied to damage in Gen 2-4
+    }
+
+    // Check suppression
+    if is_weather_suppressed(ctx.state) {
+        return;
     }
 
     let weather = Weather::from_u8(ctx.state.weather);
@@ -456,8 +529,7 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
         // Smogon uses simple floor(damage / 2), NOT 4096-scale
         if ctx.is_burned() 
             && ctx.category == MoveCategory::Physical 
-            && ctx.attacker_ability != AbilityId::Guts
-            && ctx.move_id != MoveId::Facade
+            && !should_ignore_status_damage_reduction(ctx, Status::BURN)
         {
             damage = damage / 2;
         }
@@ -465,7 +537,7 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
         // Step 5: Screens (Reflect/Light Screen/Aurora Veil)
         // pokeRound(OF32(damageAmount * screenMod) / 4096)
         // 0.5x in singles (2048), 0.67x in doubles (2732)
-        if !ctx.is_crit && ctx.has_screen(ctx.category == MoveCategory::Physical) {
+        if !ctx.is_crit && !is_screen_breaker(ctx.move_id) && ctx.has_screen(ctx.category == MoveCategory::Physical) {
             let screen_mod = ctx
                 .state
                 .get_screen_modifier(ctx.defender, ctx.category);
@@ -504,7 +576,7 @@ impl<G: GenMechanics> DamageContext<'_, G> {
 
 /// Check if an item is a type-boosting item for the given type.
 #[allow(dead_code)]
-fn get_type_boost_item_mod(item: ItemId, move_type: crate::types::Type) -> Option<Modifier> {
+// get_type_boost_item_mod removed (migrated to item hooks)
     use crate::types::Type;
     
     // Type-boosting items give 1.2x (4915 in 4096-scale)
@@ -605,8 +677,7 @@ mod tests {
         assert_eq!(atk_light_spec, 200, "Light Ball should double Sp. Attack for Pikachu");
     }
 
-    #[test]
-    fn test_type_boost_items() {
+// test_type_boost_items removed (tested via integration tests now)
         use crate::types::Type;
         
         // Charcoal boosts Fire
@@ -1213,5 +1284,52 @@ mod tests {
             compute_base_power(&mut ctx);
             assert_eq!(ctx.base_power, 40, "Sand Force should not boost Normal moves");
         }
+    }
+    #[test]
+    fn test_guts_burn_ignore() {
+        use crate::state::{BattleState, Status};
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
+        use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
+
+        let mut state = BattleState::new();
+        let gen = Gen9;
+
+        // Setup: Atk 100
+        state.species[0] = SpeciesId::from_str("machamp").unwrap_or(SpeciesId(68));
+        state.types[0] = [Type::Fighting, Type::Fighting];
+        state.stats[0][1] = 100;
+        state.abilities[0] = AbilityId::Guts;
+
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.types[6] = [Type::Normal, Type::Normal];
+        state.stats[6][2] = 100;
+
+        // Burn the attacker
+        state.status[0] = Status::BURN;
+
+        let move_id = MoveId::Karatechop; // Physical, Fighting
+        let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
+
+        // We check effective stats first to ensure Guts is working.
+        // Guts boosts Atk by 1.5x when statused.
+        let (atk, _) = compute_effective_stats(&ctx);
+        assert_eq!(atk, 150, "Guts should boost Attack by 1.5x when burned");
+
+        // Now final damage loop.
+        // Burn halving should NOT happen.
+        // Input base damage 100.
+        // STAB (1.5x) -> 127
+        // SE (2x) -> 254
+        // No Burn reduction.
+        
+        let rolls = compute_final_damage(&ctx, 100);
+        let min_damage = rolls[0];
+
+        // If burn reduction applied: 254 / 2 = 127
+        // If burn reduction ignored: 254
+        assert_eq!(min_damage, 254, "Guts should ignore burn reduction (got {})", min_damage);
     }
 }

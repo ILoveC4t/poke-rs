@@ -6,6 +6,7 @@
 use crate::state::BattleState;
 use crate::moves::Move;
 use crate::items::ItemId;
+use crate::types::Type;
 
 // ============================================================================
 // Move Hook Type Definitions  
@@ -30,6 +31,35 @@ pub type OnModifyBasePower = fn(
     bp: u16,
 ) -> u16;
 
+/// Called during DamageContext creation to modify the move's type.
+/// E.g. Weather Ball, Revelation Dance, Aura Wheel, Terrain Pulse.
+pub type OnModifyType = fn(
+    state: &BattleState,
+    attacker: usize,
+    defender: usize,
+    move_data: &'static Move,
+    base_type: Type,
+) -> Type;
+
+/// Called during DamageContext creation to modify the move's effectiveness.
+/// E.g. Freeze-Dry, Flying Press, Thousand Arrows.
+/// type_chart provides lookup for (ModifyType, TargetType) -> Effectiveness
+pub type OnModifyEffectiveness = fn(
+    state: &BattleState,
+    attacker: usize,
+    defender: usize,
+    move_data: &'static Move,
+    effectiveness: u8,
+    type_chart: &dyn Fn(Type, Type) -> u8,
+) -> u8;
+
+/// Called to check if status damage reduction should be ignored (e.g. Facade ignoring Burn attack drop)
+pub type OnIgnoreStatusDamageReduction = fn(
+    state: &BattleState,
+    attacker: usize,
+    status: crate::state::Status,
+) -> bool;
+
 // ============================================================================
 // MoveHooks Struct
 // ============================================================================
@@ -45,6 +75,15 @@ pub struct MoveHooks {
     
     /// Custom base power modification function
     pub on_modify_base_power: Option<OnModifyBasePower>,
+    
+    /// Type modification function
+    pub on_modify_type: Option<OnModifyType>,
+    
+    /// Effectiveness modification function
+    pub on_modify_effectiveness: Option<OnModifyEffectiveness>,
+
+    /// Ignore status damage reduction function
+    pub on_ignore_status_damage_reduction: Option<OnIgnoreStatusDamageReduction>,
 }
 
 impl MoveHooks {
@@ -53,5 +92,8 @@ impl MoveHooks {
         on_base_power_condition: None,
         conditional_multiplier: 4096, // 1x
         on_modify_base_power: None,
+        on_modify_type: None,
+        on_modify_effectiveness: None,
+        on_ignore_status_damage_reduction: None,
     };
 }

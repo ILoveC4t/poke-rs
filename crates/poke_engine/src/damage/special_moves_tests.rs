@@ -168,4 +168,87 @@ mod tests {
 
         assert_eq!(result2.effectiveness, 16); // 4x
     }
+
+    #[test]
+    fn test_grass_knot() {
+        let mut state = BattleState::new();
+        PokemonConfig::from_str("pikachu").unwrap().level(50).spawn(&mut state, 0, 0);
+        // Snorlax is very heavy
+        PokemonConfig::from_str("snorlax").unwrap().level(50).spawn(&mut state, 1, 0);
+
+        let move_id = MoveId::Grassknot;
+        let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+        
+        // Snorlax > 200kg -> 120 BP
+        assert_eq!(result.final_base_power, 120);
+    }
+
+    #[test]
+    fn test_heavy_slam() {
+        let mut state = BattleState::new();
+        // Snorlax (Heavy) vs Pikachu (Light)
+        PokemonConfig::from_str("snorlax").unwrap().level(50).spawn(&mut state, 0, 0);
+        PokemonConfig::from_str("pikachu").unwrap().level(50).spawn(&mut state, 1, 0);
+
+        let move_id = MoveId::Heavyslam;
+        let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+        
+        // Snorlax is much heavier than Pikachu -> 120 BP
+        assert_eq!(result.final_base_power, 120);
+    }
+
+    #[test]
+    fn test_eruption() {
+        let mut state = BattleState::new();
+        PokemonConfig::from_str("typhlosion").unwrap().level(50).spawn(&mut state, 0, 0);
+        PokemonConfig::from_str("venusaur").unwrap().level(50).spawn(&mut state, 1, 0);
+
+        // Max HP
+        let move_id = MoveId::Eruption;
+        let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+        assert_eq!(result.final_base_power, 150);
+
+        // Half HP
+        state.hp[0] = state.max_hp[0] / 2;
+        let result2 = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+        assert_eq!(result2.final_base_power, 75);
+    }
+
+    #[test]
+    fn test_flail() {
+        let mut state = BattleState::new();
+        PokemonConfig::from_str("magikarp").unwrap().level(50).spawn(&mut state, 0, 0);
+        PokemonConfig::from_str("venusaur").unwrap().level(50).spawn(&mut state, 1, 0);
+
+        // 1 HP
+        state.hp[0] = 1;
+        
+        let move_id = MoveId::Flail;
+        let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+        
+        // 1 / MaxHP is very low percent -> 200 BP
+        assert_eq!(result.final_base_power, 200);
+    }
+
+    #[test]
+    fn test_facade_hook() {
+        use crate::state::Status;
+        let mut state = BattleState::new();
+        PokemonConfig::from_str("ursaring").unwrap().level(50).spawn(&mut state, 0, 0);
+        PokemonConfig::from_str("venusaur").unwrap().level(50).spawn(&mut state, 1, 0);
+
+        let move_id = MoveId::Facade;
+        
+        // No status -> 70 BP
+        let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+        assert_eq!(result.final_base_power, 70);
+
+        // Burned -> 140 BP
+        state.status[0] = Status::BURN;
+        let result2 = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+        assert_eq!(result2.final_base_power, 140);
+        
+        // And Facade ignores burn damage reduction (this is handled in calculate_final_damage logic, not BP hook)
+        // But verifying BP is the goal here.
+    }
 }

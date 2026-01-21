@@ -158,6 +158,38 @@ pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
         ..ItemHooks::NONE
     });
 
+    // =========================================================================
+    // Speed Modifiers (OnModifySpeed)
+    // =========================================================================
+
+    registry[ItemId::Choicescarf as usize] = Some(ItemHooks {
+        on_modify_speed: Some(on_modify_speed_choice_scarf),
+        ..ItemHooks::NONE
+    });
+
+    registry[ItemId::Ironball as usize] = Some(ItemHooks {
+        on_modify_speed: Some(on_modify_speed_iron_ball),
+        on_check_grounded: Some(on_check_grounded_iron_ball),
+        ..ItemHooks::NONE
+    });
+
+    // =========================================================================
+    // Grounding Modifiers (OnCheckGrounded)
+    // =========================================================================
+
+    registry[ItemId::Airballoon as usize] = Some(ItemHooks {
+        on_check_grounded: Some(on_check_grounded_air_balloon),
+        ..ItemHooks::NONE
+    });
+
+    // =========================================================================
+    // Hazard Immunity (OnHazardImmunity)
+    // =========================================================================
+    registry[ItemId::Heavydutyboots as usize] = Some(ItemHooks {
+        on_hazard_immunity: Some(on_hazard_immunity_heavy_duty_boots),
+        ..ItemHooks::NONE
+    });
+
     registry
 };
 

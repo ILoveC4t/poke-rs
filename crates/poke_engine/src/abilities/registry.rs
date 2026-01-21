@@ -2,7 +2,7 @@ use crate::abilities::AbilityId;
 use crate::abilities::hooks::AbilityHooks;
 use crate::abilities::implementations::{
     weather_setters, priority, intimidate,
-    damage_modifiers, stat_modifiers, final_modifiers, immunity,
+    damage_modifiers, stat_modifiers, final_modifiers, immunity, speed, status,
 };
 
 pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
@@ -112,6 +112,12 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
         on_modify_base_power: Some(damage_modifiers::rivalry),
         ..AbilityHooks::NONE
     });
+    registry[AbilityId::Guts as usize] = Some(AbilityHooks {
+        on_modify_attack: Some(on_modify_attack_guts),
+        on_ignore_status_damage_reduction: Some(on_ignore_status_damage_reduction_guts),
+        ..AbilityHooks::NONE
+    });
+
     registry[AbilityId::Sheerforce as usize] = Some(AbilityHooks {
         on_modify_base_power: Some(damage_modifiers::sheer_force),
         ..AbilityHooks::NONE
@@ -157,7 +163,8 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
         ..AbilityHooks::NONE
     });
     registry[AbilityId::Guts as usize] = Some(AbilityHooks {
-        on_modify_attack: Some(stat_modifiers::guts),
+        on_modify_attack: Some(status::on_modify_attack_guts),
+        on_ignore_status_damage_reduction: Some(status::on_ignore_status_damage_reduction_guts),
         ..AbilityHooks::NONE
     });
     registry[AbilityId::Gorillatactics as usize] = Some(AbilityHooks {
@@ -235,6 +242,7 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
     // =========================================================================
     registry[AbilityId::Levitate as usize] = Some(AbilityHooks {
         on_type_immunity: Some(immunity::levitate),
+        on_check_grounded: Some(immunity::levitate_grounding),
         ..AbilityHooks::NONE
     });
     registry[AbilityId::Flashfire as usize] = Some(AbilityHooks {
@@ -271,6 +279,67 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
     });
     registry[AbilityId::Eartheater as usize] = Some(AbilityHooks {
         on_type_immunity: Some(immunity::earth_eater),
+        ..AbilityHooks::NONE
+    });
+
+    registry[AbilityId::Magicguard as usize] = Some(AbilityHooks {
+        on_hazard_immunity: Some(immunity::magic_guard_hazard_immunity),
+        ..AbilityHooks::NONE
+    });
+
+    // =========================================================================
+    // Speed Modifiers (OnModifySpeed)
+    // =========================================================================
+    registry[AbilityId::Chlorophyll as usize] = Some(AbilityHooks {
+        on_modify_speed: Some(speed::chlorophyll),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Swiftswim as usize] = Some(AbilityHooks {
+        on_modify_speed: Some(speed::swift_swim),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Sandrush as usize] = Some(AbilityHooks {
+        on_modify_speed: Some(speed::sand_rush),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Slushrush as usize] = Some(AbilityHooks {
+        on_modify_speed: Some(speed::slush_rush),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Surgesurfer as usize] = Some(AbilityHooks {
+        on_modify_speed: Some(speed::surge_surfer),
+        ..AbilityHooks::NONE
+    });
+
+    // =========================================================================
+    // Status Immunity (OnStatusImmunity)
+    // =========================================================================
+    registry[AbilityId::Limber as usize] = Some(AbilityHooks {
+        on_status_immunity: Some(immunity::limber),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Insomnia as usize] = Some(AbilityHooks {
+        on_status_immunity: Some(immunity::insomnia),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Vitalspirit as usize] = Some(AbilityHooks {
+        on_status_immunity: Some(immunity::insomnia),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Immunity as usize] = Some(AbilityHooks {
+        on_status_immunity: Some(immunity::immunity),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Magmaarmor as usize] = Some(AbilityHooks {
+        on_status_immunity: Some(immunity::magma_armor),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Waterveil as usize] = Some(AbilityHooks {
+        on_status_immunity: Some(immunity::water_veil),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Pastelveil as usize] = Some(AbilityHooks {
+        on_status_immunity: Some(immunity::pastel_veil),
         ..AbilityHooks::NONE
     });
 

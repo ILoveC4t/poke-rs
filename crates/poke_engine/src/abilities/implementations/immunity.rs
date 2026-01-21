@@ -3,7 +3,7 @@
 //! Called via `OnTypeImmunity` to check if a move is blocked by an ability.
 //! Returns true if immune.
 
-use crate::state::BattleState;
+use crate::state::{BattleState, Status};
 use crate::types::Type;
 
 /// Levitate: Immune to Ground moves (if not grounded)
@@ -98,4 +98,56 @@ pub fn earth_eater(
     move_type: Type,
 ) -> bool {
     move_type == Type::Ground
+}
+
+/// Levitate: Grounding check (returns Some(false) = ungrounded)
+pub fn levitate_grounding(
+    _state: &BattleState,
+    _entity: usize,
+) -> Option<bool> {
+    Some(false)
+}
+
+/// Magic Guard: Immune to hazard damage (Stealth Rock, Spikes)
+pub fn magic_guard_hazard_immunity(
+    _state: &BattleState,
+    _entity: usize,
+    hazard: crate::state::Hazard,
+) -> bool {
+    // Magic Guard prevents indirect damage, but not status or stat drops.
+    // So it blocks SR and Spikes damage, but not Toxic Spikes (status) or Sticky Web (speed).
+    match hazard {
+        crate::state::Hazard::StealthRock | crate::state::Hazard::Spikes => true,
+        crate::state::Hazard::ToxicSpikes | crate::state::Hazard::StickyWeb => false,
+    }
+}
+
+/// Limber: Immune to Paralysis
+pub fn limber(_state: &BattleState, _entity: usize, status: Status) -> bool {
+    status == Status::PARALYSIS
+}
+
+/// Insomnia / Vital Spirit: Immune to Sleep
+pub fn insomnia(_state: &BattleState, _entity: usize, status: Status) -> bool {
+    status == Status::SLEEP
+}
+
+/// Immunity: Immune to Poison/Toxic
+pub fn immunity(_state: &BattleState, _entity: usize, status: Status) -> bool {
+    status == Status::POISON || status == Status::TOXIC
+}
+
+/// Magma Armor: Immune to Freeze
+pub fn magma_armor(_state: &BattleState, _entity: usize, status: Status) -> bool {
+    status == Status::FREEZE
+}
+
+/// Water Veil: Immune to Burn
+pub fn water_veil(_state: &BattleState, _entity: usize, status: Status) -> bool {
+    status == Status::BURN
+}
+
+/// Pastel Veil: Immune to Poison/Toxic
+pub fn pastel_veil(_state: &BattleState, _entity: usize, status: Status) -> bool {
+    status == Status::POISON || status == Status::TOXIC
 }

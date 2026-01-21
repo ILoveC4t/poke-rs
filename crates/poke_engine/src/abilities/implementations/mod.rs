@@ -5,3 +5,5 @@ pub mod damage_modifiers;
 pub mod stat_modifiers;
 pub mod final_modifiers;
 pub mod immunity;
+pub mod speed;
+pub mod status;

@@ -39,6 +39,20 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
         })
         .collect();
 
+    // Generate flags
+    let flags_values: Vec<TokenStream> = valid_abilities
+        .iter()
+        .map(|(key, _)| {
+            let mut flags = 0u8;
+            match key.as_str() {
+                "moldbreaker" | "teravolt" | "turboblaze" => flags |= 1 << 0,
+                "cloudnine" | "airlock" => flags |= 1 << 1,
+                _ => {}
+            }
+            quote! { AbilityFlags::from_bits_truncate(#flags) }
+        })
+        .collect();
+
     // Generate phf map for string -> AbilityId lookup
     let mut phf_map = phf_codegen::Map::new();
     for (key, _) in &valid_abilities {
@@ -49,6 +63,16 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
     let phf_str = phf_map.build().to_string();
 
     let code = quote! {
+        use bitflags::bitflags;
+
+        bitflags! {
+            #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+            pub struct AbilityFlags: u8 {
+                const MOLD_BREAKER = 1 << 0;
+                const SUPPRESSES_WEATHER = 1 << 1;
+            }
+        }
+
         /// Ability identifier (sorted by game index)
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
         #[repr(u16)]
@@ -66,6 +90,12 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
             pub fn from_str(s: &str) -> Option<Self> {
                 ABILITY_LOOKUP.get(s).copied()
             }
+
+            /// Get static flags for this ability
+            #[inline]
+            pub fn flags(self) -> AbilityFlags {
+                ABILITY_FLAGS[self as usize]
+            }
         }
     };
 
@@ -79,4 +109,15 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
         phf_str
     )
     .unwrap();
+    writeln!(file).unwrap();
+    writeln!(
+        file,
+        "static ABILITY_FLAGS: [AbilityFlags; {}] = [",
+        count
+    )
+    .unwrap();
+    for flag in flags_values {
+        writeln!(file, "    {},", flag).unwrap();
+    }
+    writeln!(file, "];").unwrap();
 }

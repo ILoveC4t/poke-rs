@@ -29,6 +29,13 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
 
     // 1. Collect Flags
     let mut flag_names = BTreeSet::new();
+
+    let breaks_screens_moves = ["Brick Break", "Psychic Fangs"];
+    let variable_power_moves = [
+        "Eruption", "Water Spout", "Flail", "Reversal", "Low Kick", "Grass Knot", "Heavy Slam",
+        "Heat Crash", "Gyro Ball", "Electro Ball", "Crush Grip", "Wring Out",
+    ];
+
     for (_, data) in &valid_moves {
         for flag in data.flags.keys() {
             flag_names.insert(flag.clone());
@@ -45,6 +52,14 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
         // Sheer Force boost criteria: has secondary effects or explicit flag
         if has_secondary_effects(data) {
             flag_names.insert("HasSecondaryEffects".to_string());
+        }
+
+        if breaks_screens_moves.contains(&data.name.as_str()) {
+            flag_names.insert("BreaksScreens".to_string());
+        }
+
+        if variable_power_moves.contains(&data.name.as_str()) {
+            flag_names.insert("VariablePower".to_string());
         }
     }
     let flag_count = flag_names.len();
@@ -119,6 +134,18 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
          // Inject HasSecondaryEffects flag bit
          if has_secondary_effects(data) {
              if let Some(pos) = flag_names.iter().position(|x| x == "HasSecondaryEffects") {
+                 flag_bits |= 1 << pos;
+             }
+         }
+
+         if breaks_screens_moves.contains(&data.name.as_str()) {
+             if let Some(pos) = flag_names.iter().position(|x| x == "BreaksScreens") {
+                 flag_bits |= 1 << pos;
+             }
+         }
+
+         if variable_power_moves.contains(&data.name.as_str()) {
+             if let Some(pos) = flag_names.iter().position(|x| x == "VariablePower") {
                  flag_bits |= 1 << pos;
              }
          }

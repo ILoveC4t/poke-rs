@@ -2,6 +2,7 @@ use crate::state::BattleState;
 use crate::moves::{MoveId, MoveCategory, Move};
 use crate::types::Type;
 use super::weather::{Weather, Terrain};
+use crate::state::Hazard;
 
 /// Called when a Pokemon switches in (after hazards)
 pub type OnSwitchIn = fn(state: &mut BattleState, switched_idx: usize);
@@ -81,6 +82,44 @@ pub type OnTypeImmunity = fn(
     move_type: Type,
 ) -> bool;
 
+/// Called during speed calculation to modify effective speed.
+/// Used by Chlorophyll, Swift Swim, Sand Rush, Slush Rush, Surge Surfer.
+pub type OnModifySpeed = fn(
+    state: &BattleState,
+    entity: usize,
+    speed: u16,
+) -> u16;
+
+/// Called to check if an entity is grounded (can override default logic)
+/// Returns Some(true/false) to override, None to use default calculation
+pub type OnCheckGrounded = fn(
+    state: &BattleState,
+    entity: usize,
+) -> Option<bool>;
+
+/// Called to check hazard immunity (Magic Guard, Heavy-Duty Boots, etc.)
+/// Returns true if the entity is immune to entry hazards matches
+pub type OnHazardImmunity = fn(
+    state: &BattleState,
+    entity: usize,
+    hazard: Hazard,
+) -> bool;
+
+/// Called to check if status damage reduction should be ignored (e.g. Guts ignoring Burn attack drop)
+pub type OnIgnoreStatusDamageReduction = fn(
+    state: &BattleState,
+    entity: usize,
+    status: crate::state::Status,
+) -> bool;
+
+/// Called when checking for status immunity.
+/// Returns true if the Pokémon is immune to the status.
+pub type OnStatusImmunity = fn(
+    state: &BattleState,
+    entity: usize,
+    status: crate::state::Status,
+) -> bool;
+
 // ============================================================================
 // AbilityHooks Struct
 // ============================================================================
@@ -101,6 +140,12 @@ pub struct AbilityHooks {
     pub on_attacker_final_mod: Option<OnAttackerFinalMod>,
     pub on_defender_final_mod: Option<OnDefenderFinalMod>,
     pub on_type_immunity: Option<OnTypeImmunity>,
+    // Speed/grounding hooks
+    pub on_modify_speed: Option<OnModifySpeed>,
+    pub on_check_grounded: Option<OnCheckGrounded>,
+    pub on_hazard_immunity: Option<OnHazardImmunity>,
+    pub on_ignore_status_damage_reduction: Option<OnIgnoreStatusDamageReduction>,
+    pub on_status_immunity: Option<OnStatusImmunity>,
 }
 
 impl AbilityHooks {
@@ -118,6 +163,11 @@ impl AbilityHooks {
         on_attacker_final_mod: None,
         on_defender_final_mod: None,
         on_type_immunity: None,
+        on_modify_speed: None,
+        on_check_grounded: None,
+        on_hazard_immunity: None,
+        on_ignore_status_damage_reduction: None,
+        on_status_immunity: None,
     };
 
     /// Helper to set weather

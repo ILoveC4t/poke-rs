@@ -245,6 +245,9 @@ pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageR
 
     // Phase 5: Generate all 16 damage rolls
     let rolls = modifiers::compute_final_damage(&ctx, base_damage);
+    
+    // TODO: Parental Bond requires fixture runner changes to support multi-hit output format
+    // The fixture expects [[first_hit_rolls], [second_hit_rolls]], not combined totals
 
     DamageResult {
         rolls,

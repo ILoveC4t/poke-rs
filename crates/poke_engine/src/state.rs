@@ -130,6 +130,15 @@ pub struct SideConditions {
     pub lucky_chant_turns: u8,
 }
 
+/// Entry hazard types
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Hazard {
+    StealthRock,
+    Spikes,
+    ToxicSpikes,
+    StickyWeb,
+}
+
 // ============================================================================
 // Battle State
 // ============================================================================
@@ -365,33 +374,12 @@ impl BattleState {
         }
         
         // Weather and Terrain Abilities (2x)
-        match self.abilities[index] {
-            AbilityId::Chlorophyll => {
-                if self.weather == WEATHER_SUN || self.weather == WEATHER_HARSH_SUN {
-                    speed *= 2;
-                }
+        // Ability modifiers (via hook system)
+        let ability_id = self.abilities[index];
+        if let Some(Some(hooks)) = crate::abilities::ABILITY_REGISTRY.get(ability_id as usize) {
+            if let Some(hook) = hooks.on_modify_speed {
+                speed = hook(self, index, speed as u16) as u32;
             }
-            AbilityId::Swiftswim => {
-                if self.weather == WEATHER_RAIN || self.weather == WEATHER_HEAVY_RAIN {
-                    speed *= 2;
-                }
-            }
-            AbilityId::Sandrush => {
-                if self.weather == WEATHER_SAND {
-                    speed *= 2;
-                }
-            }
-            AbilityId::Slushrush => {
-                if self.weather == WEATHER_SNOW || self.weather == WEATHER_HAIL {
-                    speed *= 2;
-                }
-            }
-            AbilityId::Surgesurfer => {
-                if self.terrain == TerrainId::Electric as u8 {
-                    speed *= 2;
-                }
-            }
-            _ => {}
         }
         
         // Tailwind: 2x speed for the side
@@ -401,13 +389,12 @@ impl BattleState {
         }
         
         // Item modifiers
+        // Item modifiers (via hook system)
         let item = self.items[index];
-        if item == ItemId::Choicescarf {
-            // Choice Scarf: 1.5x
-            speed = speed * 3 / 2;
-        } else if item == ItemId::Ironball {
-            // Iron Ball: 0.5x
-            speed /= 2;
+        if let Some(Some(hooks)) = crate::items::ITEM_REGISTRY.get(item as usize) {
+            if let Some(hook) = hooks.on_modify_speed {
+                speed = hook(self, index, speed as u16) as u32;
+            }
         }
         
         speed.min(u16::MAX as u32) as u16
@@ -436,23 +423,29 @@ impl BattleState {
             return true;
         }
 
-        let item = self.items[index];
-        if item == ItemId::Ironball {
-            return true;
+        // Item Hooks (Iron Ball checks first for grounding, Air Balloon for ungrounding)
+        let item_id = self.items[index];
+        if let Some(Some(hooks)) = crate::items::ITEM_REGISTRY.get(item_id as usize) {
+            if let Some(hook) = hooks.on_check_grounded {
+                if let Some(grounded) = hook(self, index) {
+                    return grounded;
+                }
+            }
         }
 
-        // 2. Ungrounded Checks
+        // 2. Ungrounded Checks (Volatiles)
         if volatiles.contains(Volatiles::MAGNET_RISE) || volatiles.contains(Volatiles::TELEKINESIS) {
             return false;
         }
 
-        if item == ItemId::Airballoon {
-            return false;
-        }
-
-        let ability = self.abilities[index];
-        if ability == AbilityId::Levitate {
-            return false;
+        // Ability Hooks (Levitate)
+        let ability_id = self.abilities[index];
+        if let Some(Some(hooks)) = crate::abilities::ABILITY_REGISTRY.get(ability_id as usize) {
+            if let Some(hook) = hooks.on_check_grounded {
+                if let Some(grounded) = hook(self, index) {
+                    return grounded;
+                }
+            }
         }
 
         let types = self.types[index];
@@ -462,6 +455,31 @@ impl BattleState {
 
         // 3. Default
         true
+    }
+
+    /// Check if an entity is immune to a specific entry hazard
+    pub fn is_immune_to_hazard(&self, index: usize, hazard: Hazard) -> bool {
+        // Item Hooks (Heavy-Duty Boots)
+        let item_id = self.items[index];
+        if let Some(Some(hooks)) = crate::items::ITEM_REGISTRY.get(item_id as usize) {
+            if let Some(hook) = hooks.on_hazard_immunity {
+                if hook(self, index, hazard) {
+                    return true;
+                }
+            }
+        }
+
+        // Ability Hooks (Magic Guard)
+        let ability_id = self.abilities[index];
+        if let Some(Some(hooks)) = crate::abilities::ABILITY_REGISTRY.get(ability_id as usize) {
+            if let Some(hook) = hooks.on_hazard_immunity {
+                if hook(self, index, hazard) {
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 
     // ========================================================================
@@ -580,6 +598,48 @@ impl BattleState {
         self.boosts[entity_idx][boost_idx] = (current + delta).clamp(-6, 6);
     }
 
+    /// Attempt to inflict a major status condition.
+    /// Returns true if successful, false if immune or already statused.
+    pub fn set_status(&mut self, entity_idx: usize, status: Status) -> bool {
+        if self.status[entity_idx] != Status::NONE {
+            return false;
+        }
+        
+        // Ability Immunity Check
+        let ability_id = self.abilities[entity_idx];
+        if let Some(Some(hooks)) = crate::abilities::ABILITY_REGISTRY.get(ability_id as usize) {
+            if let Some(hook) = hooks.on_status_immunity {
+                if hook(self, entity_idx, status) {
+                    return false;
+                }
+            }
+        }
+        
+        // TODO: Item immunity checks (e.g. Safety Goggles vs Powder, or general immunity items?)
+        // Currently items are usually specific to move types (powder) or conditions.
+        // But Flame Orb/Toxic Orb force status.
+        
+        self.status[entity_idx] = status;
+        // Reset status counter (sleep turns, toxic count)
+        self.status_counter[entity_idx] = 0;
+
+        // Reset Toxic counter specifically if Toxic
+        if status == Status::TOXIC {
+            self.status_counter[entity_idx] = 0;
+        } else if status == Status::SLEEP {
+            // Random sleep turns? Or determined by logic?
+            // Usually 1-3 turns in modern gens.
+            // For now, simple logic or 0 and increment.
+            // Let's set to 0 and handle sleep turn logic elsewhere (or randomize here if we had RNG).
+            // Since we don't have RNG passed in here easily (state shouldn't hold RNG maybe?), 
+            // we'll assume caller handles specific counters if needed, or default 0.
+            // Actually, for AI rollouts, deterministic is better.
+            self.status_counter[entity_idx] = 2; // Default 2 turns
+        }
+
+        true
+    }
+
     /// Get the screen damage modifier for an incoming attack
     /// Returns multiplier in 4096ths (e.g., 2048 = 0.5×)
     pub fn get_screen_modifier(&self, defender_idx: usize, category: MoveCategory) -> u16 {
@@ -605,23 +665,13 @@ impl BattleState {
     /// Apply entry hazard damage when a Pokémon switches in
     /// Returns damage dealt (0 if immune or no hazards)
     pub fn apply_entry_hazards(&mut self, entity_idx: usize) -> u16 {
-        // If Heavy-Duty Boots, ignore hazards
-        if self.items[entity_idx] == ItemId::Heavydutyboots {
-            return 0;
-        }
-        // Magic Guard also ignores hazard damage (Task E/A logic?), but we should handle it if possible.
-        // Checking ability here:
-        if self.abilities[entity_idx] == AbilityId::Magicguard {
-            return 0;
-        }
-
         let side = self.get_side(entity_idx);
         let conditions = self.side_conditions[side]; // Copy since it's Copy
         let pokemon_types = self.types[entity_idx];
         let mut total_damage = 0u16;
 
         // Stealth Rock: Type effectiveness based damage (1/8 neutral)
-        if conditions.stealth_rock {
+        if conditions.stealth_rock && !self.is_immune_to_hazard(entity_idx, Hazard::StealthRock) {
             let eff = type_effectiveness(Type::Rock, pokemon_types[0], if pokemon_types[1] != pokemon_types[0] { Some(pokemon_types[1]) } else { None });
             // eff: 0=0x, 1=0.25x, 2=0.5x, 4=1x, 8=2x, 16=4x
             // Base is 1/8 of max HP.
@@ -648,7 +698,7 @@ impl BattleState {
         // Spikes: Tier-based damage (grounded Pokémon only)
         if self.is_grounded(entity_idx) {
             let layers = conditions.spikes_layers;
-            if layers > 0 {
+            if layers > 0 && !self.is_immune_to_hazard(entity_idx, Hazard::Spikes) {
                 let factor = match layers {
                     1 => 8, // 1/8
                     2 => 6, // 1/6
@@ -662,24 +712,22 @@ impl BattleState {
             let is_poison = pokemon_types[0] == Type::Poison || pokemon_types[1] == Type::Poison;
             let is_steel = pokemon_types[0] == Type::Steel || pokemon_types[1] == Type::Steel;
 
-            if tspikes > 0 {
+            if tspikes > 0 && !self.is_immune_to_hazard(entity_idx, Hazard::ToxicSpikes) {
                 if is_poison && self.is_grounded(entity_idx) {
                     // Absorb Toxic Spikes
                     self.side_conditions[side].toxic_spikes_layers = 0;
                 } else if !is_poison && !is_steel && self.is_grounded(entity_idx) {
                     // Apply poison
-                    if self.status[entity_idx] == Status::NONE {
-                        if tspikes >= 2 {
-                            self.status[entity_idx] = Status::TOXIC;
-                        } else {
-                            self.status[entity_idx] = Status::POISON;
-                        }
+                    if tspikes >= 2 {
+                        self.set_status(entity_idx, Status::TOXIC);
+                    } else {
+                        self.set_status(entity_idx, Status::POISON);
                     }
                 }
             }
 
             // Sticky Web: -1 Speed to grounded Pokémon
-            if conditions.sticky_web && self.is_grounded(entity_idx) {
+            if conditions.sticky_web && self.is_grounded(entity_idx) && !self.is_immune_to_hazard(entity_idx, Hazard::StickyWeb) {
                 self.apply_stat_change(entity_idx, 5, -1);
             }
         }
@@ -1195,6 +1243,27 @@ mod tests {
         assert_eq!(state.types[idx][1], Type::Dragon);
         assert_eq!(state.weight[idx], mega_x.data().weight);
         assert_eq!(state.abilities[idx], AbilityId::Toughclaws);
+        assert_eq!(state.abilities[idx], AbilityId::Toughclaws);
         assert!(state.transformed[idx]);
+    }
+
+    #[test]
+    fn test_status_immunity_limber() {
+        let mut state = BattleState::new();
+        let idx = 0;
+        state.species[idx] = SpeciesId::from_str("ditto").unwrap(); // Limber is Ditto's ability
+        state.abilities[idx] = AbilityId::Limber;
+        state.status[idx] = Status::NONE;
+
+        // Try to paralyze
+        let result = state.set_status(idx, Status::PARALYSIS);
+        
+        assert_eq!(result, false, "Limber should prevent Paralysis");
+        assert_eq!(state.status[idx], Status::NONE, "Status should remain NONE");
+
+        // Try to burn (should work)
+        let result_burn = state.set_status(idx, Status::BURN);
+        assert_eq!(result_burn, true, "Limber should not prevent Burn");
+        assert_eq!(state.status[idx], Status::BURN, "Status should be BURN");
     }
 }

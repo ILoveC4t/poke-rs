@@ -41,5 +41,79 @@ pub static MOVE_REGISTRY: [Option<MoveHooks>; MoveId::COUNT] = {
         ..MoveHooks::NONE
     });
 
+    // Facade: 2x if statused
+    registry[MoveId::Facade as usize] = Some(MoveHooks {
+        on_base_power_condition: Some(facade_condition),
+        on_ignore_status_damage_reduction: Some(on_ignore_status_damage_reduction_facade),
+        conditional_multiplier: 8192, // 2x
+        ..MoveHooks::NONE
+    });
+
+
+    // =========================================================================
+    // Special Moves
+    // =========================================================================
+
+    registry[MoveId::Weatherball as usize] = Some(MoveHooks {
+        on_modify_type: Some(on_modify_type_weather_ball),
+        on_modify_base_power: Some(on_modify_base_power_weather_ball),
+        ..MoveHooks::NONE
+    });
+
+    registry[MoveId::Freezedry as usize] = Some(MoveHooks {
+        on_modify_effectiveness: Some(freeze_dry_effectiveness),
+        ..MoveHooks::NONE
+    });
+
+    registry[MoveId::Flyingpress as usize] = Some(MoveHooks {
+        on_modify_effectiveness: Some(flying_press_effectiveness),
+        ..MoveHooks::NONE
+    });
+
+    registry[MoveId::Thousandarrows as usize] = Some(MoveHooks {
+        on_modify_effectiveness: Some(thousand_arrows_effectiveness),
+        ..MoveHooks::NONE
+    });
+
+    // =========================================================================
+    // Variable Power Moves (Weight, HP, etc.)
+    // =========================================================================
+
+    registry[MoveId::Grassknot as usize] = Some(MoveHooks {
+        on_modify_base_power: Some(grass_knot_power),
+        ..MoveHooks::NONE
+    });
+    registry[MoveId::Lowkick as usize] = Some(MoveHooks {
+        on_modify_base_power: Some(grass_knot_power),
+        ..MoveHooks::NONE
+    });
+
+    registry[MoveId::Heavyslam as usize] = Some(MoveHooks {
+        on_modify_base_power: Some(heavy_slam_power),
+        ..MoveHooks::NONE
+    });
+    registry[MoveId::Heatcrash as usize] = Some(MoveHooks {
+        on_modify_base_power: Some(heavy_slam_power),
+        ..MoveHooks::NONE
+    });
+
+    registry[MoveId::Eruption as usize] = Some(MoveHooks {
+        on_modify_base_power: Some(eruption_power),
+        ..MoveHooks::NONE
+    });
+    registry[MoveId::Waterspout as usize] = Some(MoveHooks {
+        on_modify_base_power: Some(eruption_power),
+        ..MoveHooks::NONE
+    });
+
+    registry[MoveId::Flail as usize] = Some(MoveHooks {
+        on_modify_base_power: Some(flail_power),
+        ..MoveHooks::NONE
+    });
+    registry[MoveId::Reversal as usize] = Some(MoveHooks {
+        on_modify_base_power: Some(flail_power),
+        ..MoveHooks::NONE
+    });
+
     registry
 };

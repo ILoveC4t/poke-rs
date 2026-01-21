@@ -112,6 +112,15 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
         let attacker_types = state.types[attacker];
         let mut move_type = move_data.primary_type;
 
+        // Move Hooks: Modify Type (e.g. Weather Ball)
+        // This runs before Ability Hooks (e.g. Aerilate) because move mechanics typically happen first,
+        // then ability modifiers apply to the result.
+        if let Some(Some(hooks)) = crate::moves::MOVE_REGISTRY.get(move_id as usize) {
+            if let Some(hook) = hooks.on_modify_type {
+                move_type = hook(state, attacker, defender, move_data, move_type);
+            }
+        }
+
         let attacker_ability = state.abilities[attacker];
 
         // Ability Type Changes (Aerilate, Pixilate, Refrigerate, Galvanize, Normalize, Liquid Voice)
@@ -147,6 +156,23 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
             G::GEN,
             |mv_type, def_type, _| gen.type_effectiveness(mv_type, def_type, None),
         );
+        
+        // Move Hooks: Modify Effectiveness (Freeze-Dry, Flying Press, Thousand Arrows)
+        if let Some(Some(hooks)) = crate::moves::MOVE_REGISTRY.get(move_id as usize) {
+            if let Some(hook) = hooks.on_modify_effectiveness {
+                // Closure to provide standard single-type effectiveness lookup
+                let type_chart = |mv: Type, def: Type| gen.type_effectiveness(mv, def, None);
+                
+                effectiveness = hook(
+                    state,
+                    attacker,
+                    defender,
+                    move_data,
+                    effectiveness,
+                    &type_chart
+                );
+            }
+        }
         
         // Check for ability-granted immunity (Levitate, Flash Fire, etc.)
         let defender_ability = state.abilities[defender];

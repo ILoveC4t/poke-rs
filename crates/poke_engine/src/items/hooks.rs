@@ -2,6 +2,7 @@ use crate::state::BattleState;
 use crate::moves::{MoveId, MoveCategory, Move};
 use crate::types::Type;
 use crate::abilities::{Weather, Terrain};
+use crate::state::Hazard;
 
 /// Called when a Pokemon switches in (after hazards)
 pub type OnSwitchIn = fn(state: &mut BattleState, switched_idx: usize);
@@ -79,6 +80,28 @@ pub type OnTypeImmunity = fn(
     move_type: Type,
 ) -> bool;
 
+/// Called during speed calculation to modify effective speed
+pub type OnModifySpeed = fn(
+    state: &BattleState,
+    entity: usize,
+    speed: u16,
+) -> u16;
+
+/// Called to check if an entity is grounded (can override default logic)
+/// Returns Some(true/false) to override, None to use default calculation
+pub type OnCheckGrounded = fn(
+    state: &BattleState,
+    entity: usize,
+) -> Option<bool>;
+
+/// Called to check hazard immunity (Magic Guard, Heavy-Duty Boots, etc.)
+/// Returns true if the entity is immune to entry hazards matches
+pub type OnHazardImmunity = fn(
+    state: &BattleState,
+    entity: usize,
+    hazard: Hazard,
+) -> bool;
+
 // ============================================================================
 // ItemHooks Struct
 // ============================================================================
@@ -99,6 +122,9 @@ pub struct ItemHooks {
     pub on_attacker_final_mod: Option<OnAttackerFinalMod>,
     pub on_defender_final_mod: Option<OnDefenderFinalMod>,
     pub on_type_immunity: Option<OnTypeImmunity>,
+    pub on_modify_speed: Option<OnModifySpeed>,
+    pub on_check_grounded: Option<OnCheckGrounded>,
+    pub on_hazard_immunity: Option<OnHazardImmunity>,
 }
 
 impl ItemHooks {
@@ -116,6 +142,9 @@ impl ItemHooks {
         on_attacker_final_mod: None,
         on_defender_final_mod: None,
         on_type_immunity: None,
+        on_modify_speed: None,
+        on_check_grounded: None,
+        on_hazard_immunity: None,
     };
 
     /// Helper to set weather

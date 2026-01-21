@@ -318,3 +318,55 @@ pub fn on_modify_bp_metal_coat(_state: &BattleState, _attacker: usize, _defender
 pub fn on_modify_bp_silk_scarf(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
     type_boost_bp(move_data, Type::Normal, bp)
 }
+
+// ============================================================================
+// Speed Modifiers
+// ============================================================================
+
+// Choice Scarf: 1.5x Speed
+pub fn on_modify_speed_choice_scarf(
+    _state: &BattleState,
+    _entity: usize,
+    speed: u16,
+) -> u16 {
+    // 1.5x (Speed * 3 / 2)
+    (speed as u32 * 3 / 2).min(u16::MAX as u32) as u16
+}
+
+// Iron Ball: 0.5x Speed
+pub fn on_modify_speed_iron_ball(
+    _state: &BattleState,
+    _entity: usize,
+    speed: u16,
+) -> u16 {
+    speed / 2
+}
+
+// ============================================================================
+// Grounding Modifiers
+// ============================================================================
+
+// Air Balloon: Ungrounded (returns Some(false))
+pub fn on_check_grounded_air_balloon(
+    _state: &BattleState,
+    _entity: usize,
+) -> Option<bool> {
+    Some(false)
+}
+
+// Iron Ball: Grounded (returns Some(true))
+pub fn on_check_grounded_iron_ball(
+    _state: &BattleState,
+    _entity: usize,
+) -> Option<bool> {
+    Some(true)
+}
+
+// Heavy-Duty Boots: Immune to all entry hazards
+pub fn on_hazard_immunity_heavy_duty_boots(
+    _state: &BattleState,
+    _entity: usize,
+    _hazard: crate::state::Hazard,
+) -> bool {
+    true
+}
