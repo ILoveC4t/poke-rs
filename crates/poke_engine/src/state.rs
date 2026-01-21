@@ -55,7 +55,7 @@ bitflags::bitflags! {
 bitflags::bitflags! {
     /// Volatile status conditions (multiple can be active)
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-    pub struct Volatiles: u32 {
+    pub struct Volatiles: u64 {
         const CONFUSION     = 1 << 0;
         const FLINCH        = 1 << 1;
         const SUBSTITUTE    = 1 << 2;
@@ -81,7 +81,15 @@ bitflags::bitflags! {
         const CURSE         = 1 << 22;  // Ghost-type curse
         const YAWN          = 1 << 23;
         const SMACK_DOWN    = 1 << 24;
-        // FIXME: Add more volatile states as needed (Stockpile, Charge, etc.)
+        const CHARGE        = 1 << 25;
+        const DEFENSE_CURL  = 1 << 26;
+        const MINIMIZE      = 1 << 27;
+        const ROOST         = 1 << 28;
+        const PARTIALLY_TRAPPED = 1 << 29;
+        const LOCKED_MOVE   = 1 << 30;
+        const MUST_RECHARGE = 1 << 31;
+        const UPROAR        = 1 << 32;
+        const STOCKPILE     = 1 << 33;
     }
 }
 
