@@ -84,6 +84,14 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
         on_modify_base_power: Some(damage_modifiers::tough_claws),
         ..AbilityHooks::NONE
     });
+    registry[AbilityId::Strongjaw as usize] = Some(AbilityHooks {
+        on_modify_base_power: Some(damage_modifiers::strong_jaw),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Megalauncher as usize] = Some(AbilityHooks {
+        on_modify_base_power: Some(damage_modifiers::mega_launcher),
+        ..AbilityHooks::NONE
+    });
     registry[AbilityId::Reckless as usize] = Some(AbilityHooks {
         on_modify_base_power: Some(damage_modifiers::reckless),
         ..AbilityHooks::NONE
@@ -140,6 +148,39 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
         on_modify_attack: Some(stat_modifiers::hustle),
         ..AbilityHooks::NONE
     });
+    registry[AbilityId::Purepower as usize] = Some(AbilityHooks {
+        on_modify_attack: Some(stat_modifiers::huge_power),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Hugepower as usize] = Some(AbilityHooks {
+        on_modify_attack: Some(stat_modifiers::huge_power),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Guts as usize] = Some(AbilityHooks {
+        on_modify_attack: Some(stat_modifiers::guts),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Gorillatactics as usize] = Some(AbilityHooks {
+        on_modify_attack: Some(stat_modifiers::gorilla_tactics),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Defeatist as usize] = Some(AbilityHooks {
+        on_modify_attack: Some(stat_modifiers::defeatist),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Protosynthesis as usize] = Some(AbilityHooks {
+        on_modify_attack: Some(stat_modifiers::protosynthesis),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Quarkdrive as usize] = Some(AbilityHooks {
+        on_modify_attack: Some(stat_modifiers::quark_drive),
+        ..AbilityHooks::NONE
+    });
+
+    registry[AbilityId::Furcoat as usize] = Some(AbilityHooks {
+        on_modify_defense: Some(stat_modifiers::fur_coat),
+        ..AbilityHooks::NONE
+    });
 
     // =========================================================================
     // Attacker Final Modifiers (OnAttackerFinalMod)
@@ -150,6 +191,10 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
     });
     registry[AbilityId::Sniper as usize] = Some(AbilityHooks {
         on_attacker_final_mod: Some(final_modifiers::sniper),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Neuroforce as usize] = Some(AbilityHooks {
+        on_attacker_final_mod: Some(final_modifiers::neuroforce),
         ..AbilityHooks::NONE
     });
 
@@ -178,6 +223,10 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
     });
     registry[AbilityId::Prismarmor as usize] = Some(AbilityHooks {
         on_defender_final_mod: Some(final_modifiers::filter),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Icescales as usize] = Some(AbilityHooks {
+        on_defender_final_mod: Some(final_modifiers::ice_scales),
         ..AbilityHooks::NONE
     });
 

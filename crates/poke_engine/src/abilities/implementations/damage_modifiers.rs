@@ -45,9 +45,38 @@ pub fn tough_claws(
     bp: u16,
 ) -> u16 {
     if move_data.flags.contains(MoveFlags::CONTACT) {
-        // 1.3x = 5461/4096, but we can approximate as bp * 13 / 10
-        // For exact 4096-scale: (bp as u32 * 5461 / 4096) as u16
+        // 1.3x = 5461/4096
         (bp as u32 * 5461 / 4096) as u16
+    } else {
+        bp
+    }
+}
+
+/// Strong Jaw: 1.5x power for bite moves
+pub fn strong_jaw(
+    _state: &BattleState,
+    _attacker: usize,
+    _defender: usize,
+    move_data: &Move,
+    bp: u16,
+) -> u16 {
+    if move_data.flags.contains(MoveFlags::BITE) {
+        apply_modifier(bp as u32, Modifier::ONE_POINT_FIVE).max(1) as u16
+    } else {
+        bp
+    }
+}
+
+/// Mega Launcher: 1.5x power for pulse moves
+pub fn mega_launcher(
+    _state: &BattleState,
+    _attacker: usize,
+    _defender: usize,
+    move_data: &Move,
+    bp: u16,
+) -> u16 {
+    if move_data.flags.contains(MoveFlags::PULSE) {
+        apply_modifier(bp as u32, Modifier::ONE_POINT_FIVE).max(1) as u16
     } else {
         bp
     }
@@ -111,7 +140,6 @@ pub fn punk_rock(
     move_data: &Move,
     bp: u16,
 ) -> u16 {
-    // Note: Flag is generated from JSON key "sound"
     if move_data.flags.contains(MoveFlags::SOUND) {
         // 1.3x (5325/4096)
         (bp as u32 * 5325 / 4096) as u16
@@ -171,15 +199,9 @@ pub fn sand_force(
     bp: u16,
 ) -> u16 {
     use crate::types::Type;
-    
-    // Import Weather from damage module (not abilities::weather)
-    // This provides the from_u8() method for converting BattleState.weather
     use crate::damage::generations::Weather;
     
     if Weather::from_u8(state.weather) == Weather::Sand {
-        // Note: Using primary_type from move_data. Type-changing abilities like
-        // Pixilate aren't implemented yet. When they are, the hook system may
-        // need to be extended to pass the modified type.
         if matches!(move_data.primary_type, Type::Rock | Type::Ground | Type::Steel) {
             // 1.3x (5325/4096)
             (bp as u32 * 5325 / 4096) as u16
