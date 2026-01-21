@@ -1,4 +1,3 @@
-#[cfg(test)]
 mod tests {
     use crate::state::BattleState;
     use crate::damage::{calculate_damage, Gen9};
