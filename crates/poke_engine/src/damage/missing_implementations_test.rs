@@ -13,8 +13,7 @@ mod tests {
     fn test_huge_power() {
         let mut state = BattleState::new();
         // Diggersby: Normal/Ground, Huge Power
-        // Fallback to Diggersby's National Dex ID if name lookup fails
-        state.species[0] = SpeciesId::from_str("diggersby").unwrap_or(SpeciesId(659));
+        state.species[0] = SpeciesId::from_str("diggersby").unwrap();
         state.abilities[0] = AbilityId::Hugepower;
         state.stats[0][1] = 100; // 100 Atk
         state.types[0] = [Type::Normal, Type::Ground];
@@ -27,16 +26,15 @@ mod tests {
 
         let move_id = MoveId::Tackle;
 
-        let result_with = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+        let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
-        // Without Huge Power
-        state.abilities[0] = AbilityId::Noability;
-        let result_without = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+        // Level 50. Atk 100.
+        // Huge Power -> 200 Atk.
+        // Base Damage = floor(22 * 40 * 200/100 / 50) + 2 = 37.
+        // STAB (1.5x) -> 55.
+        // Min Roll (0.85) -> 46.
 
-        // Huge Power should approximately double damage
-        assert!(result_with.min > result_without.min * 3 / 2, 
-            "Huge Power should double attack (with: {}, without: {})", 
-            result_with.min, result_without.min);
+        assert!(result.min >= 46, "Huge Power should double attack (got {})", result.min);
     }
 
     #[test]
@@ -54,14 +52,11 @@ mod tests {
 
         let result_with = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
-        // Without Strong Jaw
-        state.abilities[0] = AbilityId::Noability;
-        let result_without = calculate_damage(Gen9, &state, 0, 6, move_id, false);
+        // Normal BP 60. Strong Jaw -> 90.
+        // Base damage = floor(22 * 90 * 1 / 50) + 2 = 41.
+        // Min Roll (0.85) -> 34.
 
-        // Should do more damage with Strong Jaw
-        assert!(result_with.min > result_without.min,
-            "Strong Jaw should boost Bite (with: {}, without: {})", 
-            result_with.min, result_without.min);
+        assert!(result.min >= 34, "Strong Jaw should boost Bite (got {})", result.min);
     }
 
     #[test]
@@ -74,14 +69,15 @@ mod tests {
         state.stats[6][2] = 100; // Def
         state.level[6] = 50;
 
-        let move_id = MoveId::Bodypress;
+        let move_id = MoveId::Bodypress; // 80 BP
 
         let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
-        // If it used Atk (10): (42 * 80 * 10/100 / 50) = negligible.
-        // If it used Def (200): (42 * 80 * 200/100 / 50) = ~136 damage.
+        // If it used Def (200):
+        // Base = floor(22 * 80 * 200/100 / 50) + 2 = 72.
+        // Min Roll (0.85) -> 61.
 
-        assert!(result.min > 100, "Body Press should use Defense (got {})", result.min);
+        assert!(result.min >= 60, "Body Press should use Defense (got {})", result.min);
     }
 
     #[test]
@@ -100,10 +96,12 @@ mod tests {
 
         let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
-        // If Huge Power applies: Def 200. Damage ~136.
-        // If not: Def 100. Damage ~69.
+        // Def 100.
+        // Base = floor(22 * 80 * 1 / 50) + 2 = 37.
+        // Min Roll -> 31.
+        // If Huge Power applied (2x), damage would be ~61.
 
-        assert!(result.max < 100, "Huge Power should NOT boost Body Press (got {})", result.max);
+        assert!(result.max < 50, "Huge Power should NOT boost Body Press (got {})", result.max);
     }
 
     #[test]
@@ -120,11 +118,11 @@ mod tests {
 
         let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
-        // If it used SpD correctly, damage should be low (~35)
-        // If it incorrectly targets Defense, damage should be higher (~60+)
-        // The test is verifying Psyshock uses Defense, so we expect higher damage
+        // If it used Def (50):
+        // Base = floor(22 * 80 * 100/50 / 50) + 2 = 72.
+        // Min Roll -> 61.
 
-        assert!(result.min > 50, "Psyshock should target Defense (got {})", result.min);
+        assert!(result.min >= 60, "Psyshock should target Defense (got {})", result.min);
     }
 
     #[test]
@@ -137,14 +135,15 @@ mod tests {
         state.abilities[6] = AbilityId::Icescales;
         state.level[6] = 50;
 
-        let move_id = MoveId::Icebeam; // Special
+        let move_id = MoveId::Icebeam; // Special, 90 BP
 
         let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
-        // Normal damage ~85.
-        // Ice Scales (0.5x) ~42.
+        // Base = floor(22 * 90 * 1 / 50) + 2 = 41.
+        // Roll 100% -> 41.
+        // Ice Scales (0.5x) -> 20.
 
-        assert!(result.max < 60, "Ice Scales should halve special damage (got {})", result.max);
+        assert!(result.max <= 25, "Ice Scales should halve special damage (got {})", result.max);
     }
 
     #[test]
@@ -161,12 +160,11 @@ mod tests {
 
         let result = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
-        // Should use Defender Atk (200), so damage should be much higher than 
-        // if it used Attacker Atk (10)
-        // With 200 Atk vs 100 Def: expect ~70+ damage
-        // With 10 Atk vs 100 Def: expect ~10 damage
+        // Should use Defender Atk (200).
+        // Base = floor(22 * 95 * 2 / 50) + 2 = 85.
+        // Min Roll -> 72.
 
-        assert!(result.min > 60, "Foul Play should use target Attack (got {})", result.min);
+        assert!(result.min >= 70, "Foul Play should use target Attack (got {})", result.min);
     }
 
     #[test]
@@ -478,5 +476,13 @@ mod tests {
         // 50 Atk vs 100 Def -> ~18 damage (no boost)
 
         assert!(result.max < 25, "Quark Drive Speed boost should not affect damage (got {})", result.max);
+        // Base (90 BP) = 41.
+        // SE (2x) -> 82.
+        // Neuroforce (1.25x) -> 102.
+        // Min Roll (0.85) -> 86.
+
+        // Without Neuroforce: 41 * 2 * 0.85 = 69.
+
+        assert!(result.min > 80, "Neuroforce should boost super effective damage (got {})", result.min);
     }
 }
