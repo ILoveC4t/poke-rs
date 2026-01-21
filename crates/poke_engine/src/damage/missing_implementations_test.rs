@@ -7,7 +7,6 @@ mod tests {
     use crate::abilities::AbilityId;
     use crate::moves::{MoveId, MoveCategory};
     use crate::items::ItemId;
-    use crate::entities::PokemonConfig;
 
     #[test]
     fn test_huge_power() {
