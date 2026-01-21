@@ -10,7 +10,7 @@ use super::Modifier;
 use crate::abilities::{AbilityId, ABILITY_REGISTRY};
 use crate::items::{ItemId, ITEM_REGISTRY};
 use crate::moves::{MoveCategory, MoveFlags, MoveId, MOVE_REGISTRY};
-use crate::state::Status;
+use crate::state::{BattleState, Status};
 use crate::modifier;
 
 // ============================================================================
@@ -574,36 +574,7 @@ impl<G: GenMechanics> DamageContext<'_, G> {
 // Item Damage Modifiers (Helpers)
 // ============================================================================
 
-/// Check if an item is a type-boosting item for the given type.
-#[allow(dead_code)]
-// get_type_boost_item_mod removed (migrated to item hooks)
-    use crate::types::Type;
-    
-    // Type-boosting items give 1.2x (4915 in 4096-scale)
-    let matches = match (item, move_type) {
-        (ItemId::Silkscarf, Type::Normal) => true,
-        (ItemId::Blackbelt, Type::Fighting) => true,
-        (ItemId::Sharpbeak, Type::Flying) => true,
-        (ItemId::Poisonbarb, Type::Poison) => true,
-        (ItemId::Softsand, Type::Ground) => true,
-        (ItemId::Hardstone, Type::Rock) => true,
-        (ItemId::Silverpowder, Type::Bug) => true,
-        (ItemId::Spelltag, Type::Ghost) => true,
-        (ItemId::Metalcoat, Type::Steel) => true,
-        (ItemId::Charcoal, Type::Fire) => true,
-        (ItemId::Mysticwater, Type::Water) => true,
-        (ItemId::Miracleseed, Type::Grass) => true,
-        (ItemId::Magnet, Type::Electric) => true,
-        (ItemId::Twistedspoon, Type::Psychic) => true,
-        (ItemId::Nevermeltice, Type::Ice) => true,
-        (ItemId::Dragonfang, Type::Dragon) => true,
-        (ItemId::Blackglasses, Type::Dark) => true,
-        // No Fairy-type boosting item in core series
-        _ => false,
-    };
-    
-    if matches { Some(Modifier::ONE_POINT_TWO) } else { None } // 1.2x
-}
+// Note: get_type_boost_item_mod was removed and migrated to item hooks
 
 /// Check if attacker has a contact-based ability modifier.
 #[allow(dead_code)]
@@ -677,15 +648,7 @@ mod tests {
         assert_eq!(atk_light_spec, 200, "Light Ball should double Sp. Attack for Pikachu");
     }
 
-// test_type_boost_items removed (tested via integration tests now)
-        use crate::types::Type;
-        
-        // Charcoal boosts Fire
-        assert_eq!(get_type_boost_item_mod(ItemId::Charcoal, Type::Fire), Some(Modifier::ONE_POINT_TWO));
-        
-        // Charcoal doesn't boost Water
-        assert_eq!(get_type_boost_item_mod(ItemId::Charcoal, Type::Water), None);
-    }
+    // Note: test_type_boost_items was removed (tested via integration tests now)
 
     #[test]
     fn test_facade_damage() {

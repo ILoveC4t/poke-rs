@@ -112,11 +112,7 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
         on_modify_base_power: Some(damage_modifiers::rivalry),
         ..AbilityHooks::NONE
     });
-    registry[AbilityId::Guts as usize] = Some(AbilityHooks {
-        on_modify_attack: Some(on_modify_attack_guts),
-        on_ignore_status_damage_reduction: Some(on_ignore_status_damage_reduction_guts),
-        ..AbilityHooks::NONE
-    });
+    // Note: Guts is registered in the Stat Modifiers section below
 
     registry[AbilityId::Sheerforce as usize] = Some(AbilityHooks {
         on_modify_base_power: Some(damage_modifiers::sheer_force),
