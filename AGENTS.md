@@ -90,7 +90,7 @@ POKE_RS_USE_VENDOR=1
 - Then run tests offline inside Jules (or locally):
 
 ```bash
-cargo run -p test_runner -- run --offline
+cargo run --offline -p test_runner -- run
 ```
 
 7) Quick `cargo test` examples (when you prefer Rust's test runner)
@@ -125,7 +125,7 @@ cargo bench -p poke_engine
 3. Re-run same test, compare counts. Expect Passed up, Failed down.
 4. Ensure no new regressions.
 
-See `planning/test-coverage.md` for gaps and TODO list.
+See `planning/coverage.md` for gaps and TODO list.
 
 # STYLE
 - Use 4096-scale modifiers; `apply_modifier()` for correct rounding.
