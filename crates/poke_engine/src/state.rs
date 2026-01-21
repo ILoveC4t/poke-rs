@@ -55,7 +55,7 @@ bitflags::bitflags! {
 bitflags::bitflags! {
     /// Volatile status conditions (multiple can be active)
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-    pub struct Volatiles: u32 {
+    pub struct Volatiles: u64 {
         const CONFUSION     = 1 << 0;
         const FLINCH        = 1 << 1;
         const SUBSTITUTE    = 1 << 2;
@@ -81,7 +81,31 @@ bitflags::bitflags! {
         const CURSE         = 1 << 22;  // Ghost-type curse
         const YAWN          = 1 << 23;
         const SMACK_DOWN    = 1 << 24;
-        // FIXME: Add more volatile states as needed (Stockpile, Charge, etc.)
+        const CHARGE        = 1 << 25;
+        const DEFENSE_CURL  = 1 << 26;
+        const MINIMIZE      = 1 << 27;
+        const ROOST         = 1 << 28;
+        const PARTIALLY_TRAPPED = 1 << 29;
+        const LOCKED_MOVE   = 1 << 30;
+        const MUST_RECHARGE = 1 << 31;
+        const UPROAR        = 1 << 32;
+        const STOCKPILE     = 1 << 33;
+        const SALT_CURE     = 1 << 34;
+        const SYRUP_BOMB    = 1 << 35;
+        const TAR_SHOT      = 1 << 36;
+        const GLAIVE_RUSH   = 1 << 37;
+        const OCTOLOCK      = 1 << 38;
+        const NO_RETREAT    = 1 << 39;
+        const IMPRISON      = 1 << 40;
+        const SPOTLIGHT     = 1 << 41;
+        const MAGIC_COAT    = 1 << 42;
+        const SNATCH        = 1 << 43;
+        const GASTRO_ACID   = 1 << 44;
+        const IDENTIFIED    = 1 << 45; // Foresight, Odor Sleuth, Miracle Eye
+        const LASER_FOCUS   = 1 << 46;
+        const ELECTRIFY     = 1 << 47; // and Ion Deluge
+        const POWER_TRICK   = 1 << 48;
+        const POWDER        = 1 << 49;
     }
 }
 
