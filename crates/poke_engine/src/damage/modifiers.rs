@@ -215,10 +215,6 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
 
     bp = call_item_base_power_hook(ctx, bp as u16) as u32;
     
-    // TODO: Implement remaining ability BP modifiers
-    // - Analytic (1.3x if moving last)
-    // - Aerilate/Pixilate/Refrigerate/Galvanize (1.2x + type change)
-
     // ========================================================================
     // Move-based BP modifiers via hook system
     // ========================================================================

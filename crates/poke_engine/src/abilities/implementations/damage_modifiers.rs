@@ -4,7 +4,7 @@
 
 use crate::state::BattleState;
 use crate::moves::{Move, MoveFlags};
-use crate::damage::{apply_modifier, Modifier};
+use crate::damage::{Modifier, apply_modifier};
 
 /// Technician: 1.5x power for moves with BP ≤ 60
 pub fn technician(
@@ -213,5 +213,45 @@ pub fn sand_force(
     }
 }
 
-// TODO: Analytic - 1.3x if moving last
-// pub fn analytic(...) -> u16
+/// Analytic: 1.3x if moving last
+pub fn analytic(
+    state: &BattleState,
+    attacker: usize,
+    defender: usize,
+    move_data: &Move,
+    bp: u16,
+) -> u16 {
+    use crate::state::TurnOrder;
+    // We use the attacker's actual priority, but assume 0 for the defender
+    // as we don't know their move.
+    // If the attacker is slower (or moves later due to priority), compare_turn_order returns Second.
+    if state.compare_turn_order(attacker, move_data.priority, defender, 0) == TurnOrder::Second {
+        // 1.3x (5325/4096)
+        apply_modifier(bp as u32, Modifier::ONE_POINT_THREE) as u16
+    } else {
+        bp
+    }
+}
+
+/// -ate abilities: 1.2x for converted Normal moves
+/// (Aerilate, Pixilate, Refrigerate, Galvanize)
+pub fn ate_boost(
+    _state: &BattleState,
+    _attacker: usize,
+    _defender: usize,
+    move_data: &Move,
+    bp: u16,
+) -> u16 {
+    if move_data.primary_type == crate::types::Type::Normal {
+        // 1.2x (4915/4096)
+        apply_modifier(bp as u32, Modifier::ONE_POINT_TWO) as u16
+    } else {
+        bp
+    }
+}
+
+// TODO: Strong Jaw - 1.5x for bite moves
+// pub fn strong_jaw(...) -> u16
+
+// TODO: Mega Launcher - 1.5x for pulse/aura moves
+// pub fn mega_launcher(...) -> u16

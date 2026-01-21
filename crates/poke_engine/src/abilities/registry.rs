@@ -120,6 +120,26 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
         on_modify_base_power: Some(damage_modifiers::sand_force),
         ..AbilityHooks::NONE
     });
+    registry[AbilityId::Analytic as usize] = Some(AbilityHooks {
+        on_modify_base_power: Some(damage_modifiers::analytic),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Aerilate as usize] = Some(AbilityHooks {
+        on_modify_base_power: Some(damage_modifiers::ate_boost),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Pixilate as usize] = Some(AbilityHooks {
+        on_modify_base_power: Some(damage_modifiers::ate_boost),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Refrigerate as usize] = Some(AbilityHooks {
+        on_modify_base_power: Some(damage_modifiers::ate_boost),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Galvanize as usize] = Some(AbilityHooks {
+        on_modify_base_power: Some(damage_modifiers::ate_boost),
+        ..AbilityHooks::NONE
+    });
 
     // =========================================================================
     // Stat Modifiers (OnModifyAttack / OnModifyDefense)
