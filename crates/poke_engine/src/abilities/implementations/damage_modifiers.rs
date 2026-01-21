@@ -4,6 +4,7 @@
 
 use crate::state::BattleState;
 use crate::moves::{Move, MoveFlags};
+use crate::damage::{apply_modifier, Modifier};
 
 /// Technician: 1.5x power for moves with BP ≤ 60
 pub fn technician(
@@ -60,7 +61,7 @@ pub fn strong_jaw(
     bp: u16,
 ) -> u16 {
     if move_data.flags.contains(MoveFlags::BITE) {
-        bp * 3 / 2
+        apply_modifier(bp as u32, Modifier::ONE_POINT_FIVE).max(1) as u16
     } else {
         bp
     }
@@ -75,7 +76,7 @@ pub fn mega_launcher(
     bp: u16,
 ) -> u16 {
     if move_data.flags.contains(MoveFlags::PULSE) {
-        bp * 3 / 2
+        apply_modifier(bp as u32, Modifier::ONE_POINT_FIVE).max(1) as u16
     } else {
         bp
     }

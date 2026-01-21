@@ -4,6 +4,7 @@
 
 use crate::state::{BattleState, Status};
 use crate::moves::{MoveCategory, MoveId};
+use crate::damage::{apply_modifier, Modifier};
 
 /// Hustle: 1.5x Attack for physical moves (accuracy penalty handled elsewhere)
 pub fn hustle(
@@ -14,7 +15,7 @@ pub fn hustle(
     attack: u16,
 ) -> u16 {
     if category == MoveCategory::Physical {
-        attack * 3 / 2
+        apply_modifier(attack as u32, Modifier::ONE_POINT_FIVE).max(1) as u16
     } else {
         attack
     }
@@ -50,7 +51,7 @@ pub fn guts(
 
     let status = state.status[attacker];
     if status != Status::NONE && category == MoveCategory::Physical {
-        attack * 3 / 2
+        apply_modifier(attack as u32, Modifier::ONE_POINT_FIVE).max(1) as u16
     } else {
         attack
     }
@@ -65,7 +66,7 @@ pub fn gorilla_tactics(
     attack: u16,
 ) -> u16 {
     if category == MoveCategory::Physical {
-        attack * 3 / 2
+        apply_modifier(attack as u32, Modifier::ONE_POINT_FIVE).max(1) as u16
     } else {
         attack
     }
@@ -115,10 +116,10 @@ fn calculate_paradox_boost(
     if stat_index == best_stat_idx {
         if stat_index == 5 {
             // Speed gets 1.5x
-            attack * 3 / 2
+            apply_modifier(attack as u32, Modifier::ONE_POINT_FIVE).max(1) as u16
         } else {
-            // Others get 1.3x (5325/4096)
-            (attack as u32 * 5325 / 4096) as u16
+            // Others get 1.3x
+            apply_modifier(attack as u32, Modifier::ONE_POINT_THREE).max(1) as u16
         }
     } else {
         attack
