@@ -5,7 +5,6 @@ mod tests {
     use crate::types::Type;
     use crate::abilities::AbilityId;
     use crate::moves::{MoveId, MoveCategory};
-    use crate::items::ItemId;
 
     #[test]
     fn test_huge_power() {
