@@ -46,6 +46,23 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
         if has_secondary_effects(data) {
             flag_names.insert("HasSecondaryEffects".to_string());
         }
+
+        // MultiHit flag: has multihit property
+        if let Some(val) = &data.multihit {
+            if !val.is_null() {
+                flag_names.insert("MultiHit".to_string());
+            }
+        }
+
+        // Spread flag: target is allAdjacent, allAdjacentFoes, or all
+        if let Some(target) = &data.target {
+            match target.as_str() {
+                "allAdjacent" | "allAdjacentFoes" | "all" => {
+                    flag_names.insert("Spread".to_string());
+                }
+                _ => {}
+            }
+        }
     }
     let flag_count = flag_names.len();
     let use_u64 = flag_count > 32;
@@ -120,6 +137,27 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
          if has_secondary_effects(data) {
              if let Some(pos) = flag_names.iter().position(|x| x == "HasSecondaryEffects") {
                  flag_bits |= 1 << pos;
+             }
+         }
+
+         // Inject MultiHit flag bit
+         if let Some(val) = &data.multihit {
+             if !val.is_null() {
+                 if let Some(pos) = flag_names.iter().position(|x| x == "MultiHit") {
+                     flag_bits |= 1 << pos;
+                 }
+             }
+         }
+
+         // Inject Spread flag bit
+         if let Some(target) = &data.target {
+             match target.as_str() {
+                 "allAdjacent" | "allAdjacentFoes" | "all" => {
+                     if let Some(pos) = flag_names.iter().position(|x| x == "Spread") {
+                         flag_bits |= 1 << pos;
+                     }
+                 }
+                 _ => {}
              }
          }
 

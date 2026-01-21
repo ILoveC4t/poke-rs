@@ -8,6 +8,8 @@ use super::DamageResult;
 use super::generations::GenMechanics;
 use super::modifiers;
 use super::Modifier;
+use crate::abilities::AbilityId;
+use crate::moves::{MoveFlags, MoveCategory};
 
 /// 16-bit overflow wrapping (simulates hardware behavior).
 /// Values that exceed 65535 wrap around.
@@ -246,10 +248,46 @@ pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageR
     // Phase 5: Generate all 16 damage rolls
     let rolls = modifiers::compute_final_damage(&ctx, base_damage);
 
+    let mut combined_rolls = rolls;
+
+    // Parental Bond Check
+    if ctx.attacker_ability == AbilityId::Parentalbond {
+        let flags = ctx.move_data.flags;
+        let is_eligible = !flags.contains(MoveFlags::MULTI_HIT)
+            && !flags.contains(MoveFlags::SPREAD)
+            && ctx.category != MoveCategory::Status
+            && ctx.move_id != crate::moves::MoveId::Struggle;
+
+        let mut is_charge_blocked = false;
+        if ctx.gen.generation() >= 7 && flags.contains(MoveFlags::CHARGE) {
+             is_charge_blocked = true;
+        }
+
+        if is_eligible && !is_charge_blocked {
+             // Calculate second hit
+             let multiplier = if ctx.gen.generation() <= 6 {
+                 Modifier::HALF
+             } else {
+                 Modifier::new(1024) // 0.25x
+             };
+
+             // Reuse base_damage to generate new rolls for second hit
+             // Note: compute_final_damage uses the same base_damage
+             let rolls2 = modifiers::compute_final_damage(&ctx, base_damage);
+
+             for i in 0..16 {
+                 // Apply PB modifier to the second hit result
+                 let hit2 = apply_modifier(rolls2[i] as u32, multiplier);
+                 // Sum
+                 combined_rolls[i] = (combined_rolls[i] as u32 + hit2).min(u16::MAX as u32) as u16;
+             }
+        }
+    }
+
     DamageResult {
-        rolls,
-        min: rolls[0],
-        max: rolls[15],
+        rolls: combined_rolls,
+        min: combined_rolls[0],
+        max: combined_rolls[15],
         effectiveness: ctx.effectiveness,
         is_crit: ctx.is_crit,
         final_base_power: ctx.base_power,

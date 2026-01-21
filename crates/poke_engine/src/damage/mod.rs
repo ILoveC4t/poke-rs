@@ -41,6 +41,8 @@ mod scrappy_tests;
 mod missing_implementations_test;
 mod ate_tests;
 mod conditional_moves_tests;
+#[cfg(test)]
+mod parental_bond_tests;
 
 pub use context::DamageContext;
 pub use modifier::Modifier;
@@ -48,8 +50,9 @@ pub use formula::{get_base_damage, pokeround, of16, of32, chain_mods, apply_modi
 pub use modifiers::compute_base_power;
 pub use generations::{GenMechanics, Generation, Gen9};
 
-use crate::moves::MoveId;
+use crate::moves::{MoveId, MoveFlags};
 use crate::state::BattleState;
+use crate::abilities::AbilityId;
 
 /// Result of a damage calculation.
 #[derive(Clone, Debug)]
@@ -145,10 +148,38 @@ pub fn calculate_damage_with_overrides<G: GenMechanics>(
     
     // Check for fixed damage moves first
     if let Some(fixed_damage) = special_moves::get_fixed_damage(move_id, state, attacker, defender) {
+        let mut damage = fixed_damage;
+
+        // Parental Bond check for fixed damage
+        if state.abilities[attacker] == AbilityId::Parentalbond {
+             let flags = move_data.flags;
+             let is_eligible = !flags.contains(MoveFlags::MULTI_HIT)
+                 && !flags.contains(MoveFlags::SPREAD)
+                 // category is already checked above (Status moves return early)
+                 && move_id != MoveId::Struggle;
+
+             let mut is_charge_blocked = false;
+             if gen.generation() >= 7 && flags.contains(MoveFlags::CHARGE) {
+                 is_charge_blocked = true;
+             }
+
+             if is_eligible && !is_charge_blocked {
+                 // Calculate second hit
+                 let multiplier = if gen.generation() <= 6 {
+                     Modifier::HALF
+                 } else {
+                     Modifier::new(1024) // 0.25x
+                 };
+
+                 let hit2 = apply_modifier(damage as u32, multiplier) as u16;
+                 damage = damage.saturating_add(hit2);
+             }
+        }
+
         return DamageResult {
-            rolls: [fixed_damage; 16],
-            min: fixed_damage,
-            max: fixed_damage,
+            rolls: [damage; 16],
+            min: damage,
+            max: damage,
             effectiveness: 4, // Neutral
             is_crit: false,
             final_base_power: 0,

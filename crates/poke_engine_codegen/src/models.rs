@@ -73,6 +73,9 @@ pub struct MoveData {
     #[serde(default)]
     pub flags: HashMap<String, u8>,
     pub terrain: Option<String>,
+    pub target: Option<String>,
+    #[serde(default)]
+    pub multihit: Option<serde_json::Value>, // Can be number or [min, max] array
 
     // Recoil fields for Reckless ability
     pub recoil: Option<serde_json::Value>,
