@@ -14,6 +14,25 @@ use crate::state::Status;
 use crate::modifier;
 
 // ============================================================================
+// Stat Indices
+// ============================================================================
+
+/// Stat array indices for BattleState.stats
+const STAT_INDEX_HP: usize = 0;
+const STAT_INDEX_ATTACK: usize = 1;
+const STAT_INDEX_DEFENSE: usize = 2;
+const STAT_INDEX_SP_ATTACK: usize = 3;
+const STAT_INDEX_SP_DEFENSE: usize = 4;
+const STAT_INDEX_SPEED: usize = 5;
+
+/// Boost array indices for BattleState.boosts
+const BOOST_INDEX_ATTACK: usize = 0;
+const BOOST_INDEX_DEFENSE: usize = 1;
+const BOOST_INDEX_SP_ATTACK: usize = 2;
+const BOOST_INDEX_SP_DEFENSE: usize = 3;
+const BOOST_INDEX_SPEED: usize = 4;
+
+// ============================================================================
 // Item Hook Helpers
 // ============================================================================
 
@@ -111,6 +130,23 @@ fn call_attack_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, attack: u16) ->
         }
     }
     attack
+}
+
+/// Call the OnModifyDefense hook for the defender's ability, if registered.
+fn call_defense_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, defense: u16) -> u16 {
+    let defender_ability = ctx.state.abilities[ctx.defender];
+    if let Some(Some(hooks)) = ABILITY_REGISTRY.get(defender_ability as usize) {
+        if let Some(hook) = hooks.on_modify_defense {
+            return hook(
+                ctx.state,
+                ctx.defender,
+                ctx.attacker,
+                ctx.category,
+                defense,
+            );
+        }
+    }
+    defense
 }
 
 /// Apply final modifiers from both attacker and defender abilities.
@@ -234,12 +270,12 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
 
     // Body Press: Use Defense as Attack
     if ctx.move_id == MoveId::Bodypress {
-        atk_idx = 2; // Defense
+        atk_idx = STAT_INDEX_DEFENSE;
     }
 
     // Psyshock / Psystrike / Secret Sword: Use Defense as target Defense (even if special)
     if matches!(ctx.move_id, MoveId::Psyshock | MoveId::Psystrike | MoveId::Secretsword) {
-        def_idx = 2; // Defense
+        def_idx = STAT_INDEX_DEFENSE;
     }
 
     // Foul Play: Use Target's Attack
@@ -250,16 +286,19 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
     let mut defense = ctx.state.stats[ctx.defender][def_idx];
     
     // Get boost stages
-    // Boost indices: 0=Atk, 1=Def, 2=SpA, 3=SpD, 4=Spe
-    // Note: If using Body Press (Def), boost index is 1 (Def)
+    // Map stat index to boost index
     let atk_boost_idx = match atk_idx {
-        1 => 0, // Atk
-        2 => 1, // Def (Body Press)
-        3 => 2, // SpA
-        _ => 0, // Fallback
+        STAT_INDEX_ATTACK => BOOST_INDEX_ATTACK,
+        STAT_INDEX_DEFENSE => BOOST_INDEX_DEFENSE,
+        STAT_INDEX_SP_ATTACK => BOOST_INDEX_SP_ATTACK,
+        _ => BOOST_INDEX_ATTACK, // Fallback
     };
 
-    let def_boost_idx = if def_idx == 2 { 1 } else { 3 }; // Def or SpD
+    let def_boost_idx = if def_idx == STAT_INDEX_DEFENSE { 
+        BOOST_INDEX_DEFENSE 
+    } else { 
+        BOOST_INDEX_SP_DEFENSE 
+    };
     
     let atk_boost = ctx.state.boosts[atk_source_idx][atk_boost_idx];
     let def_boost = ctx.state.boosts[ctx.defender][def_boost_idx];
@@ -283,6 +322,7 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
     // Ability modifiers for attack (via hook system)
     if ctx.gen.has_abilities() {
         attack = call_attack_hook(ctx, attack);
+        defense = call_defense_hook(ctx, defense);
     }
     
     // Item modifiers
