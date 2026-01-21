@@ -13,12 +13,14 @@ mod tests {
     fn test_huge_power() {
         let mut state = BattleState::new();
         // Diggersby: Normal/Ground, Huge Power
+        // Fallback to Diggersby's National Dex ID if name lookup fails
         state.species[0] = SpeciesId::from_str("diggersby").unwrap_or(SpeciesId(659));
         state.abilities[0] = AbilityId::Hugepower;
         state.stats[0][1] = 100; // 100 Atk
         state.types[0] = [Type::Normal, Type::Ground];
         state.level[0] = 50;
 
+        // Fallback to Rattata's National Dex ID if name lookup fails
         state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
         state.stats[6][2] = 100; // 100 Def
         state.level[6] = 50;
@@ -226,7 +228,7 @@ mod tests {
         state.stats[0][1] = 100; // Atk
         state.stats[0][2] = 100; // Def
         state.abilities[0] = AbilityId::Guts;
-        state.status[0] = crate::state::Status::BURN;
+        state.status[0] = Status::BURN;
         state.level[0] = 50;
 
         state.stats[6][2] = 100; // Def
