@@ -134,7 +134,7 @@ fn call_attack_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, attack: u16) ->
 
 /// Call the OnModifyDefense hook for the defender's ability, if registered.
 fn call_defense_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, defense: u16) -> u16 {
-    let defender_ability = ctx.state.abilities[ctx.defender];
+    let defender_ability = ctx.defender_ability;
     if let Some(Some(hooks)) = ABILITY_REGISTRY.get(defender_ability as usize) {
         if let Some(hook) = hooks.on_modify_defense {
             return hook(

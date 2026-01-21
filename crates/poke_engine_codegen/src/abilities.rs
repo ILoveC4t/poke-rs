@@ -39,6 +39,16 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
         })
         .collect();
 
+    // Generate is_breakable match arms
+    let breakable_arms: Vec<TokenStream> = valid_abilities
+        .iter()
+        .filter(|(_, data)| data.flags.contains_key("breakable"))
+        .map(|(key, _)| {
+            let ident = format_ident!("{}", key.to_pascal_case());
+            quote! { AbilityId::#ident => true, }
+        })
+        .collect();
+
     // Generate phf map for string -> AbilityId lookup
     let mut phf_map = phf_codegen::Map::new();
     for (key, _) in &valid_abilities {
@@ -65,6 +75,14 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
             #[inline]
             pub fn from_str(s: &str) -> Option<Self> {
                 ABILITY_LOOKUP.get(s).copied()
+            }
+
+            /// Check if the ability can be ignored by Mold Breaker
+            pub fn is_breakable(self) -> bool {
+                match self {
+                    #(#breakable_arms)*
+                    _ => false,
+                }
             }
         }
     };

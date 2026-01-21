@@ -148,8 +148,17 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
             |mv_type, def_type, _| gen.type_effectiveness(mv_type, def_type, None),
         );
         
+        // Mold Breaker check
+        let has_mold_breaker = matches!(attacker_ability, AbilityId::Moldbreaker | AbilityId::Teravolt | AbilityId::Turboblaze);
+        let raw_defender_ability = state.abilities[defender];
+
+        let defender_ability = if has_mold_breaker && raw_defender_ability.is_breakable() {
+            AbilityId::Noability
+        } else {
+            raw_defender_ability
+        };
+
         // Check for ability-granted immunity (Levitate, Flash Fire, etc.)
-        let defender_ability = state.abilities[defender];
         if effectiveness > 0 {
             effectiveness = Self::check_ability_immunity(state, attacker, defender, defender_ability, move_type, effectiveness);
         }
@@ -187,7 +196,7 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
             has_adaptability,
             is_tera_stab: false, // TODO: Set when Tera is implemented
             attacker_ability,
-            defender_ability: state.abilities[defender],
+            defender_ability,
         }
     }
     
@@ -240,7 +249,7 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
     /// Returns 0 (immune) if the ability blocks the move, otherwise returns original effectiveness.
     fn check_ability_immunity(
         state: &BattleState,
-        attacker: usize,
+        _attacker: usize,
         defender: usize,
         ability: AbilityId,
         move_type: Type,
@@ -248,11 +257,7 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
     ) -> u8 {
         use crate::abilities::ABILITY_REGISTRY;
         
-        // Mold Breaker check
-        let attacker_ability = state.abilities[attacker];
-        if matches!(attacker_ability, AbilityId::Moldbreaker | AbilityId::Teravolt | AbilityId::Turboblaze) {
-            return effectiveness;
-        }
+        // Note: Mold Breaker check is handled in DamageContext::new by passing suppressed ability
         
         if let Some(Some(hooks)) = ABILITY_REGISTRY.get(ability as usize) {
             if let Some(hook) = hooks.on_type_immunity {

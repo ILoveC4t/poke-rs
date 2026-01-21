@@ -55,6 +55,8 @@ pub struct AbilityData {
     #[allow(dead_code)]
     pub name: String,
     pub num: i16,
+    #[serde(default)]
+    pub flags: HashMap<String, u8>,
 }
 
 #[derive(Deserialize)]
