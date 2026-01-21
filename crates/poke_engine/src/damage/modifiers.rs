@@ -132,6 +132,23 @@ fn call_attack_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, attack: u16) ->
     attack
 }
 
+/// Call the OnModifyDefense hook for the defender's ability, if registered.
+fn call_defense_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, defense: u16) -> u16 {
+    let defender_ability = ctx.state.abilities[ctx.defender];
+    if let Some(Some(hooks)) = ABILITY_REGISTRY.get(defender_ability as usize) {
+        if let Some(hook) = hooks.on_modify_defense {
+            return hook(
+                ctx.state,
+                ctx.defender,
+                ctx.attacker,
+                ctx.category,
+                defense,
+            );
+        }
+    }
+    defense
+}
+
 /// Apply final modifiers from both attacker and defender abilities.
 /// Order: attacker mods first, then defender mods (per Smogon order).
 fn apply_final_mods<G: GenMechanics>(
@@ -305,6 +322,7 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
     // Ability modifiers for attack (via hook system)
     if ctx.gen.has_abilities() {
         attack = call_attack_hook(ctx, attack);
+        defense = call_defense_hook(ctx, defense);
     }
     
     // Item modifiers
