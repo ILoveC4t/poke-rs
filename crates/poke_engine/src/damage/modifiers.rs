@@ -4,7 +4,7 @@
 //! of the calculation. Each function is a discrete step in the pipeline.
 
 use super::context::DamageContext;
-use super::formula::{apply_boost, apply_modifier, apply_modifier_floor, of16, of32, pokeround};
+use super::formula::{apply_boost, apply_modifier, apply_modifier_floor, of32, pokeround};
 use super::generations::{GenMechanics, Weather, Terrain};
 use super::Modifier;
 use crate::abilities::{AbilityId, ABILITY_REGISTRY};

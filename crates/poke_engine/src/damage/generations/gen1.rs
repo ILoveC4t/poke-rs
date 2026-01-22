@@ -29,35 +29,32 @@ impl GenMechanics for Gen1 {
         let mut m = crate::types::type_effectiveness(atk_type, def_type1, def_type2);
 
         // Fix Ghost vs Psychic (0x in Gen 1, normally 2x)
-        if atk_type == Type::Ghost {
-             if def_type1 == Type::Psychic || def_type2 == Some(Type::Psychic) {
-                 return 0;
-             }
+        if atk_type == Type::Ghost
+             && (def_type1 == Type::Psychic || def_type2 == Some(Type::Psychic))
+        {
+             return 0;
         }
 
         // Poison vs Bug (Gen 1: 2x)
-        if atk_type == Type::Poison {
-            if def_type1 == Type::Bug {
-                // If standard says 1x (4), make it 2x (8)
-                // If it was Bug/Grass (1x * 2x = 2x -> 8), then Gen 1 is (2x * 2x = 4x -> 16).
-                // Just multiplying by 2 seems safe if standard is 1x.
-                // Standard Poison vs Bug is 1x.
-                m *= 2;
-            }
-            if def_type2 == Some(Type::Bug) {
-                m *= 2;
-            }
+        if atk_type == Type::Poison && def_type1 == Type::Bug {
+            // If standard says 1x (4), make it 2x (8)
+            // If it was Bug/Grass (1x * 2x = 2x -> 8), then Gen 1 is (2x * 2x = 4x -> 16).
+            // Just multiplying by 2 seems safe if standard is 1x.
+            // Standard Poison vs Bug is 1x.
+            m *= 2;
         }
+        if atk_type == Type::Poison && def_type2 == Some(Type::Bug) {
+            m *= 2;
+        }
+
         // Bug vs Poison (Gen 1: 2x)
-        if atk_type == Type::Bug {
-            if def_type1 == Type::Poison {
-                // Standard Bug vs Poison is 0.5x (2). We want 2x (8).
-                // So multiply by 4.
-                m *= 4;
-            }
-            if def_type2 == Some(Type::Poison) {
-                m *= 4;
-            }
+        if atk_type == Type::Bug && def_type1 == Type::Poison {
+            // Standard Bug vs Poison is 0.5x (2). We want 2x (8).
+            // So multiply by 4.
+            m *= 4;
+        }
+        if atk_type == Type::Bug && def_type2 == Some(Type::Poison) {
+            m *= 4;
         }
 
         // Ice vs Fire (Gen 1: 1x, Standard: 0.5x)
@@ -178,9 +175,9 @@ impl GenMechanics for Gen1 {
         // 255 - 217 = 38 values. 16 steps.
         // stride = 38 / 15 = 2.53
 
-        for i in 0..16 {
+        for (i, roll) in rolls.iter_mut().enumerate() {
             let rnd = 217 + (i * 38 / 15);
-            rolls[i] = (damage * (rnd as u32) / 255) as u16;
+            *roll = (damage * (rnd as u32) / 255) as u16;
         }
 
         DamageResult {

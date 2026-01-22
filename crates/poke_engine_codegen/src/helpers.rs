@@ -19,7 +19,7 @@ pub fn to_valid_ident(key: &str) -> String {
 /// Returns true if the move has secondary or secondaries fields (that are not null),
 /// or if it has the explicit has_sheer_force flag set.
 pub fn has_secondary_effects(data: &MoveData) -> bool {
-    data.secondary.as_ref().map_or(false, |v| !v.is_null())
-        || data.secondaries.as_ref().map_or(false, |v| !v.is_null())
+    data.secondary.as_ref().is_some_and(|v| !v.is_null())
+        || data.secondaries.as_ref().is_some_and(|v| !v.is_null())
         || data.has_sheer_force.unwrap_or(false)
 }

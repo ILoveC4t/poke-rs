@@ -50,22 +50,21 @@ where
             }
 
             // Check Iron Ball / Gravity vs Flying (Ground moves only)
-            if move_type == Type::Ground && type_to_check == Type::Flying {
-                if state.is_grounded(defender) {
-                    // Gen 5+ mechanics: Grounded Flying types resist Ground (0.5x)
-                    // Gen 4- mechanics: Grounded Flying types take Neutral from Ground (1x)
-                    return if generation >= 5 { 2 } else { 4 };
-                }
+            if move_type == Type::Ground
+                && type_to_check == Type::Flying
+                && state.is_grounded(defender)
+            {
+                // Gen 5+ mechanics: Grounded Flying types resist Ground (0.5x)
+                // Gen 4- mechanics: Grounded Flying types take Neutral from Ground (1x)
+                return if generation >= 5 { 2 } else { 4 };
             }
 
             // Scrappy / Mind's Eye: Allow Normal/Fighting to hit Ghost
             if type_to_check == Type::Ghost
                 && (move_type == Type::Normal || move_type == Type::Fighting)
+                && (attacker_ability == AbilityId::Scrappy || attacker_ability == AbilityId::Mindseye)
             {
-                if attacker_ability == AbilityId::Scrappy || attacker_ability == AbilityId::Mindseye
-                {
-                    return 4; // 1x (Neutral)
-                }
+                return 4; // 1x (Neutral)
             }
         }
         base_eff

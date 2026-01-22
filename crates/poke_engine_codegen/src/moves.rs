@@ -115,7 +115,7 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
 
          // Flags
          let mut flag_bits = 0u64;
-         for (flag_key, _) in &data.flags {
+         for flag_key in data.flags.keys() {
              if let Some(pos) = flag_names.iter().position(|x| x == flag_key) {
                  flag_bits |= 1 << pos;
              }

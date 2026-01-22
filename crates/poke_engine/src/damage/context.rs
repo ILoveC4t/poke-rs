@@ -124,17 +124,11 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
         let attacker_ability = state.abilities[attacker];
 
         // Ability Type Changes (Aerilate, Pixilate, Refrigerate, Galvanize, Normalize, Liquid Voice)
-        // Note: These override the base type for effectiveness and STAB calculation.
-        match attacker_ability {
-            AbilityId::Aerilate if move_type == Type::Normal => move_type = Type::Flying,
-            AbilityId::Pixilate if move_type == Type::Normal => move_type = Type::Fairy,
-            AbilityId::Refrigerate if move_type == Type::Normal => move_type = Type::Ice,
-            AbilityId::Galvanize if move_type == Type::Normal => move_type = Type::Electric,
-            AbilityId::Normalize => move_type = Type::Normal,
-            AbilityId::Liquidvoice if move_data.flags.contains(crate::moves::MoveFlags::SOUND) => {
-                move_type = Type::Water;
+        // Uses the on_modify_type hook from the ability registry.
+        if let Some(Some(hooks)) = crate::abilities::ABILITY_REGISTRY.get(attacker_ability as usize) {
+            if let Some(hook) = hooks.on_modify_type {
+                move_type = hook(state, attacker, move_data, move_type);
             }
-            _ => {}
         }
         
         // Check STAB

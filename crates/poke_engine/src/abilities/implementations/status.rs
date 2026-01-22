@@ -1,7 +1,6 @@
 //! Status-related ability implementations.
 
 use crate::state::{BattleState, Status};
-use crate::abilities::hooks::{OnModifyAttack, OnIgnoreStatusDamageReduction};
 use crate::moves::{MoveId, MoveCategory};
 
 // ============================================================================

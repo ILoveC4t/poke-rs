@@ -3,6 +3,7 @@ use crate::abilities::hooks::AbilityHooks;
 use crate::abilities::implementations::{
     weather_setters, priority, intimidate,
     damage_modifiers, stat_modifiers, final_modifiers, immunity, speed, status,
+    type_changers,
 };
 
 pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
@@ -127,19 +128,35 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
         ..AbilityHooks::NONE
     });
     registry[AbilityId::Aerilate as usize] = Some(AbilityHooks {
+        on_modify_type: Some(type_changers::aerilate),
         on_modify_base_power: Some(damage_modifiers::ate_boost),
         ..AbilityHooks::NONE
     });
     registry[AbilityId::Pixilate as usize] = Some(AbilityHooks {
+        on_modify_type: Some(type_changers::pixilate),
         on_modify_base_power: Some(damage_modifiers::ate_boost),
         ..AbilityHooks::NONE
     });
     registry[AbilityId::Refrigerate as usize] = Some(AbilityHooks {
+        on_modify_type: Some(type_changers::refrigerate),
         on_modify_base_power: Some(damage_modifiers::ate_boost),
         ..AbilityHooks::NONE
     });
     registry[AbilityId::Galvanize as usize] = Some(AbilityHooks {
+        on_modify_type: Some(type_changers::galvanize),
         on_modify_base_power: Some(damage_modifiers::ate_boost),
+        ..AbilityHooks::NONE
+    });
+
+    // =========================================================================
+    // Type Changers (OnModifyType only - no boost)
+    // =========================================================================
+    registry[AbilityId::Normalize as usize] = Some(AbilityHooks {
+        on_modify_type: Some(type_changers::normalize),
+        ..AbilityHooks::NONE
+    });
+    registry[AbilityId::Liquidvoice as usize] = Some(AbilityHooks {
+        on_modify_type: Some(type_changers::liquid_voice),
         ..AbilityHooks::NONE
     });
 

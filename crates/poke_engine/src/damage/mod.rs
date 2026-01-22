@@ -39,7 +39,9 @@ mod special_moves_tests;
 mod scrappy_tests;
 #[cfg(test)]
 mod missing_implementations_test;
+#[cfg(test)]
 mod ate_tests;
+#[cfg(test)]
 mod conditional_moves_tests;
 
 pub use context::DamageContext;
@@ -87,10 +89,7 @@ impl DamageResult {
     }
 }
 
-/// Check if a move deals fixed damage (not affected by stats/type).
-///
-/// Returns `Some(damage)` for fixed damage moves, `None` otherwise.
-// get_fixed_damage moved to special_moves/fixed.rs
+// Note: get_fixed_damage was moved to special_moves/fixed.rs
 
 /// Calculate damage for a move.
 ///

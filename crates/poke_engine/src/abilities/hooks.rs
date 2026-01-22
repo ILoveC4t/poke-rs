@@ -22,6 +22,15 @@ pub type OnAfterDamage = fn(state: &mut BattleState, attacker: usize, defender: 
 /// Called when a stat boost is applied to modify the stage change
 pub type OnStatChange = fn(change: i8) -> i8;
 
+/// Called during type calculation to modify move type (Aerilate, Pixilate, etc.)
+/// Returns the new type for the move.
+pub type OnModifyType = fn(
+    state: &BattleState,
+    attacker: usize,
+    move_data: &Move,
+    current_type: Type,
+) -> Type;
+
 /// Called during base power calculation (Technician, Iron Fist, Tough Claws, etc.)
 /// Uses &MoveData for full access to flags, type, category, and other properties.
 pub type OnModifyBasePower = fn(
@@ -133,6 +142,8 @@ pub struct AbilityHooks {
     pub on_modify_damage: Option<OnModifyDamage>,
     pub on_after_damage: Option<OnAfterDamage>,
     pub on_stat_change: Option<OnStatChange>,
+    // Type modification hook
+    pub on_modify_type: Option<OnModifyType>,
     // New damage-phase hooks
     pub on_modify_base_power: Option<OnModifyBasePower>,
     pub on_modify_attack: Option<OnModifyAttack>,
@@ -157,6 +168,7 @@ impl AbilityHooks {
         on_modify_damage: None,
         on_after_damage: None,
         on_stat_change: None,
+        on_modify_type: None,
         on_modify_base_power: None,
         on_modify_attack: None,
         on_modify_defense: None,

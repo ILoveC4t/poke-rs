@@ -240,7 +240,7 @@ fn main() {
 
         // Parse Move
         let move_clean = fixture.move_data.name.to_lowercase().replace(" ", "").replace("-", "");
-        let move_id = MoveId::from_str(&move_clean).unwrap_or(MoveId::default());
+        let move_id = MoveId::from_str(&move_clean).unwrap_or_default();
 
         // Field Settings
         if let Some(weather) = &fixture.field.weather {

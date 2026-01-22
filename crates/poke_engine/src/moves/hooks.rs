@@ -5,7 +5,6 @@
 
 use crate::state::BattleState;
 use crate::moves::Move;
-use crate::items::ItemId;
 use crate::types::Type;
 
 // ============================================================================
