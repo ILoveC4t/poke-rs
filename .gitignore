@@ -21,3 +21,6 @@ Desktop.ini
 
 # Test run history
 .test_runs/
+ 
+# Imported attachments
+attachments/
