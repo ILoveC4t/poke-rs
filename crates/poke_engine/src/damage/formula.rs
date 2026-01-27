@@ -101,7 +101,7 @@ pub fn chain_mods(modifiers: &[Modifier]) -> u32 {
 
 /// Calculate base damage before modifiers.
 ///
-/// Formula: `floor((floor(2 * Level / 5 + 2) * BasePower * Attack / Defense) / 50) + 2`
+/// Formula: `floor((floor(2 * Level / 5 + 2) * BasePower * Attack / Defense) / 50) [+ 2]`
 ///
 /// Each intermediate step is truncated to match cartridge behavior.
 ///
@@ -110,10 +110,11 @@ pub fn chain_mods(modifiers: &[Modifier]) -> u32 {
 /// * `base_power` - Move's base power after BP modifiers
 /// * `attack` - Effective attack stat (after boosts)
 /// * `defense` - Effective defense stat (after boosts)
+/// * `add_two` - Whether to add +2 in base formula (Gen 5+: true, Gen 3-4: false)
 ///
 /// # Returns
 /// Base damage value before random roll and other modifiers.
-pub fn get_base_damage(level: u32, base_power: u32, attack: u32, defense: u32) -> u32 {
+pub fn get_base_damage(level: u32, base_power: u32, attack: u32, defense: u32, add_two: bool) -> u32 {
     // Avoid division by zero
     if defense == 0 {
         return 0;
@@ -123,13 +124,17 @@ pub fn get_base_damage(level: u32, base_power: u32, attack: u32, defense: u32) -
     let level_factor = 2 * level / 5 + 2;
     
     // Main formula with truncation at each step
-    // ((level_factor * base_power * attack) / defense) / 50 + 2
+    // ((level_factor * base_power * attack) / defense) / 50 [+ 2]
     let numerator = of32(level_factor as u64 * base_power as u64);
     let numerator = of32(numerator as u64 * attack as u64);
     let after_defense = numerator / defense;
     let after_50 = after_defense / 50;
     
-    after_50 + 2
+    if add_two {
+        after_50 + 2
+    } else {
+        after_50
+    }
 }
 
 /// Apply the random damage roll.
@@ -221,6 +226,10 @@ pub fn apply_acc_eva_boost(base: u16, stage: i8) -> u16 {
 /// Calculate standard damage (Gen 3+ formula).
 ///
 /// This implements the standard, modular damage pipeline used by most generations.
+/// The ordering differs between generations:
+///
+/// Gen 3-4: burn → screens → spread → weather → +2 → crit → special → STAB → effectiveness → random
+/// Gen 5+:  spread → weather → +2 (in formula) → crit → random → STAB → effectiveness → burn → screens
 ///
 /// # Arguments
 /// * `ctx` - The damage context containing all calculation state
@@ -235,15 +244,41 @@ pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageR
     let (attack, defense) = modifiers::compute_effective_stats(&ctx);
 
     // Phase 3: Base damage formula
+    // Gen 5+: adds +2 in base formula
+    // Gen 3-4: adds +2 after burn/screens/spread/weather, before crit
     let level = ctx.state.level[ctx.attacker] as u32;
-    let mut base_damage = get_base_damage(level, ctx.base_power as u32, attack as u32, defense as u32);
+    let adds_two_now = ctx.gen.adds_two_in_base_damage();
+    let mut base_damage = get_base_damage(level, ctx.base_power as u32, attack as u32, defense as u32, adds_two_now);
 
-    // Phase 4: Apply pre-random modifiers directly to base damage
+    // Phase 4: Apply pre-random modifiers
+    // Gen 3-4 order: burn → screens → spread → weather → +2 → crit
+    // Gen 5+ order:  spread → weather → (crit later)
+    
+    // Gen 3-4: Apply burn and screens BEFORE spread/weather
+    modifiers::apply_burn_mod_early(&ctx, &mut base_damage);
+    modifiers::apply_screen_mod_early(&ctx, &mut base_damage);
+    
     modifiers::apply_spread_mod(&mut ctx, &mut base_damage);
     modifiers::apply_weather_mod_damage(&mut ctx, &mut base_damage);
+    
+    // Gen 3-4: Add +2 after burn/screens/spread/weather but before crit
+    if !adds_two_now {
+        // Physical moves have minimum 1 before +2 in Gen 3
+        if G::GEN == 3 && ctx.category == crate::moves::MoveCategory::Physical {
+            base_damage = base_damage.max(1);
+        }
+        base_damage += 2;
+    }
+    
     modifiers::apply_crit_mod(&mut ctx, &mut base_damage);
+    
+    // Gen 3 Weather Ball: Apply damage doubling after crit, before STAB/effectiveness
+    // Called via move hook to respect architecture
+    modifiers::apply_move_final_damage_mod(&ctx, &mut base_damage);
 
     // Phase 5: Generate all 16 damage rolls
+    // Gen 3-4: STAB → effectiveness → random (random is LAST)
+    // Gen 5+: random → STAB → effectiveness → burn → screens (random is FIRST)
     let rolls = modifiers::compute_final_damage(&ctx, base_damage);
     
     // TODO: Parental Bond requires fixture runner changes to support multi-hit output format
@@ -314,7 +349,7 @@ mod tests {
         // = floor((22 * 90 * 100) / 100) / 50 + 2
         // = floor(1980) / 50 + 2
         // = 39 + 2 = 41
-        let damage = get_base_damage(50, 90, 100, 100);
+        let damage = get_base_damage(50, 90, 100, 100, true);
         assert_eq!(damage, 41);
         
         // Level 100
@@ -322,7 +357,7 @@ mod tests {
         // = floor((42 * 90 * 100) / 100) / 50 + 2
         // = floor(3780) / 50 + 2
         // = 75 + 2 = 77
-        let damage = get_base_damage(100, 90, 100, 100);
+        let damage = get_base_damage(100, 90, 100, 100, true);
         assert_eq!(damage, 77);
     }
     

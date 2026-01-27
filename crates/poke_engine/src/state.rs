@@ -209,6 +209,9 @@ pub struct BattleState {
     
     /// Level (needed for damage calc)
     pub level: [u8; MAX_ENTITIES],
+
+    /// Happiness (0-255). Used for Return/Frustration.
+    pub happiness: [u8; MAX_ENTITIES],
     
     /// Nature (stored for potential recalculation)
     pub nature: [NatureId; MAX_ENTITIES],
@@ -268,6 +271,10 @@ pub struct BattleState {
 
     /// Battle Format (Singles, Doubles)
     pub format: BattleFormat,
+    
+    /// Generation number (1-9, default 9)
+    /// Used by hooks to implement generation-specific behavior.
+    pub generation: u8,
 }
 
 /// Battle format
@@ -306,8 +313,9 @@ impl BattleState {
             volatiles: [Volatiles::empty(); MAX_ENTITIES],
             status_counter: [0; MAX_ENTITIES],
             level: [0; MAX_ENTITIES],
+            happiness: [255; MAX_ENTITIES],
             nature: [NatureId::default(); MAX_ENTITIES],
-            ivs: [[0; 6]; MAX_ENTITIES],
+            ivs: [[31; 6]; MAX_ENTITIES],
             evs: [[0; 6]; MAX_ENTITIES],
             weight: [0; MAX_ENTITIES],
             gender: [Gender::Genderless; MAX_ENTITIES],
@@ -325,6 +333,7 @@ impl BattleState {
             gravity: false,
             gravity_turns: 0,
             format: BattleFormat::default(),
+            generation: 9, // Default to Gen 9
         }
     }
     

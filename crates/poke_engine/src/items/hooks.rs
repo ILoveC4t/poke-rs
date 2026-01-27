@@ -24,11 +24,13 @@ pub type OnStatChange = fn(change: i8) -> i8;
 
 /// Called during base power calculation
 /// Uses &MoveData for full access to flags, type, category, and other properties.
+/// `move_type` is the dynamically-resolved type (after type-changing effects like Judgment, Weather Ball).
 pub type OnModifyBasePower = fn(
     state: &BattleState,
     attacker: usize,
     defender: usize,
     move_data: &Move,
+    move_type: Type,
     bp: u16,
 ) -> u16;
 

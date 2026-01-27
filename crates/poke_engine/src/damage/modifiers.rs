@@ -10,7 +10,7 @@ use super::Modifier;
 use crate::abilities::{AbilityId, ABILITY_REGISTRY};
 use crate::items::{ItemId, ITEM_REGISTRY};
 use crate::moves::{MoveCategory, MoveFlags, MoveId, MOVE_REGISTRY};
-use crate::state::Status;
+use crate::state::{BattleState, Status};
 use crate::modifier;
 
 // ============================================================================
@@ -253,28 +253,29 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     let mut bp = super::special_moves::modify_base_power(ctx);
     
     // ========================================================================
+    // Move-based BP modifiers via hook system
+    // ========================================================================
+
+    // Knock Off (1.5x if target has removable item, Gen 6+ only)
+    // Venoshock (2x if poisoned), Hex (2x if statused), Brine (2x if below 50% HP)
+    // Variable Power Moves (Low Kick, Grass Knot, etc.) must be calculated FIRST
+    // so that Ability modifiers (Technician) see the correct base power.
+    if ctx.gen.generation() >= 6 || ctx.move_id != MoveId::Knockoff {
+        bp = call_move_base_power_hook(ctx, bp as u16) as u32;
+    }
+
+    // ========================================================================
     // Ability-based BP modifiers via hook system
     // ========================================================================
     
     // Call registered OnModifyBasePower hook if available
     bp = call_base_power_hook(ctx, bp as u16) as u32;
     
-
     // ========================================================================
     // Item-based BP modifiers via hook system
     // ========================================================================
 
     bp = call_item_base_power_hook(ctx, bp as u16) as u32;
-    
-    // ========================================================================
-    // Move-based BP modifiers via hook system
-    // ========================================================================
-
-    // Knock Off (1.5x if target has removable item, Gen 6+ only)
-    // Venoshock (2x if poisoned), Hex (2x if statused), Brine (2x if below 50% HP)
-    if ctx.gen.generation() >= 6 || ctx.move_id != MoveId::Knockoff {
-        bp = call_move_base_power_hook(ctx, bp as u16) as u32;
-    }
 
     // TODO: Parental Bond ability: Multi-hit (2 hits), second hit at 0.25x power (Gen 7+)
     //       Requires special handling in damage pipeline to return combined damage
@@ -289,9 +290,7 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     // - Gyro Ball (inverse speed ratio)
     // - Foul Play (uses target's Atk)
     
-    // Weather modifier (Gen 5+)
-    // In Gen 5+, weather boosts Base Power instead of final damage
-    apply_weather_mod_bp(ctx, &mut bp);
+    // Note: Weather is applied to base damage (not BP) in formula.rs
 
     ctx.base_power = bp.min(u16::MAX as u32) as u16;
 }
@@ -366,6 +365,12 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
         defense = apply_boost(defense, def_boost);
     }
     
+    // Gen 3-4: Explosion and Self-Destruct halve the target's Defense
+    // This was removed in Gen 5+
+    if G::GEN <= 4 && matches!(ctx.move_id, MoveId::Explosion | MoveId::Selfdestruct) {
+        defense = defense / 2;
+    }
+    
     // Ability modifiers for attack (via hook system)
     if ctx.gen.has_abilities() {
         attack = call_attack_hook(ctx, attack);
@@ -419,12 +424,11 @@ fn is_weather_suppressed(state: &BattleState) -> bool {
     false
 }
 
-/// Apply weather modifier to base damage (Gen 2-4).
+/// Apply weather modifier to base damage.
+/// 
+/// Weather boost (1.5x for Fire in Sun, Water in Rain) is applied to base damage
+/// in all generations. This matches Smogon's implementation.
 pub fn apply_weather_mod_damage<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_damage: &mut u32) {
-    if ctx.gen.generation() >= 5 {
-        return; // Applied to BP in Gen 5+
-    }
-    
     // Check suppression
     if is_weather_suppressed(ctx.state) {
         return;
@@ -464,14 +468,82 @@ pub fn apply_terrain_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
     }
 }
 
+/// Apply burn modifier (Gen 3-4 only, applied before screens/+2/crit).
+/// 
+/// Gen 3-4: Burn is applied early in the damage pipeline.
+/// Gen 5+: Burn is applied after random/STAB/effectiveness in compute_final_damage.
+pub fn apply_burn_mod_early<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_damage: &mut u32) {
+    // Only for Gen 3-4 (uses_4096_scale_modifiers returns false)
+    if ctx.gen.uses_4096_scale_modifiers() {
+        return;
+    }
+    
+    if ctx.is_burned() 
+        && ctx.category == MoveCategory::Physical 
+        && !should_ignore_status_damage_reduction(ctx, Status::BURN)
+    {
+        *base_damage = *base_damage / 2;
+    }
+}
+
+/// Apply screen modifier (Gen 3-4 only, applied before weather/+2/crit).
+/// 
+/// Gen 3-4: Screens are applied early in the damage pipeline.
+/// Gen 5+: Screens are applied after random/STAB/effectiveness in compute_final_damage.
+pub fn apply_screen_mod_early<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_damage: &mut u32) {
+    // Only for Gen 3-4 (uses_4096_scale_modifiers returns false)
+    if ctx.gen.uses_4096_scale_modifiers() {
+        return;
+    }
+    
+    if ctx.is_crit || is_screen_breaker(ctx.move_id) {
+        return;
+    }
+    
+    if ctx.has_screen(ctx.category == MoveCategory::Physical) {
+        // Gen 3-4: simple floor(damage * 0.5) for singles, floor(damage * 2/3) for doubles
+        if ctx.state.is_doubles() {
+            *base_damage = *base_damage * 2 / 3;
+        } else {
+            *base_damage = *base_damage / 2;
+        }
+    }
+}
+
 /// Apply critical hit modifier.
 ///
 /// Note: In smogon's implementation, crit uses direct floor(x * 1.5),
 /// NOT the 4096-scale system. This is applied during base damage phase.
+/// Gen 3: crit doubles (floor(x * 2))
+/// Gen 4-5: crit doubles (floor(x * 2))
+/// Gen 6+: crit is 1.5x (floor(x * 1.5))
 pub fn apply_crit_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_damage: &mut u32) {
     if ctx.is_crit {
-        // Crit uses floor(damage * 1.5), not the 4096-scale modifier system
-        *base_damage = apply_modifier_floor(*base_damage, 3, 2);
+        let crit_mult = ctx.gen.crit_multiplier();
+        // Use floor division for crit, not 4096-scale
+        if crit_mult == Modifier::DOUBLE {
+            *base_damage = *base_damage * 2;
+        } else {
+            // Gen 6+: 1.5x
+            *base_damage = apply_modifier_floor(*base_damage, 3, 2);
+        }
+    }
+}
+
+/// Apply move-specific final damage modifiers (after crit, before random rolls).
+/// 
+/// This is used for gen-specific mechanics like Gen 3 Weather Ball damage doubling.
+pub fn apply_move_final_damage_mod<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_damage: &mut u32) {
+    if let Some(Some(hooks)) = MOVE_REGISTRY.get(ctx.move_id as usize) {
+        if let Some(hook) = hooks.on_modify_final_damage {
+            *base_damage = hook(
+                ctx.state,
+                ctx.attacker,
+                ctx.defender,
+                ctx.move_data,
+                *base_damage,
+            );
+        }
     }
 }
 
@@ -481,12 +553,13 @@ pub fn apply_crit_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_dama
 
 /// Compute final damage for all 16 random rolls.
 ///
-/// This matches smogon's getFinalDamage order:
-/// 1. Random roll (85-100%)
-/// 2. STAB (apply then pokeround)
-/// 3. Type effectiveness (floor after multiply)
-/// 4. Burn (simple floor(x/2))
-/// 5. Final modifiers (screens, items, abilities)
+/// The ordering differs by generation:
+/// 
+/// Gen 3-4: STAB → effectiveness (per type) → random (LAST)
+///          Burn and screens are already applied before calling this function.
+/// 
+/// Gen 5+:  random (FIRST) → STAB → effectiveness → burn → screens → final mods
+///          This matches smogon's getFinalDamage order.
 ///
 /// Note: Weather, spread, and crit are applied to base_damage BEFORE
 /// this function is called.
@@ -500,33 +573,47 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
     
     let attacker_hooks = ABILITY_REGISTRY.get(ctx.attacker_ability as usize).and_then(|a| a.as_ref());
     let defender_hooks = ABILITY_REGISTRY.get(ctx.defender_ability as usize).and_then(|a| a.as_ref());
+    
+    // Check if we should use Gen 5+ order (random first) or Gen 3-4 order (random last)
+    let use_4096_scale = ctx.gen.uses_4096_scale_modifiers();
 
+    if use_4096_scale {
+        // Gen 5+ order: random → STAB → effectiveness → burn → screens → final mods
+        compute_final_damage_gen5plus(ctx, base_damage, &mut rolls, attacker_hooks, defender_hooks);
+    } else {
+        // Gen 3-4 order: STAB → effectiveness → random (burn/screens already applied)
+        compute_final_damage_gen34(ctx, base_damage, &mut rolls, attacker_hooks, defender_hooks);
+    }
+    
+    rolls
+}
+
+/// Gen 5+ final damage: random → STAB → effectiveness → burn → screens → final mods
+fn compute_final_damage_gen5plus<G: GenMechanics>(
+    ctx: &DamageContext<'_, G>,
+    base_damage: u32,
+    rolls: &mut [u16; 16],
+    attacker_hooks: Option<&crate::abilities::AbilityHooks>,
+    defender_hooks: Option<&crate::abilities::AbilityHooks>,
+) {
     for i in 0..16 {
         // Step 1: Random roll (85-100%)
-        // floor(OF32(baseAmount * (85 + i)) / 100)
         let roll_percent = 85 + i as u32;
         let mut damage = of32(base_damage as u64 * roll_percent as u64) / 100;
         
         // Step 2: STAB
-        // Apply STAB modifier, then pokeround BEFORE type effectiveness
         if ctx.has_stab {
             let stab_mod = ctx.gen.stab_multiplier(ctx.has_adaptability, ctx.is_tera_stab);
             if stab_mod != Modifier::ONE {
-                // damageAmount = OF32(damageAmount * stabMod) / 4096
-                // Then pokeRound before effectiveness
                 let product = of32(damage as u64 * stab_mod.val() as u64);
                 damage = pokeround(product, 4096);
             }
         }
         
         // Step 3: Type effectiveness
-        // floor(OF32(pokeRound(damageAmount) * effectiveness))
-        // effectiveness is in units where 4 = 1x (so 8 = 2x, 2 = 0.5x)
-        // We multiply by effectiveness then divide by 4
         damage = of32(damage as u64 * ctx.effectiveness as u64) / 4;
         
-        // Step 4: Burn (0.5x for physical, unless Guts/Facade)
-        // Smogon uses simple floor(damage / 2), NOT 4096-scale
+        // Step 4: Burn (not applied for Gen 3-4, already done before crit)
         if ctx.is_burned() 
             && ctx.category == MoveCategory::Physical 
             && !should_ignore_status_damage_reduction(ctx, Status::BURN)
@@ -534,32 +621,63 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
             damage = damage / 2;
         }
         
-        // Step 5: Screens (Reflect/Light Screen/Aurora Veil)
-        // pokeRound(OF32(damageAmount * screenMod) / 4096)
-        // 0.5x in singles (2048), 0.67x in doubles (2732)
+        // Step 5: Screens (not applied for Gen 3-4, already done before crit)
         if !ctx.is_crit && !is_screen_breaker(ctx.move_id) && ctx.has_screen(ctx.category == MoveCategory::Physical) {
-            let screen_mod = ctx
-                .state
-                .get_screen_modifier(ctx.defender, ctx.category);
+            let screen_mod = ctx.state.get_screen_modifier(ctx.defender, ctx.category);
             damage = apply_modifier(damage, Modifier::new(screen_mod));
         }
         
-        // Step 6: Final modifiers (chain applied with pokeRound)
-        // These are modifiers that weren't applied to base damage
-
-        // Item final modifiers (Life Orb, Expert Belt, etc.)
+        // Step 6: Item final modifiers (Life Orb, Expert Belt, etc.)
         damage = apply_item_final_mods(ctx, damage);
 
-        // TODO(TASK-A): Metronome requires consecutive move tracking from Task D
-
-        // Ability final modifiers (attacker: Tinted Lens, Sniper; defender: Multiscale, Filter)
+        // Step 7: Ability final modifiers (attacker: Tinted Lens, Sniper; defender: Multiscale, Filter)
         damage = apply_final_mods(ctx, damage, attacker_hooks, defender_hooks);
         
         // Minimum damage is 1 (unless immune)
         rolls[i] = damage.max(1).min(u16::MAX as u32) as u16;
     }
+}
+
+/// Gen 3-4 final damage: STAB → effectiveness (per type) → random
+/// 
+/// Burn and screens are already applied in calculate_standard before crit.
+fn compute_final_damage_gen34<G: GenMechanics>(
+    ctx: &DamageContext<'_, G>,
+    base_damage: u32,
+    rolls: &mut [u16; 16],
+    attacker_hooks: Option<&crate::abilities::AbilityHooks>,
+    defender_hooks: Option<&crate::abilities::AbilityHooks>,
+) {
+    // Step 1: Apply STAB (before type effectiveness in Gen 3)
+    let mut damage = base_damage;
+    if ctx.has_stab {
+        // Gen 3-4: STAB is always floor(damage * 1.5), no Adaptability
+        damage = damage * 3 / 2;
+    }
     
-    rolls
+    // Step 2: Type effectiveness
+    // Gen 3 applies effectiveness per type separately with floor
+    // effectiveness is in units where 4 = 1x (8 = 2x, 2 = 0.5x, etc.)
+    // For combined: we have 1, 2, 4, 8, 16 for 0.25x, 0.5x, 1x, 2x, 4x
+    // Apply as: floor(damage * effectiveness / 4)
+    damage = of32(damage as u64 * ctx.effectiveness as u64) / 4;
+    
+    // Step 3: Item final modifiers (Life Orb, Expert Belt, etc.) - Gen 4 only
+    if G::GEN >= 4 {
+        damage = apply_item_final_mods(ctx, damage);
+    }
+    
+    // Step 4: Ability final modifiers
+    damage = apply_final_mods(ctx, damage, attacker_hooks, defender_hooks);
+    
+    // Step 5: Random roll (85-100%) - LAST in Gen 3-4
+    for i in 0..16 {
+        let roll_percent = 85 + i as u32;
+        let roll_damage = of32(damage as u64 * roll_percent as u64) / 100;
+        
+        // Minimum damage is 1 (unless immune)
+        rolls[i] = roll_damage.max(1).min(u16::MAX as u32) as u16;
+    }
 }
 
 impl<G: GenMechanics> DamageContext<'_, G> {
@@ -577,33 +695,7 @@ impl<G: GenMechanics> DamageContext<'_, G> {
 /// Check if an item is a type-boosting item for the given type.
 #[allow(dead_code)]
 // get_type_boost_item_mod removed (migrated to item hooks)
-    use crate::types::Type;
-    
-    // Type-boosting items give 1.2x (4915 in 4096-scale)
-    let matches = match (item, move_type) {
-        (ItemId::Silkscarf, Type::Normal) => true,
-        (ItemId::Blackbelt, Type::Fighting) => true,
-        (ItemId::Sharpbeak, Type::Flying) => true,
-        (ItemId::Poisonbarb, Type::Poison) => true,
-        (ItemId::Softsand, Type::Ground) => true,
-        (ItemId::Hardstone, Type::Rock) => true,
-        (ItemId::Silverpowder, Type::Bug) => true,
-        (ItemId::Spelltag, Type::Ghost) => true,
-        (ItemId::Metalcoat, Type::Steel) => true,
-        (ItemId::Charcoal, Type::Fire) => true,
-        (ItemId::Mysticwater, Type::Water) => true,
-        (ItemId::Miracleseed, Type::Grass) => true,
-        (ItemId::Magnet, Type::Electric) => true,
-        (ItemId::Twistedspoon, Type::Psychic) => true,
-        (ItemId::Nevermeltice, Type::Ice) => true,
-        (ItemId::Dragonfang, Type::Dragon) => true,
-        (ItemId::Blackglasses, Type::Dark) => true,
-        // No Fairy-type boosting item in core series
-        _ => false,
-    };
-    
-    if matches { Some(Modifier::ONE_POINT_TWO) } else { None } // 1.2x
-}
+
 
 /// Check if attacker has a contact-based ability modifier.
 #[allow(dead_code)]
@@ -677,15 +769,7 @@ mod tests {
         assert_eq!(atk_light_spec, 200, "Light Ball should double Sp. Attack for Pikachu");
     }
 
-// test_type_boost_items removed (tested via integration tests now)
-        use crate::types::Type;
-        
-        // Charcoal boosts Fire
-        assert_eq!(get_type_boost_item_mod(ItemId::Charcoal, Type::Fire), Some(Modifier::ONE_POINT_TWO));
-        
-        // Charcoal doesn't boost Water
-        assert_eq!(get_type_boost_item_mod(ItemId::Charcoal, Type::Water), None);
-    }
+
 
     #[test]
     fn test_facade_damage() {

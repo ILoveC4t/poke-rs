@@ -93,6 +93,7 @@ This document tracks implemented vs missing Pokémon mechanics in `poke-rs`.
 - Fixed damage: Night Shade, Seismic Toss
 - Status boost: Facade
 - Struggle (typeless)
+- Weather Ball (type/power change)
 
 ### ❌ Missing
 | Mechanic | Examples |

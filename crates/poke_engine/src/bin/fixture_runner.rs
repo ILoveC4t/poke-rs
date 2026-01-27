@@ -271,6 +271,12 @@ fn main() {
             state.gravity = true;
         }
 
+        // Debug output
+        eprintln!("DEBUG: Attacker types: {:?}", state.types[0]);
+        eprintln!("DEBUG: Attacker ability: {:?}", state.abilities[0]);
+        eprintln!("DEBUG: Attacker item: {:?}", state.items[0]);
+        eprintln!("DEBUG: Defender types: {:?}", state.types[6]);
+        
         // Calculate
         let gen = Generation::from_num(fixture.gen);
         let result = calculate_damage(
@@ -281,6 +287,9 @@ fn main() {
             move_id,
             fixture.move_data.is_crit,
         );
+
+        eprintln!("DEBUG: Final BP: {}", result.final_base_power);
+        eprintln!("DEBUG: Effectiveness: {}", result.effectiveness);
 
         let output = Output::from(result);
         println!("{}", serde_json::to_string(&output).unwrap());

@@ -109,7 +109,27 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
         is_crit: bool,
     ) -> Self {
         let move_data = move_id.data();
-        let attacker_types = state.types[attacker];
+        let mut attacker_types = state.types[attacker];
+
+        // Handle Forecast (Castform) type change for STAB
+        // In a real battle, this happens on weather change, but for damage calc we simulate it.
+        if state.abilities[attacker] == AbilityId::Forecast {
+            match super::generations::Weather::from_u8(state.weather) {
+                super::generations::Weather::Sun | super::generations::Weather::HarshSun => {
+                    attacker_types = [Type::Fire, Type::Fire];
+                },
+                super::generations::Weather::Rain | super::generations::Weather::HeavyRain => {
+                    attacker_types = [Type::Water, Type::Water];
+                },
+                super::generations::Weather::Hail | super::generations::Weather::Snow => {
+                    attacker_types = [Type::Ice, Type::Ice];
+                },
+                _ => {
+                    attacker_types = [Type::Normal, Type::Normal];
+                }
+            }
+        }
+
         let mut move_type = move_data.primary_type;
 
         // Move Hooks: Modify Type (e.g. Weather Ball)

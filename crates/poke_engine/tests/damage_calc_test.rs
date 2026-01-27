@@ -364,6 +364,9 @@ fn verify_damage_calc(case: &DamageTestCase) -> Result<(), String> {
     // Apply field conditions
     apply_field(&case.field, &mut state);
     
+    // Set generation for hooks (Weather Ball, etc.)
+    state.generation = case.gen;
+    
     // Get move
     let move_normalized = case.move_data.name.to_lowercase().replace(['-', ' ', '\''], "");
     let move_id = MoveId::from_str(&move_normalized)

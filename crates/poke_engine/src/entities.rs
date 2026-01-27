@@ -399,6 +399,14 @@ impl PokemonConfig {
         if slot >= state.team_sizes[player] as usize {
             state.team_sizes[player] = (slot + 1) as u8;
         }
+        
+        // Trigger ability switch-in hooks (e.g., Multitype for Arceus type)
+        let ability = state.abilities[index];
+        if let Some(Some(hooks)) = crate::abilities::ABILITY_REGISTRY.get(ability as usize) {
+            if let Some(on_switch_in) = hooks.on_switch_in {
+                on_switch_in(state, index);
+            }
+        }
     }
 }
 

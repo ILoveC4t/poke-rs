@@ -60,6 +60,17 @@ pub type OnIgnoreStatusDamageReduction = fn(
     status: crate::state::Status,
 ) -> bool;
 
+/// Called after base damage calculation to modify final damage.
+/// Used for generation-specific mechanics (e.g., Gen 3 Weather Ball doubles damage after crit).
+/// Returns the modified damage value.
+pub type OnModifyFinalDamage = fn(
+    state: &BattleState,
+    attacker: usize,
+    defender: usize,
+    move_data: &'static Move,
+    damage: u32,
+) -> u32;
+
 // ============================================================================
 // MoveHooks Struct
 // ============================================================================
@@ -84,6 +95,9 @@ pub struct MoveHooks {
 
     /// Ignore status damage reduction function
     pub on_ignore_status_damage_reduction: Option<OnIgnoreStatusDamageReduction>,
+    
+    /// Final damage modification function (after base damage, for gen-specific mechanics)
+    pub on_modify_final_damage: Option<OnModifyFinalDamage>,
 }
 
 impl MoveHooks {
@@ -95,5 +109,6 @@ impl MoveHooks {
         on_modify_type: None,
         on_modify_effectiveness: None,
         on_ignore_status_damage_reduction: None,
+        on_modify_final_damage: None,
     };
 }

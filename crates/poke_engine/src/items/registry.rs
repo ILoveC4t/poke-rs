@@ -158,6 +158,76 @@ pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
         ..ItemHooks::NONE
     });
 
+    // Plates (1.2x type boost)
+    registry[ItemId::Flameplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_flame_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Splashplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_splash_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Meadowplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_meadow_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Zapplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_zap_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Icicleplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_icicle_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Fistplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_fist_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Toxicplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_toxic_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Earthplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_earth_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Skyplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_sky_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Mindplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_mind_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Insectplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_insect_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Stoneplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_stone_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Spookyplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_spooky_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Dracoplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_draco_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Dreadplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_dread_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Ironplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_iron_plate),
+        ..ItemHooks::NONE
+    });
+    registry[ItemId::Pixieplate as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_pixie_plate),
+        ..ItemHooks::NONE
+    });
+
     // =========================================================================
     // Speed Modifiers (OnModifySpeed)
     // =========================================================================

@@ -96,6 +96,12 @@ pub fn on_modify_base_power_weather_ball(
     _move_data: &'static Move,
     bp: u16,
 ) -> u16 {
+    // Gen 3: Damage is doubled after crit, not BP doubled
+    if state.generation == 3 {
+        return bp;
+    }
+    
+    // Gen 4+: Double BP in weather
     let weather = Weather::from_u8(state.weather);
     match weather {
         Weather::Sun | Weather::HarshSun |
@@ -103,6 +109,29 @@ pub fn on_modify_base_power_weather_ball(
         Weather::Sand |
         Weather::Hail | Weather::Snow => bp * 2,
         _ => bp,
+    }
+}
+
+/// Gen 3 Weather Ball: Doubles damage after crit instead of BP.
+pub fn on_modify_final_damage_weather_ball(
+    state: &BattleState,
+    _attacker: usize,
+    _defender: usize,
+    _move_data: &'static Move,
+    damage: u32,
+) -> u32 {
+    // Only applies in Gen 3
+    if state.generation != 3 {
+        return damage;
+    }
+    
+    let weather = Weather::from_u8(state.weather);
+    match weather {
+        Weather::Sun | Weather::HarshSun |
+        Weather::Rain | Weather::HeavyRain |
+        Weather::Sand |
+        Weather::Hail | Weather::Snow => damage * 2,
+        _ => damage,
     }
 }
 
@@ -335,3 +364,69 @@ pub fn flail_power(
         _ => 20,        // >= 68.75%
     }
 }
+// Return: BP = Happiness / 2.5 (Max 102)
+pub fn return_power(
+    state: &BattleState,
+    attacker: usize,
+    _defender: usize,
+    _move_data: &'static Move,
+    _bp: u16,
+) -> u16 {
+    let happiness = state.happiness[attacker] as u16;
+    let power = happiness as u32 * 10 / 25; // x 0.4
+    power.max(1) as u16
+}
+
+// Frustration: BP = (255 - Happiness) / 2.5 (Max 102)
+pub fn frustration_power(
+    state: &BattleState,
+    attacker: usize,
+    _defender: usize,
+    _move_data: &'static Move,
+    _bp: u16,
+) -> u16 {
+    let happiness = state.happiness[attacker] as u16;
+    let power = (255 - happiness as u32) * 10 / 25; // x 0.4
+    power.max(1) as u16
+}
+
+// ============================================================================
+// Judgment / Techno Blast / Multi-Attack: Type changes based on held item
+// ============================================================================
+
+/// Maps a Plate item to its corresponding Type.
+fn plate_to_type(item: ItemId) -> Option<Type> {
+    match item {
+        ItemId::Flameplate => Some(Type::Fire),
+        ItemId::Splashplate => Some(Type::Water),
+        ItemId::Meadowplate => Some(Type::Grass),
+        ItemId::Zapplate => Some(Type::Electric),
+        ItemId::Icicleplate => Some(Type::Ice),
+        ItemId::Fistplate => Some(Type::Fighting),
+        ItemId::Toxicplate => Some(Type::Poison),
+        ItemId::Earthplate => Some(Type::Ground),
+        ItemId::Skyplate => Some(Type::Flying),
+        ItemId::Mindplate => Some(Type::Psychic),
+        ItemId::Insectplate => Some(Type::Bug),
+        ItemId::Stoneplate => Some(Type::Rock),
+        ItemId::Spookyplate => Some(Type::Ghost),
+        ItemId::Dracoplate => Some(Type::Dragon),
+        ItemId::Dreadplate => Some(Type::Dark),
+        ItemId::Ironplate => Some(Type::Steel),
+        ItemId::Pixieplate => Some(Type::Fairy),
+        _ => None,
+    }
+}
+
+/// Judgment: Type changes based on held Plate.
+pub fn on_modify_type_judgment(
+    state: &BattleState,
+    attacker: usize,
+    _defender: usize,
+    _move_data: &'static Move,
+    base_type: Type,
+) -> Type {
+    let item = state.items[attacker];
+    plate_to_type(item).unwrap_or(base_type)
+}
+

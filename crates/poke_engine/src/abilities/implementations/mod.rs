@@ -7,3 +7,4 @@ pub mod final_modifiers;
 pub mod immunity;
 pub mod speed;
 pub mod status;
+pub mod multitype;

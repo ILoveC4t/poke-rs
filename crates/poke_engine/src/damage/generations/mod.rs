@@ -279,6 +279,24 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     fn burn_modifier(&self) -> Modifier {
         Modifier::HALF // 0.5x
     }
+    
+    // ========================================================================
+    // Formula Structure
+    // ========================================================================
+    
+    /// Whether the +2 constant is added inside the base damage formula.
+    /// Gen 5+: true (added in base damage)
+    /// Gen 3-4: false (added after burn/screens, before crit)
+    fn adds_two_in_base_damage(&self) -> bool {
+        Self::GEN >= 5
+    }
+    
+    /// Whether modifiers use 4096-scale with pokeRound.
+    /// Gen 5+: true (use pokeRound with 4096 scale)
+    /// Gen 3-4: false (use simple floor division)
+    fn uses_4096_scale_modifiers(&self) -> bool {
+        Self::GEN >= 5
+    }
 }
 
 /// Runtime generation selection for when the generation isn't known at compile time.

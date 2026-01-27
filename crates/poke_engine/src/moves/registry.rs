@@ -57,6 +57,7 @@ pub static MOVE_REGISTRY: [Option<MoveHooks>; MoveId::COUNT] = {
     registry[MoveId::Weatherball as usize] = Some(MoveHooks {
         on_modify_type: Some(on_modify_type_weather_ball),
         on_modify_base_power: Some(on_modify_base_power_weather_ball),
+        on_modify_final_damage: Some(on_modify_final_damage_weather_ball),
         ..MoveHooks::NONE
     });
 
@@ -112,6 +113,24 @@ pub static MOVE_REGISTRY: [Option<MoveHooks>; MoveId::COUNT] = {
     });
     registry[MoveId::Reversal as usize] = Some(MoveHooks {
         on_modify_base_power: Some(flail_power),
+        ..MoveHooks::NONE
+    });
+
+    registry[MoveId::Return as usize] = Some(MoveHooks {
+        on_modify_base_power: Some(return_power),
+        ..MoveHooks::NONE
+    });
+    registry[MoveId::Frustration as usize] = Some(MoveHooks {
+        on_modify_base_power: Some(frustration_power),
+        ..MoveHooks::NONE
+    });
+
+    // =========================================================================
+    // Type-Changing Moves (Judgment, Techno Blast, Multi-Attack)
+    // =========================================================================
+
+    registry[MoveId::Judgment as usize] = Some(MoveHooks {
+        on_modify_type: Some(on_modify_type_judgment),
         ..MoveHooks::NONE
     });
 
