@@ -1,7 +1,7 @@
 {
-  "timestamp": "1769640617",
-  "timestamp_human": "2026-01-28T22:50:17Z",
-  "duration_seconds": 21.690260739,
+  "timestamp": "1769643325",
+  "timestamp_human": "2026-01-28T23:35:25Z",
+  "duration_seconds": 14.347819454,
   "status": "FAILURE",
   "cargo_test": {
     "passed": 459,
