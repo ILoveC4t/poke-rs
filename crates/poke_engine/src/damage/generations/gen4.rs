@@ -1,8 +1,8 @@
 //! Generation 4 (Diamond/Pearl/Platinum, HeartGold/SoulSilver) mechanics.
 
 use super::GenMechanics;
-use crate::types::Type;
 use crate::damage::Modifier;
+use crate::types::Type;
 
 /// Generation 4 mechanics (Pokémon DPPt/HGSS).
 ///
@@ -15,19 +15,30 @@ pub struct Gen4;
 
 impl GenMechanics for Gen4 {
     const GEN: u8 = 4;
-    
+
     // 2.0x crit multiplier
     fn crit_multiplier(&self) -> Modifier {
         Modifier::DOUBLE
     }
-    
+
     // STAB without Tera
     fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> Modifier {
-        if has_adaptability { Modifier::DOUBLE } else { Modifier::ONE_POINT_FIVE }
+        if has_adaptability {
+            Modifier::DOUBLE
+        } else {
+            Modifier::ONE_POINT_FIVE
+        }
     }
-    
+
     // No terrain
-    fn terrain_modifier(&self, _terrain: super::Terrain, _move_type: crate::types::Type, _is_grounded: bool) -> Option<Modifier> {
+    fn terrain_modifier(
+        &self,
+        _terrain: super::Terrain,
+        _move_id: crate::moves::MoveId,
+        _move_type: crate::types::Type,
+        _attacker_grounded: bool,
+        _defender_grounded: bool,
+    ) -> Option<Modifier> {
         None
     }
 

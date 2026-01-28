@@ -1,8 +1,8 @@
 //! Generation 5 (Black/White, Black 2/White 2) mechanics.
 
 use super::GenMechanics;
-use crate::types::Type;
 use crate::damage::Modifier;
+use crate::types::Type;
 
 /// Generation 5 mechanics (Pokémon Black/White/B2W2).
 ///
@@ -16,19 +16,30 @@ pub struct Gen5;
 
 impl GenMechanics for Gen5 {
     const GEN: u8 = 5;
-    
+
     // 2.0x crit multiplier
     fn crit_multiplier(&self) -> Modifier {
         Modifier::DOUBLE // 2.0x
     }
-    
+
     // STAB without Tera
     fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> Modifier {
-        if has_adaptability { Modifier::DOUBLE } else { Modifier::ONE_POINT_FIVE }
+        if has_adaptability {
+            Modifier::DOUBLE
+        } else {
+            Modifier::ONE_POINT_FIVE
+        }
     }
-    
+
     // No terrain in Gen 5
-    fn terrain_modifier(&self, _terrain: super::Terrain, _move_type: crate::types::Type, _is_grounded: bool) -> Option<Modifier> {
+    fn terrain_modifier(
+        &self,
+        _terrain: super::Terrain,
+        _move_id: crate::moves::MoveId,
+        _move_type: crate::types::Type,
+        _attacker_grounded: bool,
+        _defender_grounded: bool,
+    ) -> Option<Modifier> {
         None
     }
 
@@ -42,7 +53,7 @@ impl GenMechanics for Gen5 {
                 mult /= 2;
             }
         }
-        
+
         mult
     }
 }
