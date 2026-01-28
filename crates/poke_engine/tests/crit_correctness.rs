@@ -11,8 +11,8 @@
 //! for these cases appear to expect behavior that contradicts cartridge mechanics
 //! (e.g. applying burn or screens on crit), likely due to defaults or Stadium mechanics.
 
-use poke_engine::damage::generations::{Gen1, Gen2};
 use poke_engine::damage::calculate_damage;
+use poke_engine::damage::generations::{Gen1, Gen2};
 use poke_engine::moves::MoveId;
 use poke_engine::species::SpeciesId;
 use poke_engine::state::{BattleState, Status};
