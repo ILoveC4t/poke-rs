@@ -1,21 +1,524 @@
 {
-    "timestamp": "0",
-    "timestamp_human": "1970-01-01T00:00:00Z",
-    "duration_seconds": 0,
-    "status": "INITIAL",
-    "cargo_test": {
-        "passed": 0,
-        "failed": 0,
-        "ignored": 0,
-        "total": 0
+  "timestamp": "1769640617",
+  "timestamp_human": "2026-01-28T22:50:17Z",
+  "duration_seconds": 21.690260739,
+  "status": "FAILURE",
+  "cargo_test": {
+    "passed": 459,
+    "failed": 107,
+    "ignored": 7,
+    "total": 573
+  },
+  "fixture_results": {
+    "passed": 331,
+    "failed": 101,
+    "skipped": 0
+  },
+  "failures": [
+    {
+      "id": "gen4-Arceus-Plate--gen-4--4",
+      "name": "Arceus Plate (gen 4)",
+      "error": "Roll 0 mismatch: expected 194, got 290"
     },
-    "fixture_results": {
-        "passed": 0,
-        "failed": 0,
-        "skipped": 0
+    {
+      "id": "gen5-Arceus-Plate--gen-5--5",
+      "name": "Arceus Plate (gen 5)",
+      "error": "Roll 0 mismatch: expected 194, got 290"
     },
-    "failures": [],
-    "warnings": [
-        "Initial baseline - will be updated on first main merge"
-    ]
+    {
+      "id": "gen6-Arceus-Plate--gen-6--6",
+      "name": "Arceus Plate (gen 6)",
+      "error": "Roll 0 mismatch: expected 194, got 290"
+    },
+    {
+      "id": "gen7-Arceus-Plate--gen-7--7",
+      "name": "Arceus Plate (gen 7)",
+      "error": "Roll 0 mismatch: expected 194, got 290"
+    },
+    {
+      "id": "gen1-Comet-Punch--gen-1--26",
+      "name": "Comet Punch (gen 1)",
+      "error": "Roll 0 mismatch: expected 36, got 54"
+    },
+    {
+      "id": "gen2-Comet-Punch--gen-2--27",
+      "name": "Comet Punch (gen 2)",
+      "error": "Roll 0 mismatch: expected 36, got 54"
+    },
+    {
+      "id": "gen1-Critical-hits-ignore-attack-decreases--gen-1--44",
+      "name": "Critical hits ignore attack decreases (gen 1)",
+      "error": "Roll 0 mismatch: expected 799, got 850"
+    },
+    {
+      "id": "gen1-Critical-hits-ignore-attack-decreases--gen-1--45",
+      "name": "Critical hits ignore attack decreases (gen 1)",
+      "error": "Roll 0 mismatch: expected 102, got 457"
+    },
+    {
+      "id": "gen2-Critical-hits-ignore-attack-decreases--gen-2--46",
+      "name": "Critical hits ignore attack decreases (gen 2)",
+      "error": "Roll 0 mismatch: expected 850, got 923"
+    },
+    {
+      "id": "gen2-Critical-hits-ignore-attack-decreases--gen-2--47",
+      "name": "Critical hits ignore attack decreases (gen 2)",
+      "error": "Roll 0 mismatch: expected 149, got 229"
+    },
+    {
+      "id": "gen2-Struggle-vs--Ghost--gen-2--62",
+      "name": "Struggle vs. Ghost (gen 2)",
+      "error": "Roll 0 mismatch: expected 50, got 68"
+    },
+    {
+      "id": "gen6-Flying-Press--gen-6--98",
+      "name": "Flying Press (gen 6)",
+      "error": "Roll 0 mismatch: expected 484, got 612"
+    },
+    {
+      "id": "gen8-Psychic-Terrain--gen-8--183",
+      "name": "Psychic Terrain (gen 8)",
+      "error": "Roll 0 mismatch: expected 288, got 331"
+    },
+    {
+      "id": "gen9-Psychic-Terrain--gen-9--184",
+      "name": "Psychic Terrain (gen 9)",
+      "error": "Roll 0 mismatch: expected 288, got 331"
+    },
+    {
+      "id": "gen6-Parental-Bond--gen-6--185",
+      "name": "Parental Bond (gen 6)",
+      "error": "Roll 0 mismatch: expected 153, got 0"
+    },
+    {
+      "id": "gen7-Parental-Bond--gen-7--188",
+      "name": "Parental Bond (gen 7)",
+      "error": "Roll 0 mismatch: expected 153, got 0"
+    },
+    {
+      "id": "gen8-Parental-Bond--gen-8--192",
+      "name": "Parental Bond (gen 8)",
+      "error": "Roll 0 mismatch: expected 153, got 0"
+    },
+    {
+      "id": "gen9-Parental-Bond--gen-9--196",
+      "name": "Parental Bond (gen 9)",
+      "error": "Roll 0 mismatch: expected 153, got 0"
+    },
+    {
+      "id": "gen1-Multi-hit-percentage-kill--gen-1--208",
+      "name": "Multi-hit percentage kill (gen 1)",
+      "error": "Roll 0 mismatch: expected 61, got 117"
+    },
+    {
+      "id": "gen2-Multi-hit-percentage-kill--gen-2--209",
+      "name": "Multi-hit percentage kill (gen 2)",
+      "error": "Roll 0 mismatch: expected 61, got 117"
+    },
+    {
+      "id": "gen5-Multi-hit-interaction-with-Weak-Armor--gen-5--227",
+      "name": "Multi-hit interaction with Weak Armor (gen 5)",
+      "error": "Roll 0 mismatch: expected 25, got 13"
+    },
+    {
+      "id": "gen6-Multi-hit-interaction-with-Weak-Armor--gen-6--231",
+      "name": "Multi-hit interaction with Weak Armor (gen 6)",
+      "error": "Roll 0 mismatch: expected 25, got 13"
+    },
+    {
+      "id": "gen7-Multi-hit-interaction-with-Weak-Armor--gen-7--235",
+      "name": "Multi-hit interaction with Weak Armor (gen 7)",
+      "error": "Roll 0 mismatch: expected 25, got 13"
+    },
+    {
+      "id": "gen8-Multi-hit-interaction-with-Weak-Armor--gen-8--239",
+      "name": "Multi-hit interaction with Weak Armor (gen 8)",
+      "error": "Roll 0 mismatch: expected 25, got 13"
+    },
+    {
+      "id": "gen9-Multi-hit-interaction-with-Weak-Armor--gen-9--243",
+      "name": "Multi-hit interaction with Weak Armor (gen 9)",
+      "error": "Roll 0 mismatch: expected 25, got 13"
+    },
+    {
+      "id": "gen6-Multi-hit-interaction-with-Mummy--gen-6--244",
+      "name": "Multi-hit interaction with Mummy (gen 6)",
+      "error": "Roll 0 mismatch: expected 54, got 49"
+    },
+    {
+      "id": "gen8-Steely-Spirit-should-boost-Steel-type-moves-as-a-field-effect--299",
+      "name": "Steely Spirit should boost Steel-type moves as a field effect.",
+      "error": "Roll 0 mismatch: expected 70, got 46"
+    },
+    {
+      "id": "gen8-Steely-Spirit-should-boost-Steel-type-moves-as-a-field-effect--300",
+      "name": "Steely Spirit should boost Steel-type moves as a field effect.",
+      "error": "Roll 0 mismatch: expected 105, got 46"
+    },
+    {
+      "id": "gen9-Steely-Spirit-should-boost-Steel-type-moves-as-a-field-effect--302",
+      "name": "Steely Spirit should boost Steel-type moves as a field effect.",
+      "error": "Roll 0 mismatch: expected 70, got 46"
+    },
+    {
+      "id": "gen9-Steely-Spirit-should-boost-Steel-type-moves-as-a-field-effect--303",
+      "name": "Steely Spirit should boost Steel-type moves as a field effect.",
+      "error": "Roll 0 mismatch: expected 105, got 46"
+    },
+    {
+      "id": "gen8-Physical-Shell-Side-Arm-should-not-factor-in-Ice-Scales-306",
+      "name": "Physical Shell Side Arm should not factor in Ice Scales",
+      "error": "Roll 0 mismatch: expected 97, got 48"
+    },
+    {
+      "id": "gen8-Physical-Shell-Side-Arm-should-make-contact-307",
+      "name": "Physical Shell Side Arm should make contact",
+      "error": "Roll 0 mismatch: expected 48, got 97"
+    },
+    {
+      "id": "gen9-Physical-Shell-Side-Arm-should-not-factor-in-Ice-Scales-310",
+      "name": "Physical Shell Side Arm should not factor in Ice Scales",
+      "error": "Roll 0 mismatch: expected 97, got 48"
+    },
+    {
+      "id": "gen9-Physical-Shell-Side-Arm-should-make-contact-311",
+      "name": "Physical Shell Side Arm should make contact",
+      "error": "Roll 0 mismatch: expected 48, got 97"
+    },
+    {
+      "id": "gen1-Basic--Gengar-vs--Chansey-312",
+      "name": "Basic",
+      "error": "Gengar vs. Chansey: Roll 0 mismatch: expected 79, got 181"
+    },
+    {
+      "id": "gen1-Light-Screen-313",
+      "name": "Light Screen",
+      "error": "Roll 0 mismatch: expected 108, got 282"
+    },
+    {
+      "id": "gen2-Basic--Gengar-vs--Chansey-314",
+      "name": "Basic",
+      "error": "Gengar vs. Chansey: Roll 0 mismatch: expected 304, got 698"
+    },
+    {
+      "id": "gen2-Struggle-315",
+      "name": "Struggle",
+      "error": "Roll 0 mismatch: expected 37, got 30"
+    },
+    {
+      "id": "gen2-Present-316",
+      "name": "Present",
+      "error": "Roll 0 mismatch: expected 125, got 0"
+    },
+    {
+      "id": "gen2-DVs-317",
+      "name": "DVs",
+      "error": "Roll 0 mismatch: expected 153, got 198"
+    },
+    {
+      "id": "gen3-Water-Absorb-319",
+      "name": "Water Absorb",
+      "error": "Roll 0 mismatch: expected 88, got 84"
+    },
+    {
+      "id": "gen3-allAdjacentFoes-321",
+      "name": "allAdjacentFoes",
+      "error": "Roll 0 mismatch: expected 69, got 126"
+    },
+    {
+      "id": "gen7-Loaded-Field-334",
+      "name": "Loaded Field",
+      "error": "Roll 0 mismatch: expected 50, got 44"
+    },
+    {
+      "id": "gen7-Wring-Out-335",
+      "name": "Wring Out",
+      "error": "Roll 0 mismatch: expected 15, got 1"
+    },
+    {
+      "id": "gen7-16-bit-Overflow-336",
+      "name": "16-bit Overflow",
+      "error": "Roll 0 mismatch: expected 55725, got 37150"
+    },
+    {
+      "id": "gen7-32-bit-Overflow-337",
+      "name": "32-bit Overflow",
+      "error": "Roll 0 mismatch: expected 55, got 65535"
+    },
+    {
+      "id": "gen7-32-bit-Overflow-338",
+      "name": "32-bit Overflow",
+      "error": "Roll 0 mismatch: expected 37, got 65535"
+    },
+    {
+      "id": "gen9-Supreme-Overlord-347",
+      "name": "Supreme Overlord",
+      "error": "Roll 0 mismatch: expected 100, got 67"
+    },
+    {
+      "id": "gen9-Supreme-Overlord-348",
+      "name": "Supreme Overlord",
+      "error": "Roll 0 mismatch: expected 100, got 67"
+    },
+    {
+      "id": "gen9-Electro-Drift-Collision-Course-boost-on-Super-Effective-hits-351",
+      "name": "Electro Drift/Collision Course boost on Super Effective hits",
+      "error": "Roll 0 mismatch: expected 224, got 170"
+    },
+    {
+      "id": "gen9-Electro-Drift-Collision-Course-boost-on-Super-Effective-hits-353",
+      "name": "Electro Drift/Collision Course boost on Super Effective hits",
+      "error": "Roll 0 mismatch: expected 85, got 170"
+    },
+    {
+      "id": "gen9-Electro-Drift-Collision-Course-boost-on-Super-Effective-hits-355",
+      "name": "Electro Drift/Collision Course boost on Super Effective hits",
+      "error": "Roll 0 mismatch: expected 224, got 85"
+    },
+    {
+      "id": "gen9-Quark-Drive-should-take-into-account-boosted-stats-by-default-357",
+      "name": "Quark Drive should take into account boosted stats by default",
+      "error": "Roll 0 mismatch: expected 69, got 60"
+    },
+    {
+      "id": "gen9-Protosynthesis-should-take-into-account-boosted-stats-by-default-359",
+      "name": "Protosynthesis should take into account boosted stats by default",
+      "error": "Roll 0 mismatch: expected 46, got 60"
+    },
+    {
+      "id": "gen9-Quark-Drive-should-be-able-to-be-overridden-with-boostedStat-360",
+      "name": "Quark Drive should be able to be overridden with boostedStat",
+      "error": "Roll 0 mismatch: expected 141, got 184"
+    },
+    {
+      "id": "gen9-Quark-Drive-should-be-able-to-be-overridden-with-boostedStat-361",
+      "name": "Quark Drive should be able to be overridden with boostedStat",
+      "error": "Roll 0 mismatch: expected 58, got 39"
+    },
+    {
+      "id": "gen9-Protosynthesis-should-be-able-to-be-overridden-with-boostedStat-362",
+      "name": "Protosynthesis should be able to be overridden with boostedStat",
+      "error": "Roll 0 mismatch: expected 141, got 184"
+    },
+    {
+      "id": "gen9-Meteor-Beam-Electro-Shot-364",
+      "name": "Meteor Beam/Electro Shot",
+      "error": "Roll 0 mismatch: expected 134, got 90"
+    },
+    {
+      "id": "gen9-Meteor-Beam-Electro-Shot-365",
+      "name": "Meteor Beam/Electro Shot",
+      "error": "Roll 0 mismatch: expected 145, got 97"
+    },
+    {
+      "id": "gen9-Meteor-Beam-Electro-Shot-368",
+      "name": "Meteor Beam/Electro Shot",
+      "error": "Roll 0 mismatch: expected 178, got 90"
+    },
+    {
+      "id": "gen9-Meteor-Beam-Electro-Shot-369",
+      "name": "Meteor Beam/Electro Shot",
+      "error": "Roll 0 mismatch: expected 193, got 97"
+    },
+    {
+      "id": "gen9-Meteor-Beam-Electro-Shot-370",
+      "name": "Meteor Beam/Electro Shot",
+      "error": "Roll 0 mismatch: expected 60, got 90"
+    },
+    {
+      "id": "gen9-Meteor-Beam-Electro-Shot-371",
+      "name": "Meteor Beam/Electro Shot",
+      "error": "Roll 0 mismatch: expected 65, got 97"
+    },
+    {
+      "id": "gen9-Flower-Gift--Power-Spot--Battery--and-switching-boosts-shouldn-t-have-double-spaces-377",
+      "name": "Flower Gift, Power Spot, Battery, and switching boosts shouldn't have double spaces",
+      "error": "Roll 0 mismatch: expected 399, got 102"
+    },
+    {
+      "id": "gen9-Power-Trick-should-swap-attack-and-defense-raw-stats-378",
+      "name": "Power Trick should swap attack and defense raw stats",
+      "error": "Roll 0 mismatch: expected 252, got 96"
+    },
+    {
+      "id": "gen9-Wind-Rider-should-give-an-Attack-boost-in-Tailwind-379",
+      "name": "Wind Rider should give an Attack boost in Tailwind",
+      "error": "Roll 0 mismatch: expected 146, got 97"
+    },
+    {
+      "id": "gen9-Moves-under-40-Base-Power-should-be-boosted-to-60-Base-Power-380",
+      "name": "Moves under 40 Base Power should be boosted to 60 Base Power",
+      "error": "Roll 0 mismatch: expected 88, got 43"
+    },
+    {
+      "id": "gen9-Multihit-moves-don-t-get-their-Base-Power-boosted-381",
+      "name": "Multihit moves don't get their Base Power boosted",
+      "error": "Roll 0 mismatch: expected 30, got 22"
+    },
+    {
+      "id": "gen9-Priority-moves-don-t-get-their-Base-Power-boosted-382",
+      "name": "Priority moves don't get their Base Power boosted",
+      "error": "Roll 0 mismatch: expected 58, got 43"
+    },
+    {
+      "id": "gen9-Pokemon-with-moves-affected-by-Triage-should-still-have-their-BP-boosted-383",
+      "name": "Pokemon with moves affected by Triage should still have their BP boosted",
+      "error": "Roll 0 mismatch: expected 68, got 42"
+    },
+    {
+      "id": "gen9-Pokemon-with-moves-affected-by-Triage-should-still-have-their-BP-boosted-384",
+      "name": "Pokemon with moves affected by Triage should still have their BP boosted",
+      "error": "Roll 0 mismatch: expected 25, got 12"
+    },
+    {
+      "id": "gen9-Pokemon-with-moves-affected-by-Triage-should-still-have-their-BP-boosted-385",
+      "name": "Pokemon with moves affected by Triage should still have their BP boosted",
+      "error": "Roll 0 mismatch: expected 68, got 42"
+    },
+    {
+      "id": "gen9-Pokemon-with-moves-affected-by-Triage-should-still-have-their-BP-boosted-386",
+      "name": "Pokemon with moves affected by Triage should still have their BP boosted",
+      "error": "Roll 0 mismatch: expected 41, got 12"
+    },
+    {
+      "id": "gen9-Pokemon-with-moves-affected-by-Gale-Wings-should-still-have-their-BP-boosted-387",
+      "name": "Pokemon with moves affected by Gale Wings should still have their BP boosted",
+      "error": "Roll 0 mismatch: expected 98, got 42"
+    },
+    {
+      "id": "gen9-Pokemon-with-moves-affected-by-Gale-Wings-should-still-have-their-BP-boosted-388",
+      "name": "Pokemon with moves affected by Gale Wings should still have their BP boosted",
+      "error": "Roll 0 mismatch: expected 98, got 42"
+    },
+    {
+      "id": "gen9-should-only-be-displayed-on-defender-for-Stellar-attacks-390",
+      "name": "should only be displayed on defender for Stellar attacks",
+      "error": "Roll 0 mismatch: expected 146, got 87"
+    },
+    {
+      "id": "gen9-should-only-be-displayed-on-defender-for-Stellar-attacks-391",
+      "name": "should only be displayed on defender for Stellar attacks",
+      "error": "Roll 0 mismatch: expected 176, got 87"
+    },
+    {
+      "id": "gen9-should-distinguish-between-first-use-for-Tera-Blast-394",
+      "name": "should distinguish between first use for Tera Blast",
+      "error": "Roll 0 mismatch: expected 88, got 87"
+    },
+    {
+      "id": "gen9-should-distinguish-between-first-use-for-Tera-Blast-395",
+      "name": "should distinguish between first use for Tera Blast",
+      "error": "Roll 0 mismatch: expected 73, got 87"
+    },
+    {
+      "id": "gen9-should-boost-the-Base-Power-of-moves-under-60-Base-Power-if-it-s-the-first-use-of-the-move-396",
+      "name": "should boost the Base Power of moves under 60 Base Power if it's the first use of the move",
+      "error": "Roll 0 mismatch: expected 53, got 29"
+    },
+    {
+      "id": "gen9-should-boost-the-Base-Power-of-moves-under-60-Base-Power-if-it-s-the-first-use-of-the-move-398",
+      "name": "should boost the Base Power of moves under 60 Base Power if it's the first use of the move",
+      "error": "Roll 0 mismatch: expected 88, got 43"
+    },
+    {
+      "id": "gen9-Dragon-type-moves-in-Misty-Terrain-400",
+      "name": "Dragon-type moves in Misty Terrain",
+      "error": "Roll 0 mismatch: expected 160, got 198"
+    },
+    {
+      "id": "gen9-Earthquake-in-Grassy-Terrain-401",
+      "name": "Earthquake in Grassy Terrain",
+      "error": "Roll 0 mismatch: expected 48, got 66"
+    },
+    {
+      "id": "gen9-On-a-Pokemon-otherwise-neutral-to-Dragon-402",
+      "name": "On a Pokemon otherwise neutral to Dragon",
+      "error": "Roll 0 mismatch: expected 183, got 0"
+    },
+    {
+      "id": "gen9-On-a-Pokemon-otherwise-neutral-to-Dragon-403",
+      "name": "On a Pokemon otherwise neutral to Dragon",
+      "error": "Roll 0 mismatch: expected 183, got 122"
+    },
+    {
+      "id": "gen9-On-a-Pokemon-otherwise-resistant-to-Dragon-404",
+      "name": "On a Pokemon otherwise resistant to Dragon",
+      "error": "Roll 0 mismatch: expected 172, got 0"
+    },
+    {
+      "id": "gen9-On-a-Pokemon-otherwise-resistant-to-Dragon-405",
+      "name": "On a Pokemon otherwise resistant to Dragon",
+      "error": "Roll 0 mismatch: expected 345, got 230"
+    },
+    {
+      "id": "gen9-On-a-Pokemon-otherwise-weak-to-Dragon-406",
+      "name": "On a Pokemon otherwise weak to Dragon",
+      "error": "Roll 0 mismatch: expected 408, got 0"
+    },
+    {
+      "id": "gen9-On-a-Pokemon-otherwise-weak-to-Dragon-407",
+      "name": "On a Pokemon otherwise weak to Dragon",
+      "error": "Roll 0 mismatch: expected 102, got 68"
+    },
+    {
+      "id": "gen3-Brick-Break-should-break-screens-411",
+      "name": "Brick Break should break screens",
+      "error": "Roll 0 mismatch: expected 13, got 12"
+    },
+    {
+      "id": "gen4-Brick-Break-should-break-screens-413",
+      "name": "Brick Break should break screens",
+      "error": "Roll 0 mismatch: expected 14, got 13"
+    },
+    {
+      "id": "gen5-Brick-Break-should-break-screens-415",
+      "name": "Brick Break should break screens",
+      "error": "Roll 0 mismatch: expected 13, got 12"
+    },
+    {
+      "id": "gen6-Brick-Break-should-break-screens-417",
+      "name": "Brick Break should break screens",
+      "error": "Roll 0 mismatch: expected 13, got 12"
+    },
+    {
+      "id": "gen7-Brick-Break-should-break-screens-419",
+      "name": "Brick Break should break screens",
+      "error": "Roll 0 mismatch: expected 13, got 12"
+    },
+    {
+      "id": "gen8-Brick-Break-should-break-screens-421",
+      "name": "Brick Break should break screens",
+      "error": "Roll 0 mismatch: expected 13, got 12"
+    },
+    {
+      "id": "gen9-Brick-Break-should-break-screens-423",
+      "name": "Brick Break should break screens",
+      "error": "Roll 0 mismatch: expected 13, got 12"
+    },
+    {
+      "id": "gen7-Psychic-Fangs-should-break-screens-425",
+      "name": "Psychic Fangs should break screens",
+      "error": "Roll 0 mismatch: expected 20, got 21"
+    },
+    {
+      "id": "gen8-Psychic-Fangs-should-break-screens-427",
+      "name": "Psychic Fangs should break screens",
+      "error": "Roll 0 mismatch: expected 20, got 21"
+    },
+    {
+      "id": "gen9-Psychic-Fangs-should-break-screens-429",
+      "name": "Psychic Fangs should break screens",
+      "error": "Roll 0 mismatch: expected 20, got 21"
+    },
+    {
+      "id": "gen9-Raging-Bull-should-break-screens-430",
+      "name": "Raging Bull should break screens",
+      "error": "Roll 0 mismatch: expected 51, got 22"
+    },
+    {
+      "id": "gen9-Raging-Bull-should-break-screens-431",
+      "name": "Raging Bull should break screens",
+      "error": "Roll 0 mismatch: expected 25, got 15"
+    }
+  ]
 }
