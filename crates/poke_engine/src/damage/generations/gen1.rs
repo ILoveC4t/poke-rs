@@ -1,10 +1,10 @@
 //! Generation 1 (Red/Blue/Yellow) mechanics.
 
 use super::GenMechanics;
+use crate::damage::formula::{apply_boost, of32};
 use crate::damage::{DamageContext, DamageResult};
-use crate::types::Type;
 use crate::moves::MoveCategory;
-use crate::damage::formula::{of32, apply_boost};
+use crate::types::Type;
 
 /// Generation 1 mechanics.
 ///
@@ -19,9 +19,15 @@ pub struct Gen1;
 impl GenMechanics for Gen1 {
     const GEN: u8 = 1;
 
-    fn has_abilities(&self) -> bool { false }
-    fn has_held_items(&self) -> bool { false }
-    fn uses_physical_special_split(&self) -> bool { false }
+    fn has_abilities(&self) -> bool {
+        false
+    }
+    fn has_held_items(&self) -> bool {
+        false
+    }
+    fn uses_physical_special_split(&self) -> bool {
+        false
+    }
 
     fn type_effectiveness(&self, atk_type: Type, def_type1: Type, def_type2: Option<Type>) -> u8 {
         // Gen 1 specific type chart quirks
@@ -30,9 +36,9 @@ impl GenMechanics for Gen1 {
 
         // Fix Ghost vs Psychic (0x in Gen 1, normally 2x)
         if atk_type == Type::Ghost {
-             if def_type1 == Type::Psychic || def_type2 == Some(Type::Psychic) {
-                 return 0;
-             }
+            if def_type1 == Type::Psychic || def_type2 == Some(Type::Psychic) {
+                return 0;
+            }
         }
 
         // Poison vs Bug (Gen 1: 2x)
@@ -104,17 +110,29 @@ impl GenMechanics for Gen1 {
             (raw_atk, raw_def)
         } else {
             // Use effective stats (boosted)
-             let atk = match category {
-                MoveCategory::Physical => apply_boost(ctx.state.stats[ctx.attacker][1], ctx.state.boosts[ctx.attacker][0]),
-                MoveCategory::Special => apply_boost(ctx.state.stats[ctx.attacker][3], ctx.state.boosts[ctx.attacker][2]),
+            let atk = match category {
+                MoveCategory::Physical => apply_boost(
+                    ctx.state.stats[ctx.attacker][1],
+                    ctx.state.boosts[ctx.attacker][0],
+                ),
+                MoveCategory::Special => apply_boost(
+                    ctx.state.stats[ctx.attacker][3],
+                    ctx.state.boosts[ctx.attacker][2],
+                ),
                 _ => 0,
             };
             let def = match category {
-                MoveCategory::Physical => apply_boost(ctx.state.stats[ctx.defender][2], ctx.state.boosts[ctx.defender][1]),
-                MoveCategory::Special => apply_boost(ctx.state.stats[ctx.defender][3], ctx.state.boosts[ctx.defender][2]), // Use SpA boost for Special Defense too
+                MoveCategory::Physical => apply_boost(
+                    ctx.state.stats[ctx.defender][2],
+                    ctx.state.boosts[ctx.defender][1],
+                ),
+                MoveCategory::Special => apply_boost(
+                    ctx.state.stats[ctx.defender][3],
+                    ctx.state.boosts[ctx.defender][2],
+                ), // Use SpA boost for Special Defense too
                 _ => 0,
             };
-             (atk, def)
+            (atk, def)
         };
 
         // Burn Mod (Gen 1): Halves Attack if burned and physical move.
@@ -137,7 +155,9 @@ impl GenMechanics for Gen1 {
         // 5. Base Damage
         // Formula: min(997, floor(floor(floor(2 * L / 5 + 2) * A * P / D) / 50)) + 2
 
-        if def_stat == 0 { return DamageResult::zero(); }
+        if def_stat == 0 {
+            return DamageResult::zero();
+        }
 
         let level_term = 2 * effective_level / 5 + 2;
 
@@ -173,7 +193,7 @@ impl GenMechanics for Gen1 {
         // This maps perfectly if we divide by 4.
 
         if ctx.effectiveness != 4 {
-             damage = damage * (ctx.effectiveness as u32) / 4;
+            damage = damage * (ctx.effectiveness as u32) / 4;
         }
 
         // Random: 217 to 255
@@ -203,19 +223,25 @@ impl GenMechanics for Gen1 {
 }
 
 fn is_type_special(t: Type) -> bool {
-    matches!(t,
-        Type::Fire | Type::Water | Type::Grass | Type::Ice |
-        Type::Electric | Type::Psychic | Type::Dragon
+    matches!(
+        t,
+        Type::Fire
+            | Type::Water
+            | Type::Grass
+            | Type::Ice
+            | Type::Electric
+            | Type::Psychic
+            | Type::Dragon
     )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::BattleState;
+    use crate::damage::calculate_damage;
     use crate::entities::PokemonConfig;
     use crate::moves::MoveId;
-    use crate::damage::calculate_damage;
+    use crate::state::BattleState;
 
     #[test]
     fn test_gen1_damage_basic() {
