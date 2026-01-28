@@ -32,6 +32,18 @@
     - New item effects should go to `crates/poke_engine/src/items/implementations.rs` and registered in `items/registry.rs`.
     - **Note**: The ability/move/item registries are fully wired. Always prefer adding a new hook type over adding hardcoded logic to `modifiers.rs` or `state.rs`.
 
+## Test Architecture
+
+The damage fixture tests use `libtest-mimic` for individual test filtering and categories.
+
+**Key files:**
+- `crates/poke_engine/tests/damage_fixtures.rs` - Main test harness
+- `crates/poke_engine/tests/common/` - Shared test utilities:
+  - `fixtures.rs` - Data structures for JSON fixtures
+  - `helpers.rs` - Test helpers (spawn_pokemon, apply_field, run_damage_test)
+  - `skip_list.rs` - Intentionally skipped fixtures (with reasons)
+  - `categories.rs` - Test categories for filtering (abilities, terrain, screens, etc.)
+
 ## Development Workflow (CRITICAL)
 
 **ALWAYS** use the dedicated test runner found in `crates/test_runner`:
@@ -52,6 +64,14 @@ cargo run -p test_runner -- run --filter damage
 
 # Run for poke_engine package only
 cargo run -p test_runner -- run -p poke_engine
+```
+
+**Filtering tests by category:**
+```bash
+cargo test --test damage_fixtures -- terrain     # Terrain-related tests
+cargo test --test damage_fixtures -- abilities   # Ability tests
+cargo test --test damage_fixtures -- screens     # Screen-breaking tests
+cargo test --test damage_fixtures -- gen9        # Gen 9 only
 ```
 
 Quick `cargo test` examples (when you prefer Rust's test runner):

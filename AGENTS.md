@@ -15,13 +15,34 @@
 - **Priority:** Finish full damage-fixture coverage before implementing combat simulation/turn engine (`BattleQueue`), and iterate on ability implementations as needed.
 
 # FIX PATTERNS
-- **Skip List**: If a fixture is logically incorrect (e.g., Smogon fixture doesn't apply a mechanics change that the engine correctly does), add its ID to `SKIPPED_FIXTURES` in `tests/damage_fixtures.rs` and add a correct custom test in `tests/` (e.g., `tests/multitype_correctness.rs`).
+- **Skip List**: If a fixture is logically incorrect (e.g., Smogon fixture doesn't apply a mechanics change that the engine correctly does), add its ID to `SKIPPED_FIXTURES` in `tests/common/skip_list.rs` and add a correct custom test in `tests/` (e.g., `tests/multitype_correctness.rs`).
 - **Ability modifier:** Implement hooks in `crates/poke_engine/src/abilities/implementations/` and register them in `modifiers.rs` or `hooks.rs`. Avoid adding inline checks in `damage/modifiers.rs`.
 - **Item modifier:** Implement hooks in `crates/poke_engine/src/items/implementations/` and register in `items/registry.rs`.
 - **Move logic:** Implement hooks in `crates/poke_engine/src/moves/implementations.rs` and register in `moves/registry.rs`.
 - **Type immunity overrides:** Use `OnTypeImmunity` hook in `abilities/implementations/immunity.rs`.
 - **Status/State:** Use `BattleState::set_status` which respects immunity hooks.
 - **Note:** The ability/move/item registries are fully wired. Always prefer adding a new hook type over adding hardcoded logic to `modifiers.rs` or `state.rs`.
+
+# TEST ARCHITECTURE
+
+The damage fixture tests use `libtest-mimic` for individual test filtering and categories.
+
+**Key files:**
+- `crates/poke_engine/tests/damage_fixtures.rs` - Main test harness
+- `crates/poke_engine/tests/common/` - Shared test utilities:
+  - `fixtures.rs` - Data structures for JSON fixtures
+  - `helpers.rs` - Test helpers (spawn_pokemon, apply_field, run_damage_test)
+  - `skip_list.rs` - Intentionally skipped fixtures (with reasons)
+  - `categories.rs` - Test categories for filtering (abilities, terrain, screens, etc.)
+
+**Filtering by category:**
+```bash
+cargo test --test damage_fixtures -- terrain     # Terrain-related tests
+cargo test --test damage_fixtures -- abilities   # Ability tests
+cargo test --test damage_fixtures -- screens     # Screen-breaking tests
+cargo test --test damage_fixtures -- gen9        # Gen 9 only
+cargo test --test damage_fixtures -- Arceus      # Tests matching "Arceus"
+```
 
 ## TESTS — Exact commands to run
 
