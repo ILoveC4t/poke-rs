@@ -11,11 +11,9 @@
 //! for these cases appear to expect behavior that contradicts cartridge mechanics
 //! (e.g. applying burn or screens on crit), likely due to defaults or Stadium mechanics.
 
-use poke_engine::abilities::AbilityId;
-use poke_engine::damage::generations::GenMechanics;
 use poke_engine::damage::generations::{Gen1, Gen2};
-use poke_engine::damage::{calculate_damage, DamageContext};
-use poke_engine::moves::{MoveCategory, MoveId};
+use poke_engine::damage::calculate_damage;
+use poke_engine::moves::MoveId;
 use poke_engine::species::SpeciesId;
 use poke_engine::state::{BattleState, Status};
 use poke_engine::types::Type;
@@ -119,9 +117,10 @@ fn test_gen1_non_crit_burn() {
     println!("Gen 1 Burned Max Damage: {}", result.max);
     println!("Gen 1 Normal Max Damage: {}", result_no_burn.max);
 
+    // Gen1 uses truncated integer division, so we allow small rounding tolerance
     assert!(
-        result.max <= result_no_burn.max / 2 + 5,
-        "Gen 1 Burn should halve damage (approx)"
+        result.max >= result_no_burn.max / 2 - 2 && result.max <= result_no_burn.max / 2 + 2,
+        "Gen 1 Burn should halve damage (within ±2 for rounding)"
     );
 }
 
@@ -189,8 +188,8 @@ fn test_gen2_crit_burn() {
     println!("Gen 2 Crit Burned Max Damage: {}", result.max);
     println!("Gen 2 Crit Normal Max Damage: {}", result_no_burn.max);
 
-    assert!(
-        result.max > result_no_burn.max * 8 / 10,
+    assert_eq!(
+        result.max, result_no_burn.max,
         "Gen 2 Crit should ignore burn"
     );
 }
@@ -224,5 +223,34 @@ fn test_gen2_crit_positive_boost() {
     assert_eq!(
         result.max, result_unboosted.max,
         "Gen 2 Crit should ignore positive attack boosts"
+    );
+}
+
+#[test]
+fn test_gen2_crit_negative_boost() {
+    let mut state = BattleState::new();
+    let gen = Gen2;
+
+    state.species[0] = SpeciesId::from_str("rattata").unwrap();
+    state.types[0] = [Type::Normal, Type::Normal];
+    state.stats[0][1] = 100; // Atk
+    state.boosts[0][0] = -2; // -2 Atk
+
+    state.species[6] = SpeciesId::from_str("rattata").unwrap();
+    state.types[6] = [Type::Normal, Type::Normal];
+    state.stats[6][2] = 100; // Def
+
+    let move_id = MoveId::Tackle;
+
+    // Gen 2 Crit should IGNORE negative boost
+    let result = calculate_damage(gen, &state, 0, 6, move_id, true);
+
+    let mut state_unboosted = state;
+    state_unboosted.boosts[0][0] = 0;
+    let result_unboosted = calculate_damage(gen, &state_unboosted, 0, 6, move_id, true);
+
+    assert_eq!(
+        result.max, result_unboosted.max,
+        "Gen 2 Crit should ignore negative attack boosts"
     );
 }
