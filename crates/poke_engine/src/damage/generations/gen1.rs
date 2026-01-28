@@ -4,7 +4,7 @@ use super::GenMechanics;
 use crate::damage::{DamageContext, DamageResult};
 use crate::types::Type;
 use crate::moves::MoveCategory;
-use crate::damage::formula::of32;
+use crate::damage::formula::{of32, apply_boost};
 
 /// Generation 1 mechanics.
 ///
@@ -86,37 +86,45 @@ impl GenMechanics for Gen1 {
             MoveCategory::Physical
         };
 
-        // Gen 1 Crit: Level is doubled; all stat stages are ignored.
+        // Gen 1 Crit: Level is doubled.
+        // Stats: Ignore attacker's negative boosts and defender's positive boosts.
 
-        let (atk_stat, def_stat) = if ctx.is_crit {
-            // Use raw stats (no boosts)
+        let (mut atk_stat, def_stat) = if ctx.is_crit {
             // Indices: 1=Atk, 2=Def, 3=SpA, 4=SpD
-            let atk = match category {
-                MoveCategory::Physical => ctx.state.stats[ctx.attacker][1],
-                MoveCategory::Special => ctx.state.stats[ctx.attacker][3], // SpA = Special
-                _ => 0,
+            let (atk_idx, def_idx) = match category {
+                MoveCategory::Physical => (1, 2),
+                MoveCategory::Special => (3, 3), // SpA used for both
+                _ => (0, 0),
             };
-            let def = match category {
-                MoveCategory::Physical => ctx.state.stats[ctx.defender][2],
-                MoveCategory::Special => ctx.state.stats[ctx.defender][3], // SpD = Special
-                _ => 0,
-            };
-            (atk, def)
+
+            let raw_atk = ctx.state.stats[ctx.attacker][atk_idx];
+            let raw_def = ctx.state.stats[ctx.defender][def_idx];
+
+            // Ignore ALL boosts (positive and negative)
+            (raw_atk, raw_def)
         } else {
             // Use effective stats (boosted)
-            // Boost indices: 0=Atk, 1=Def, 2=SpA, 3=SpD
              let atk = match category {
-                MoveCategory::Physical => crate::damage::formula::apply_boost(ctx.state.stats[ctx.attacker][1], ctx.state.boosts[ctx.attacker][0]),
-                MoveCategory::Special => crate::damage::formula::apply_boost(ctx.state.stats[ctx.attacker][3], ctx.state.boosts[ctx.attacker][2]),
+                MoveCategory::Physical => apply_boost(ctx.state.stats[ctx.attacker][1], ctx.state.boosts[ctx.attacker][0]),
+                MoveCategory::Special => apply_boost(ctx.state.stats[ctx.attacker][3], ctx.state.boosts[ctx.attacker][2]),
                 _ => 0,
             };
             let def = match category {
-                MoveCategory::Physical => crate::damage::formula::apply_boost(ctx.state.stats[ctx.defender][2], ctx.state.boosts[ctx.defender][1]),
-                MoveCategory::Special => crate::damage::formula::apply_boost(ctx.state.stats[ctx.defender][3], ctx.state.boosts[ctx.defender][2]), // Use SpA boost for Special Defense too
+                MoveCategory::Physical => apply_boost(ctx.state.stats[ctx.defender][2], ctx.state.boosts[ctx.defender][1]),
+                MoveCategory::Special => apply_boost(ctx.state.stats[ctx.defender][3], ctx.state.boosts[ctx.defender][2]), // Use SpA boost for Special Defense too
                 _ => 0,
             };
              (atk, def)
         };
+
+        // Burn Mod (Gen 1): Halves Attack if burned and physical move.
+        // Ignored on Crit.
+        if !ctx.is_crit
+            && category == MoveCategory::Physical
+            && ctx.state.status[ctx.attacker].contains(crate::state::Status::BURN)
+        {
+            atk_stat /= 2;
+        }
 
         // 3. Level
         let level = ctx.state.level[ctx.attacker] as u32;
