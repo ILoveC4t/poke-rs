@@ -1,8 +1,8 @@
 //! Generation 8 (Sword/Shield) mechanics.
 
 use super::{GenMechanics, Terrain};
-use crate::damage::Modifier;
 use crate::types::Type;
+use crate::damage::Modifier;
 
 /// Generation 8 mechanics (Pokémon Sword/Shield).
 ///
@@ -32,11 +32,7 @@ impl GenMechanics for Gen8 {
 
     // STAB without Tera
     fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> Modifier {
-        if has_adaptability {
-            Modifier::DOUBLE
-        } else {
-            Modifier::ONE_POINT_FIVE
-        }
+        if has_adaptability { Modifier::DOUBLE } else { Modifier::ONE_POINT_FIVE }
     }
 
     // Terrain was 1.5x initially, then nerfed to 1.3x in later patches
@@ -53,10 +49,7 @@ impl GenMechanics for Gen8 {
 
         // Grassy Terrain: Halves Earthquake, Bulldoze, Magnitude if TARGET is grounded
         if terrain == Terrain::Grassy && defender_grounded {
-            if matches!(
-                move_id,
-                MoveId::Earthquake | MoveId::Bulldoze | MoveId::Magnitude
-            ) {
+            if matches!(move_id, MoveId::Earthquake | MoveId::Bulldoze | MoveId::Magnitude) {
                 return Some(Modifier::HALF);
             }
         }

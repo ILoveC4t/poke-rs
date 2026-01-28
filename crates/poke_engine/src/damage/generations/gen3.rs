@@ -1,8 +1,8 @@
 //! Generation 3 (Ruby/Sapphire/Emerald, FireRed/LeafGreen) mechanics.
 
 use super::GenMechanics;
-use crate::damage::Modifier;
 use crate::types::Type;
+use crate::damage::Modifier;
 
 /// Generation 3 mechanics (Pokémon RSE/FRLG).
 ///

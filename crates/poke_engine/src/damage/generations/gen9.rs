@@ -26,9 +26,9 @@ impl GenMechanics for Gen9 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::damage::generations::{Terrain, Weather};
-    use crate::damage::Modifier;
     use crate::types::Type;
+    use crate::damage::generations::{Weather, Terrain};
+    use crate::damage::Modifier;
 
     #[test]
     fn test_gen9_crit_multiplier() {
@@ -55,26 +55,14 @@ mod tests {
         let gen = Gen9;
 
         // Sun boosts Fire
-        assert_eq!(
-            gen.weather_modifier(Weather::Sun, Type::Fire),
-            Some(Modifier::ONE_POINT_FIVE)
-        );
+        assert_eq!(gen.weather_modifier(Weather::Sun, Type::Fire), Some(Modifier::ONE_POINT_FIVE));
         // Sun weakens Water
-        assert_eq!(
-            gen.weather_modifier(Weather::Sun, Type::Water),
-            Some(Modifier::HALF)
-        );
+        assert_eq!(gen.weather_modifier(Weather::Sun, Type::Water), Some(Modifier::HALF));
 
         // Rain boosts Water
-        assert_eq!(
-            gen.weather_modifier(Weather::Rain, Type::Water),
-            Some(Modifier::ONE_POINT_FIVE)
-        );
+        assert_eq!(gen.weather_modifier(Weather::Rain, Type::Water), Some(Modifier::ONE_POINT_FIVE));
         // Rain weakens Fire
-        assert_eq!(
-            gen.weather_modifier(Weather::Rain, Type::Fire),
-            Some(Modifier::HALF)
-        );
+        assert_eq!(gen.weather_modifier(Weather::Rain, Type::Fire), Some(Modifier::HALF));
 
         // No effect on neutral types
         assert_eq!(gen.weather_modifier(Weather::Sun, Type::Electric), None);
@@ -87,47 +75,23 @@ mod tests {
 
         // Electric Terrain boosts Electric moves for grounded Pokemon
         // We pass MoveId::Thunderbolt as a dummy Electric move
-        assert_eq!(
-            gen.terrain_modifier(
-                Terrain::Electric,
-                MoveId::Thunderbolt,
-                Type::Electric,
-                true,
-                true
-            ),
-            Some(Modifier::ONE_POINT_THREE)
-        );
+        assert_eq!(gen.terrain_modifier(Terrain::Electric, MoveId::Thunderbolt, Type::Electric, true, true), Some(Modifier::ONE_POINT_THREE));
 
         // Not grounded (attacker) = no boost
-        assert_eq!(
-            gen.terrain_modifier(
-                Terrain::Electric,
-                MoveId::Thunderbolt,
-                Type::Electric,
-                false,
-                true
-            ),
-            None
-        );
+        assert_eq!(gen.terrain_modifier(Terrain::Electric, MoveId::Thunderbolt, Type::Electric, false, true), None);
 
         // Misty Terrain weakens Dragon (if target grounded)
         // MoveId::Dragonclaw as dummy
-        assert_eq!(
-            gen.terrain_modifier(Terrain::Misty, MoveId::Dragonclaw, Type::Dragon, true, true),
-            Some(Modifier::HALF)
-        );
+        assert_eq!(gen.terrain_modifier(Terrain::Misty, MoveId::Dragonclaw, Type::Dragon, true, true), Some(Modifier::HALF));
 
         // Grassy Terrain reduces Earthquake (if target grounded)
-        assert_eq!(
-            gen.terrain_modifier(
-                Terrain::Grassy,
-                MoveId::Earthquake,
-                Type::Ground,
-                true,
-                true
-            ),
-            Some(Modifier::HALF)
-        );
+        assert_eq!(gen.terrain_modifier(Terrain::Grassy, MoveId::Earthquake, Type::Ground, true, true), Some(Modifier::HALF));
+
+        // Psychic Terrain boosts Psychic moves for grounded Pokemon
+        assert_eq!(gen.terrain_modifier(Terrain::Psychic, MoveId::Psychic, Type::Psychic, true, true), Some(Modifier::ONE_POINT_THREE));
+
+        // Not grounded (attacker) = no boost
+        assert_eq!(gen.terrain_modifier(Terrain::Psychic, MoveId::Psychic, Type::Psychic, false, true), None);
     }
 
     #[test]

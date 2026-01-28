@@ -1,8 +1,8 @@
 //! Generation 7 (Sun/Moon, Ultra Sun/Ultra Moon) mechanics.
 
 use super::{GenMechanics, Terrain};
-use crate::damage::Modifier;
 use crate::types::Type;
+use crate::damage::Modifier;
 
 /// Generation 7 mechanics (Pokémon Sun/Moon/USUM).
 ///
@@ -31,11 +31,7 @@ impl GenMechanics for Gen7 {
 
     // STAB without Tera
     fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> Modifier {
-        if has_adaptability {
-            Modifier::DOUBLE
-        } else {
-            Modifier::ONE_POINT_FIVE
-        }
+        if has_adaptability { Modifier::DOUBLE } else { Modifier::ONE_POINT_FIVE }
     }
 
     // Terrain was 1.5x in Gen 7
@@ -51,10 +47,7 @@ impl GenMechanics for Gen7 {
 
         // Grassy Terrain: Halves Earthquake, Bulldoze, Magnitude if TARGET is grounded
         if terrain == Terrain::Grassy && defender_grounded {
-            if matches!(
-                move_id,
-                MoveId::Earthquake | MoveId::Bulldoze | MoveId::Magnitude
-            ) {
+            if matches!(move_id, MoveId::Earthquake | MoveId::Bulldoze | MoveId::Magnitude) {
                 return Some(Modifier::HALF);
             }
         }

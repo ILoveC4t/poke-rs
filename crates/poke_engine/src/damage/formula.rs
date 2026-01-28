@@ -3,10 +3,10 @@
 //! This module contains the fundamental damage calculation math,
 //! including Game Freak's specific rounding and overflow behaviors.
 
-use super::generations::GenMechanics;
-use super::modifiers;
 use super::DamageContext;
 use super::DamageResult;
+use super::generations::GenMechanics;
+use super::modifiers;
 use super::Modifier;
 
 /// 16-bit overflow wrapping (simulates hardware behavior).
@@ -114,13 +114,7 @@ pub fn chain_mods(modifiers: &[Modifier]) -> u32 {
 ///
 /// # Returns
 /// Base damage value before random roll and other modifiers.
-pub fn get_base_damage(
-    level: u32,
-    base_power: u32,
-    attack: u32,
-    defense: u32,
-    add_two: bool,
-) -> u32 {
+pub fn get_base_damage(level: u32, base_power: u32, attack: u32, defense: u32, add_two: bool) -> u32 {
     // Avoid division by zero
     if defense == 0 {
         return 0;
@@ -169,19 +163,19 @@ pub fn get_all_rolls(base_damage: u32) -> [u32; 16] {
 /// Index 0 = -6, Index 6 = 0, Index 12 = +6
 /// Each entry is (numerator, denominator).
 const BOOST_TABLE: [(u32, u32); 13] = [
-    (2, 8), // -6: 2/8 = 0.25x
-    (2, 7), // -5: 2/7 ≈ 0.286x
-    (2, 6), // -4: 2/6 ≈ 0.333x
-    (2, 5), // -3: 2/5 = 0.4x
-    (2, 4), // -2: 2/4 = 0.5x
-    (2, 3), // -1: 2/3 ≈ 0.667x
-    (2, 2), //  0: 2/2 = 1.0x
-    (3, 2), // +1: 3/2 = 1.5x
-    (4, 2), // +2: 4/2 = 2.0x
-    (5, 2), // +3: 5/2 = 2.5x
-    (6, 2), // +4: 6/2 = 3.0x
-    (7, 2), // +5: 7/2 = 3.5x
-    (8, 2), // +6: 8/2 = 4.0x
+    (2, 8),  // -6: 2/8 = 0.25x
+    (2, 7),  // -5: 2/7 ≈ 0.286x
+    (2, 6),  // -4: 2/6 ≈ 0.333x
+    (2, 5),  // -3: 2/5 = 0.4x
+    (2, 4),  // -2: 2/4 = 0.5x
+    (2, 3),  // -1: 2/3 ≈ 0.667x
+    (2, 2),  //  0: 2/2 = 1.0x
+    (3, 2),  // +1: 3/2 = 1.5x
+    (4, 2),  // +2: 4/2 = 2.0x
+    (5, 2),  // +3: 5/2 = 2.5x
+    (6, 2),  // +4: 6/2 = 3.0x
+    (7, 2),  // +5: 7/2 = 3.5x
+    (8, 2),  // +6: 8/2 = 4.0x
 ];
 
 /// Apply stat boost stage to a base stat.
@@ -204,19 +198,19 @@ pub fn apply_boost(base_stat: u16, stage: i8) -> u16 {
 ///
 /// Index 0 = -6, Index 6 = 0, Index 12 = +6
 const ACC_EVA_TABLE: [(u32, u32); 13] = [
-    (3, 9), // -6: 33%
-    (3, 8), // -5: 38%
-    (3, 7), // -4: 43%
-    (3, 6), // -3: 50%
-    (3, 5), // -2: 60%
-    (3, 4), // -1: 75%
-    (3, 3), //  0: 100%
-    (4, 3), // +1: 133%
-    (5, 3), // +2: 167%
-    (6, 3), // +3: 200%
-    (7, 3), // +4: 233%
-    (8, 3), // +5: 267%
-    (9, 3), // +6: 300%
+    (3, 9),  // -6: 33%
+    (3, 8),  // -5: 38%
+    (3, 7),  // -4: 43%
+    (3, 6),  // -3: 50%
+    (3, 5),  // -2: 60%
+    (3, 4),  // -1: 75%
+    (3, 3),  //  0: 100%
+    (4, 3),  // +1: 133%
+    (5, 3),  // +2: 167%
+    (6, 3),  // +3: 200%
+    (7, 3),  // +4: 233%
+    (8, 3),  // +5: 267%
+    (9, 3),  // +6: 300%
 ];
 
 /// Apply accuracy/evasion boost stage.
@@ -254,13 +248,7 @@ pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageR
     // Gen 3-4: adds +2 after burn/screens/spread/weather, before crit
     let level = ctx.state.level[ctx.attacker] as u32;
     let adds_two_now = ctx.gen.adds_two_in_base_damage();
-    let mut base_damage = get_base_damage(
-        level,
-        ctx.base_power as u32,
-        attack as u32,
-        defense as u32,
-        adds_two_now,
-    );
+    let mut base_damage = get_base_damage(level, ctx.base_power as u32, attack as u32, defense as u32, adds_two_now);
 
     // Phase 4: Apply pre-random modifiers
     // Gen 3-4 order: burn → screens → spread → weather → +2 → crit
@@ -315,7 +303,7 @@ mod tests {
     fn test_of16() {
         assert_eq!(of16(100), 100);
         assert_eq!(of16(65535), 65535);
-        assert_eq!(of16(65536), 0); // Overflow wraps
+        assert_eq!(of16(65536), 0);      // Overflow wraps
         assert_eq!(of16(65537), 1);
     }
 
@@ -425,16 +413,16 @@ mod tests {
         assert_eq!(pokeround(2049, 4096), 1);
 
         // Standard cases
-        assert_eq!(pokeround(4096, 4096), 1); // 1.0
-        assert_eq!(pokeround(6144, 4096), 1); // 1.5 → rounds to 1 (0.5 rounds down)
-        assert_eq!(pokeround(6145, 4096), 2); // 1.5+ → rounds to 2
-        assert_eq!(pokeround(8192, 4096), 2); // 2.0
+        assert_eq!(pokeround(4096, 4096), 1);   // 1.0
+        assert_eq!(pokeround(6144, 4096), 1);   // 1.5 → rounds to 1 (0.5 rounds down)
+        assert_eq!(pokeround(6145, 4096), 2);   // 1.5+ → rounds to 2
+        assert_eq!(pokeround(8192, 4096), 2);   // 2.0
 
         // Test with smaller divisor
-        assert_eq!(pokeround(5, 10), 0); // 0.5 → 0
-        assert_eq!(pokeround(6, 10), 1); // 0.6 → 1
-        assert_eq!(pokeround(15, 10), 1); // 1.5 → 1
-        assert_eq!(pokeround(16, 10), 2); // 1.6 → 2
+        assert_eq!(pokeround(5, 10), 0);   // 0.5 → 0
+        assert_eq!(pokeround(6, 10), 1);   // 0.6 → 1
+        assert_eq!(pokeround(15, 10), 1);  // 1.5 → 1
+        assert_eq!(pokeround(16, 10), 2);  // 1.6 → 2
     }
 
     #[test]
@@ -442,6 +430,6 @@ mod tests {
         // Crit uses floor(x * 1.5), not pokeRound
         assert_eq!(apply_modifier_floor(100, 3, 2), 150); // 100 * 1.5 = 150
         assert_eq!(apply_modifier_floor(101, 3, 2), 151); // 101 * 1.5 = 151.5 → 151
-        assert_eq!(apply_modifier_floor(99, 3, 2), 148); // 99 * 1.5 = 148.5 → 148
+        assert_eq!(apply_modifier_floor(99, 3, 2), 148);  // 99 * 1.5 = 148.5 → 148
     }
 }

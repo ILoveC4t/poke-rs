@@ -5,13 +5,13 @@
 
 use super::context::DamageContext;
 use super::formula::{apply_boost, apply_modifier, apply_modifier_floor, of16, of32, pokeround};
-use super::generations::{GenMechanics, Terrain, Weather};
+use super::generations::{GenMechanics, Weather, Terrain};
 use super::Modifier;
 use crate::abilities::{AbilityId, ABILITY_REGISTRY};
 use crate::items::{ItemId, ITEM_REGISTRY};
-use crate::modifier;
 use crate::moves::{MoveCategory, MoveFlags, MoveId, MOVE_REGISTRY};
 use crate::state::{BattleState, Status};
+use crate::modifier;
 
 // ============================================================================
 // Stat Indices
@@ -45,9 +45,7 @@ fn is_screen_breaker(move_id: MoveId) -> bool {
 /// Check if attacker has Mold Breaker or variants (Teravolt, Turboblaze).
 /// These abilities bypass the target's defensive abilities.
 fn has_mold_breaker(ability: AbilityId) -> bool {
-    ability
-        .flags()
-        .contains(crate::abilities::AbilityFlags::MOLD_BREAKER)
+    ability.flags().contains(crate::abilities::AbilityFlags::MOLD_BREAKER)
 }
 
 // ============================================================================
@@ -73,7 +71,10 @@ fn call_item_base_power_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, bp: u1
 }
 
 /// Apply item final modifiers (attacker items like Life Orb, Expert Belt).
-fn apply_item_final_mods<G: GenMechanics>(ctx: &DamageContext<'_, G>, mut damage: u32) -> u32 {
+fn apply_item_final_mods<G: GenMechanics>(
+    ctx: &DamageContext<'_, G>,
+    mut damage: u32,
+) -> u32 {
     let attacker_item = ctx.state.items[ctx.attacker];
     if let Some(Some(hooks)) = ITEM_REGISTRY.get(attacker_item as usize) {
         if let Some(hook) = hooks.on_attacker_final_mod {
@@ -106,14 +107,7 @@ fn call_move_base_power_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, bp: u1
         }
         // Check custom base power modifier
         if let Some(hook) = hooks.on_modify_base_power {
-            return hook(
-                ctx.state,
-                ctx.attacker,
-                ctx.defender,
-                ctx.move_data,
-                ctx.move_type,
-                bp,
-            );
+            return hook(ctx.state, ctx.attacker, ctx.defender, ctx.move_data, ctx.move_type, bp);
         }
     }
     bp
@@ -144,7 +138,13 @@ fn call_base_power_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, bp: u16) ->
 fn call_attack_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, attack: u16) -> u16 {
     if let Some(Some(hooks)) = ABILITY_REGISTRY.get(ctx.attacker_ability as usize) {
         if let Some(hook) = hooks.on_modify_attack {
-            return hook(ctx.state, ctx.attacker, ctx.move_id, ctx.category, attack);
+            return hook(
+                ctx.state,
+                ctx.attacker,
+                ctx.move_id,
+                ctx.category,
+                attack,
+            );
         }
     }
     attack
@@ -161,11 +161,19 @@ fn call_defense_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, defense: u16) 
     let defender_ability = ctx.state.abilities[ctx.defender];
     if let Some(Some(hooks)) = ABILITY_REGISTRY.get(defender_ability as usize) {
         if let Some(hook) = hooks.on_modify_defense {
-            return hook(ctx.state, ctx.defender, ctx.attacker, ctx.category, defense);
+            return hook(
+                ctx.state,
+                ctx.defender,
+                ctx.attacker,
+                ctx.category,
+                defense,
+            );
         }
     }
     defense
 }
+
+
 
 /// Check if status damage reduction should be ignored (Guts, Facade).
 fn should_ignore_status_damage_reduction<G: GenMechanics>(
@@ -314,20 +322,13 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
     }
 
     // Psyshock / Psystrike / Secret Sword: Use Defense as target Defense (even if special)
-    if matches!(
-        ctx.move_id,
-        MoveId::Psyshock | MoveId::Psystrike | MoveId::Secretsword
-    ) {
+    if matches!(ctx.move_id, MoveId::Psyshock | MoveId::Psystrike | MoveId::Secretsword) {
         def_idx = STAT_INDEX_DEFENSE;
     }
 
     // Foul Play: Use Target's Attack
     let use_target_atk = ctx.move_id == MoveId::Foulplay;
-    let atk_source_idx = if use_target_atk {
-        ctx.defender
-    } else {
-        ctx.attacker
-    };
+    let atk_source_idx = if use_target_atk { ctx.defender } else { ctx.attacker };
 
     let mut attack = ctx.state.stats[atk_source_idx][atk_idx];
     let mut defense = ctx.state.stats[ctx.defender][def_idx];
@@ -418,10 +419,7 @@ fn is_weather_suppressed(state: &BattleState) -> bool {
     // Check both active Pokémon (Singles assumption for now)
     for &idx in &state.active {
         let ability = state.abilities[idx as usize];
-        if ability
-            .flags()
-            .contains(crate::abilities::AbilityFlags::SUPPRESSES_WEATHER)
-        {
+        if ability.flags().contains(crate::abilities::AbilityFlags::SUPPRESSES_WEATHER) {
             return true;
         }
     }
@@ -432,10 +430,7 @@ fn is_weather_suppressed(state: &BattleState) -> bool {
 ///
 /// Weather boost (1.5x for Fire in Sun, Water in Rain) is applied to base damage
 /// in all generations. This matches Smogon's implementation.
-pub fn apply_weather_mod_damage<G: GenMechanics>(
-    ctx: &mut DamageContext<'_, G>,
-    base_damage: &mut u32,
-) {
+pub fn apply_weather_mod_damage<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_damage: &mut u32) {
     // Check suppression
     if is_weather_suppressed(ctx.state) {
         return;
@@ -476,7 +471,7 @@ pub fn apply_terrain_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_d
         ctx.move_id,
         ctx.move_type,
         ctx.attacker_grounded,
-        ctx.defender_grounded,
+        ctx.defender_grounded
     ) {
         *base_damage = apply_modifier(*base_damage, modifier);
     }
@@ -547,10 +542,7 @@ pub fn apply_crit_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_dama
 /// Apply move-specific final damage modifiers (after crit, before random rolls).
 ///
 /// This is used for gen-specific mechanics like Gen 3 Weather Ball damage doubling.
-pub fn apply_move_final_damage_mod<G: GenMechanics>(
-    ctx: &DamageContext<'_, G>,
-    base_damage: &mut u32,
-) {
+pub fn apply_move_final_damage_mod<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_damage: &mut u32) {
     if let Some(Some(hooks)) = MOVE_REGISTRY.get(ctx.move_id as usize) {
         if let Some(hook) = hooks.on_modify_final_damage {
             *base_damage = hook(
@@ -581,27 +573,19 @@ pub fn apply_move_final_damage_mod<G: GenMechanics>(
 ///
 /// Note: Weather, spread, and crit are applied to base_damage BEFORE
 /// this function is called.
-pub fn compute_final_damage<G: GenMechanics>(
-    ctx: &DamageContext<'_, G>,
-    base_damage: u32,
-) -> [u16; 16] {
+pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_damage: u32) -> [u16; 16] {
     // Type immunity check
     if ctx.effectiveness == 0 {
         return [0u16; 16];
     }
 
     // Get ability hooks for final modifiers
-    let attacker_hooks = ABILITY_REGISTRY
-        .get(ctx.attacker_ability as usize)
-        .and_then(|a| a.as_ref());
-    let defender_hooks = ABILITY_REGISTRY
-        .get(ctx.defender_ability as usize)
-        .and_then(|a| a.as_ref());
+    let attacker_hooks = ABILITY_REGISTRY.get(ctx.attacker_ability as usize).and_then(|a| a.as_ref());
+    let defender_hooks = ABILITY_REGISTRY.get(ctx.defender_ability as usize).and_then(|a| a.as_ref());
 
     // Prepare pipeline inputs
     let stab_mod = if ctx.has_stab {
-        ctx.gen
-            .stab_multiplier(ctx.has_adaptability, ctx.is_tera_stab)
+        ctx.gen.stab_multiplier(ctx.has_adaptability, ctx.is_tera_stab)
     } else {
         Modifier::ONE
     };
@@ -620,10 +604,13 @@ pub fn compute_final_damage<G: GenMechanics>(
 
     // Create closures for item and ability final mods
     // These capture the context and hooks needed
-    let item_final_mod = |damage: u32| -> u32 { apply_item_final_mods(ctx, damage) };
+    let item_final_mod = |damage: u32| -> u32 {
+        apply_item_final_mods(ctx, damage)
+    };
 
-    let ability_final_mod =
-        |damage: u32| -> u32 { apply_final_mods(ctx, damage, attacker_hooks, defender_hooks) };
+    let ability_final_mod = |damage: u32| -> u32 {
+        apply_final_mods(ctx, damage, attacker_hooks, defender_hooks)
+    };
 
     // Delegate to the generation's pipeline
     ctx.gen.pipeline().compute_final_damage(
@@ -658,12 +645,14 @@ impl<G: GenMechanics> DamageContext<'_, G> {
 #[allow(dead_code)]
 // get_type_boost_item_mod removed (migrated to item hooks)
 
+
 /// Check if attacker has a contact-based ability modifier.
 #[allow(dead_code)]
 fn has_contact_ability_boost(ability: AbilityId, move_flags: MoveFlags) -> Option<Modifier> {
     if !move_flags.contains(MoveFlags::CONTACT) {
         return None;
     }
+
 
     match ability {
         AbilityId::Toughclaws => Some(Modifier::ONE_POINT_THREE), // 1.3x
@@ -674,14 +663,7 @@ fn has_contact_ability_boost(ability: AbilityId, move_flags: MoveFlags) -> Optio
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        damage::{DamageContext, Gen9},
-        items::ItemId,
-        moves::{MoveCategory, MoveId},
-        species::SpeciesId,
-        state::{BattleState, Status},
-        types::Type,
-    };
+    use crate::{state::{BattleState, Status}, damage::{DamageContext, Gen9}, species::SpeciesId, types::Type, items::ItemId, moves::{MoveId, MoveCategory}};
 
     #[test]
     fn test_stat_modifying_items() {
@@ -709,17 +691,11 @@ mod tests {
         let physical_move = MoveId::Tackle; // Physical
         let ctx_phys = DamageContext::new(gen, &state, 0, 6, physical_move, false);
         let (_, def_phys) = compute_effective_stats(&ctx_phys);
-        assert_eq!(
-            def_phys, 150,
-            "Eviolite should boost Defense by 1.5x for Chansey"
-        );
+        assert_eq!(def_phys, 150, "Eviolite should boost Defense by 1.5x for Chansey");
 
         let ctx_spec = DamageContext::new(gen, &state, 0, 6, special_move, false);
         let (_, def_spec) = compute_effective_stats(&ctx_spec);
-        assert_eq!(
-            def_spec, 150,
-            "Eviolite should boost Sp. Defense by 1.5x for Chansey"
-        );
+        assert_eq!(def_spec, 150, "Eviolite should boost Sp. Defense by 1.5x for Chansey");
 
         // 3. Thick Club (2x Atk for Cubone/Marowak)
         // NOTE: Thick Club item is filtered out in build.rs as nonstandard,
@@ -736,24 +712,20 @@ mod tests {
         state.species[0] = SpeciesId::from_str("pikachu").unwrap();
         let ctx_light_phys = DamageContext::new(gen, &state, 0, 6, physical_move, false);
         let (atk_light_phys, _) = compute_effective_stats(&ctx_light_phys);
-        assert_eq!(
-            atk_light_phys, 200,
-            "Light Ball should double Attack for Pikachu"
-        );
+        assert_eq!(atk_light_phys, 200, "Light Ball should double Attack for Pikachu");
 
         let ctx_light_spec = DamageContext::new(gen, &state, 0, 6, special_move, false);
         let (atk_light_spec, _) = compute_effective_stats(&ctx_light_spec);
-        assert_eq!(
-            atk_light_spec, 200,
-            "Light Ball should double Sp. Attack for Pikachu"
-        );
+        assert_eq!(atk_light_spec, 200, "Light Ball should double Sp. Attack for Pikachu");
     }
+
+
 
     #[test]
     fn test_facade_damage() {
+        use crate::state::{BattleState, Status};
         use crate::damage::{DamageContext, Gen9};
         use crate::species::SpeciesId;
-        use crate::state::{BattleState, Status};
         use crate::types::Type;
 
         let mut state = BattleState::new();
@@ -788,11 +760,7 @@ mod tests {
             let rolls = compute_final_damage(&ctx, 100);
             let min_damage = rolls[0];
 
-            assert!(
-                min_damage > 100,
-                "Facade should ignore burn reduction (got {})",
-                min_damage
-            );
+            assert!(min_damage > 100, "Facade should ignore burn reduction (got {})", min_damage);
         }
 
         // Case 3: Poisoned
@@ -808,10 +776,7 @@ mod tests {
             state.status[0] = Status::PARALYSIS;
             let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
             compute_base_power(&mut ctx);
-            assert_eq!(
-                ctx.base_power, 140,
-                "Facade BP should double when paralyzed"
-            );
+            assert_eq!(ctx.base_power, 140, "Facade BP should double when paralyzed");
         }
 
         // Case 5: Asleep (should NOT double)
@@ -819,21 +784,18 @@ mod tests {
             state.status[0] = Status::SLEEP;
             let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
             compute_base_power(&mut ctx);
-            assert_eq!(
-                ctx.base_power, 70,
-                "Facade BP should NOT double when asleep"
-            );
+            assert_eq!(ctx.base_power, 70, "Facade BP should NOT double when asleep");
         }
     }
 
     #[test]
     fn test_item_modifiers() {
-        use crate::damage::{DamageContext, Gen9};
-        use crate::items::ItemId;
-        use crate::moves::{MoveCategory, MoveId};
-        use crate::species::SpeciesId;
         use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
         use crate::types::Type;
+        use crate::items::ItemId;
+        use crate::moves::{MoveId, MoveCategory};
 
         let mut state = BattleState::new();
         let gen = Gen9;
@@ -885,18 +847,15 @@ mod tests {
             // apply_modifier(100, 5324) -> (100*5324 + 2048) >> 12 = 534448 >> 12 = 130.48 -> 130.
             let rolls = compute_final_damage(&ctx, 100);
             let damage = rolls[0]; // min roll (random=85)
-                                   // Expected: min roll (85) with STAB and Life Orb applied.
-            assert_eq!(
-                damage, 165,
-                "Life Orb should boost damage by ~1.3x (with STAB)"
-            );
+            // Expected: min roll (85) with STAB and Life Orb applied.
+            assert_eq!(damage, 165, "Life Orb should boost damage by ~1.3x (with STAB)");
         }
 
         // 4. Expert Belt (1.2x on Super Effective)
         {
             state.items[0] = ItemId::Expertbelt;
             let move_id = MoveId::Karatechop; // Fighting type
-                                              // Target is Normal (weak to Fighting)
+            // Target is Normal (weak to Fighting)
 
             let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
             assert!(ctx.effectiveness > 4, "Move should be super effective");
@@ -908,16 +867,13 @@ mod tests {
             let rolls = compute_final_damage(&ctx, 100);
             let damage = rolls[0];
 
-            assert_eq!(
-                damage, 204,
-                "Expert Belt should boost super effective damage by ~1.2x"
-            );
+            assert_eq!(damage, 204, "Expert Belt should boost super effective damage by ~1.2x");
 
             // Neutral hit check
             state.types[6] = [Type::Fighting, Type::Fighting]; // Resists? No, Fighting vs Fighting is neutral?
-                                                               // Fighting vs Poison is 0.5x. Fighting vs Flying is 0.5x.
-                                                               // Fighting vs Bug is 0.5x.
-                                                               // Fighting vs Fighting is 1x.
+            // Fighting vs Poison is 0.5x. Fighting vs Flying is 0.5x.
+            // Fighting vs Bug is 0.5x.
+            // Fighting vs Fighting is 1x.
 
             let ctx_neutral = DamageContext::new(gen, &state, 0, 6, move_id, false);
             // 1x effectiveness.
@@ -927,10 +883,7 @@ mod tests {
             let rolls_neutral = compute_final_damage(&ctx_neutral, 100);
             let damage_neutral = rolls_neutral[0];
 
-            assert_eq!(
-                damage_neutral, 85,
-                "Expert Belt should NOT boost neutral damage"
-            );
+            assert_eq!(damage_neutral, 85, "Expert Belt should NOT boost neutral damage");
         }
 
         // 5. Charcoal (1.2x Fire moves)
@@ -943,10 +896,7 @@ mod tests {
             // Charcoal: 40 * 1.2 = 48.
 
             compute_base_power(&mut ctx);
-            assert_eq!(
-                ctx.base_power, 48,
-                "Charcoal should boost Fire move BP by 1.2x"
-            );
+            assert_eq!(ctx.base_power, 48, "Charcoal should boost Fire move BP by 1.2x");
 
             // Non-Fire move
             let move_id_normal = MoveId::Tackle;
@@ -956,21 +906,18 @@ mod tests {
 
             let original_bp = ctx_normal.move_data.power;
             compute_base_power(&mut ctx_normal);
-            assert_eq!(
-                ctx_normal.base_power, original_bp,
-                "Charcoal should NOT boost Normal move BP"
-            );
+            assert_eq!(ctx_normal.base_power, original_bp, "Charcoal should NOT boost Normal move BP");
         }
     }
 
     #[test]
     fn test_tinted_lens() {
-        use crate::abilities::AbilityId;
-        use crate::damage::{DamageContext, Gen9};
-        use crate::moves::MoveId;
-        use crate::species::SpeciesId;
         use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
         use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
 
         let mut state = BattleState::new();
         let gen = Gen9;
@@ -991,10 +938,7 @@ mod tests {
         // Case 1: Not very effective (0.5x)
         {
             let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
-            assert_eq!(
-                ctx.effectiveness, 2,
-                "Normal vs Rock should be 0.5x (effectiveness 2)"
-            );
+            assert_eq!(ctx.effectiveness, 2, "Normal vs Rock should be 0.5x (effectiveness 2)");
 
             // Base damage 100 passed to function
             // 1. Roll 85: 85
@@ -1005,20 +949,14 @@ mod tests {
             let rolls = compute_final_damage(&ctx, 100);
             let damage = rolls[0]; // min roll (85)
 
-            assert_eq!(
-                damage, 126,
-                "Tinted Lens should double damage for not very effective hits"
-            );
+            assert_eq!(damage, 126, "Tinted Lens should double damage for not very effective hits");
         }
 
         // Case 2: Neutral hit (should NOT boost)
         {
             state.types[6] = [Type::Normal, Type::Normal]; // Normal vs Normal is 1x
             let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
-            assert_eq!(
-                ctx.effectiveness, 4,
-                "Normal vs Normal should be 1x (effectiveness 4)"
-            );
+            assert_eq!(ctx.effectiveness, 4, "Normal vs Normal should be 1x (effectiveness 4)");
 
             // 1. Roll 85: 85
             // 2. STAB (1.5x): 127
@@ -1035,10 +973,7 @@ mod tests {
         {
             state.types[6] = [Type::Rock, Type::Steel]; // Normal vs Rock/Steel is 0.5 * 0.5 = 0.25x
             let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
-            assert_eq!(
-                ctx.effectiveness, 1,
-                "Normal vs Rock/Steel should be 0.25x (effectiveness 1)"
-            );
+            assert_eq!(ctx.effectiveness, 1, "Normal vs Rock/Steel should be 0.25x (effectiveness 1)");
 
             // 1. Roll 85: 85
             // 2. STAB (1.5x): 127
@@ -1048,23 +983,17 @@ mod tests {
             let rolls = compute_final_damage(&ctx, 100);
             let damage = rolls[0];
 
-            assert_eq!(
-                damage, 62,
-                "Tinted Lens should double damage for 0.25x effective hits"
-            );
+            assert_eq!(damage, 62, "Tinted Lens should double damage for 0.25x effective hits");
         }
 
         // Case 4: Super Effective (2x) (should NOT boost)
         {
             let fighting_move = MoveId::Karatechop; // Fighting type
-                                                    // Target is Rock/Steel (4x weak to Fighting)
+            // Target is Rock/Steel (4x weak to Fighting)
 
             let ctx = DamageContext::new(gen, &state, 0, 6, fighting_move, false);
             // Fighting vs Rock (2x) * Fighting vs Steel (2x) = 4x (effectiveness 16)
-            assert_eq!(
-                ctx.effectiveness, 16,
-                "Fighting vs Rock/Steel should be 4x (effectiveness 16)"
-            );
+            assert_eq!(ctx.effectiveness, 16, "Fighting vs Rock/Steel should be 4x (effectiveness 16)");
 
             // 1. Roll 85: 85
             // 2. No STAB (Rattata is Normal): 85
@@ -1074,21 +1003,18 @@ mod tests {
             let rolls = compute_final_damage(&ctx, 100);
             let damage = rolls[0];
 
-            assert_eq!(
-                damage, 340,
-                "Tinted Lens should NOT boost super effective damage"
-            );
+            assert_eq!(damage, 340, "Tinted Lens should NOT boost super effective damage");
         }
     }
 
     #[test]
     fn test_sniper() {
-        use crate::abilities::AbilityId;
-        use crate::damage::{DamageContext, Gen9};
-        use crate::moves::MoveId;
-        use crate::species::SpeciesId;
         use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
         use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
 
         let mut state = BattleState::new();
         let gen = Gen9;
@@ -1132,11 +1058,11 @@ mod tests {
 
     #[test]
     fn test_screens_doubles() {
+        use crate::state::{BattleState, BattleFormat};
         use crate::damage::{DamageContext, Gen9};
-        use crate::moves::MoveId;
         use crate::species::SpeciesId;
-        use crate::state::{BattleFormat, BattleState};
         use crate::types::Type;
+        use crate::moves::MoveId;
 
         let mut state = BattleState::new();
         state.format = BattleFormat::Doubles;
@@ -1166,10 +1092,7 @@ mod tests {
         let rolls = compute_final_damage(&ctx, 100);
         let damage = rolls[0];
 
-        assert_eq!(
-            damage, 85,
-            "Screens in doubles should reduce damage by 0.67x"
-        );
+        assert_eq!(damage, 85, "Screens in doubles should reduce damage by 0.67x");
 
         // Singles comparison
         let mut state_singles = state; // Copy
@@ -1181,20 +1104,17 @@ mod tests {
         let rolls_singles = compute_final_damage(&ctx_singles, 100);
         let damage_singles = rolls_singles[0];
 
-        assert_eq!(
-            damage_singles, 63,
-            "Screens in singles should reduce damage by 0.5x"
-        );
+        assert_eq!(damage_singles, 63, "Screens in singles should reduce damage by 0.5x");
     }
 
     #[test]
     fn test_filter() {
-        use crate::abilities::AbilityId;
-        use crate::damage::{DamageContext, Gen9};
-        use crate::moves::MoveId;
-        use crate::species::SpeciesId;
         use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
         use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
 
         let mut state = BattleState::new();
         let gen = Gen9;
@@ -1214,10 +1134,7 @@ mod tests {
         // Case 1: Super Effective (2x) -> Filter (0.75x)
         {
             let ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
-            assert_eq!(
-                ctx.effectiveness, 8,
-                "Fighting vs Normal should be 2x (effectiveness 8)"
-            );
+            assert_eq!(ctx.effectiveness, 8, "Fighting vs Normal should be 2x (effectiveness 8)");
 
             // 1. Roll 85: 85
             // 2. STAB (1.5x): 127
@@ -1235,10 +1152,7 @@ mod tests {
             state.types[0] = [Type::Normal, Type::Normal];
             let move_id_normal = MoveId::Tackle;
             let ctx = DamageContext::new(gen, &state, 0, 6, move_id_normal, false);
-            assert_eq!(
-                ctx.effectiveness, 4,
-                "Normal vs Normal should be 1x (effectiveness 4)"
-            );
+            assert_eq!(ctx.effectiveness, 4, "Normal vs Normal should be 1x (effectiveness 4)");
 
             // 1. Roll 85: 85
             // 2. STAB (1.5x): 127
@@ -1254,13 +1168,13 @@ mod tests {
 
     #[test]
     fn test_rivalry() {
-        use crate::abilities::AbilityId;
-        use crate::damage::{DamageContext, Gen9};
-        use crate::entities::Gender;
-        use crate::moves::MoveId;
-        use crate::species::SpeciesId;
         use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
         use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
+        use crate::entities::Gender;
 
         let mut state = BattleState::new();
         let gen = Gen9;
@@ -1285,10 +1199,7 @@ mod tests {
             compute_base_power(&mut ctx);
             // Tackle BP 40. 40 * 1.25 = 50.
             // 40 * 5120 / 4096 = 50.
-            assert_eq!(
-                ctx.base_power, 50,
-                "Rivalry should boost same gender BP by 1.25x"
-            );
+            assert_eq!(ctx.base_power, 50, "Rivalry should boost same gender BP by 1.25x");
         }
 
         // Case 2: Opposite Gender (Male vs Female) -> 0.75x
@@ -1298,10 +1209,7 @@ mod tests {
             compute_base_power(&mut ctx);
             // 40 * 0.75 = 30.
             // 40 * 3072 / 4096 = 30.
-            assert_eq!(
-                ctx.base_power, 30,
-                "Rivalry should reduce opposite gender BP by 0.75x"
-            );
+            assert_eq!(ctx.base_power, 30, "Rivalry should reduce opposite gender BP by 0.75x");
         }
 
         // Case 3: Genderless (Male vs Genderless) -> 1x
@@ -1309,21 +1217,18 @@ mod tests {
             state.gender[6] = Gender::Genderless;
             let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
             compute_base_power(&mut ctx);
-            assert_eq!(
-                ctx.base_power, 40,
-                "Rivalry should not affect genderless targets"
-            );
+            assert_eq!(ctx.base_power, 40, "Rivalry should not affect genderless targets");
         }
     }
 
     #[test]
     fn test_sheer_force() {
-        use crate::abilities::AbilityId;
-        use crate::damage::{DamageContext, Gen9};
-        use crate::moves::MoveId;
-        use crate::species::SpeciesId;
         use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
         use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
 
         let mut state = BattleState::new();
         let gen = Gen9;
@@ -1349,10 +1254,7 @@ mod tests {
             compute_base_power(&mut ctx);
             // 90 * 1.3 = 117.
             // 90 * 5325 / 4096 = 117.004... -> 117.
-            assert_eq!(
-                ctx.base_power, 117,
-                "Sheer Force should boost move with secondary effect by 1.3x"
-            );
+            assert_eq!(ctx.base_power, 117, "Sheer Force should boost move with secondary effect by 1.3x");
         }
 
         // Case 2: Move without secondary effect (Earthquake) -> 1x
@@ -1360,21 +1262,18 @@ mod tests {
             let move_id = MoveId::Earthquake; // BP 100, no secondary
             let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
             compute_base_power(&mut ctx);
-            assert_eq!(
-                ctx.base_power, 100,
-                "Sheer Force should not boost move without secondary effect"
-            );
+            assert_eq!(ctx.base_power, 100, "Sheer Force should not boost move without secondary effect");
         }
     }
 
     #[test]
     fn test_sand_force() {
-        use crate::abilities::AbilityId;
-        use crate::damage::{DamageContext, Gen9};
-        use crate::moves::MoveId;
-        use crate::species::SpeciesId;
         use crate::state::BattleState;
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
         use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
 
         let mut state = BattleState::new();
         let gen = Gen9;
@@ -1397,10 +1296,7 @@ mod tests {
 
             compute_base_power(&mut ctx);
             // 50 * 1.3 = 65.
-            assert_eq!(
-                ctx.base_power, 65,
-                "Sand Force should boost Rock moves in Sand"
-            );
+            assert_eq!(ctx.base_power, 65, "Sand Force should boost Rock moves in Sand");
         }
 
         // Case 2: No Weather -> 1x
@@ -1410,10 +1306,7 @@ mod tests {
             let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
 
             compute_base_power(&mut ctx);
-            assert_eq!(
-                ctx.base_power, 50,
-                "Sand Force should not boost without Sand"
-            );
+            assert_eq!(ctx.base_power, 50, "Sand Force should not boost without Sand");
         }
 
         // Case 3: Sandstorm + Non-boosted Type (e.g. Normal) -> 1x
@@ -1423,20 +1316,17 @@ mod tests {
             let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
 
             compute_base_power(&mut ctx);
-            assert_eq!(
-                ctx.base_power, 40,
-                "Sand Force should not boost Normal moves"
-            );
+            assert_eq!(ctx.base_power, 40, "Sand Force should not boost Normal moves");
         }
     }
     #[test]
     fn test_guts_burn_ignore() {
-        use crate::abilities::AbilityId;
-        use crate::damage::{DamageContext, Gen9};
-        use crate::moves::MoveId;
-        use crate::species::SpeciesId;
         use crate::state::{BattleState, Status};
+        use crate::damage::{DamageContext, Gen9};
+        use crate::species::SpeciesId;
         use crate::types::Type;
+        use crate::abilities::AbilityId;
+        use crate::moves::MoveId;
 
         let mut state = BattleState::new();
         let gen = Gen9;
@@ -1474,10 +1364,6 @@ mod tests {
 
         // If burn reduction applied: 254 / 2 = 127
         // If burn reduction ignored: 254
-        assert_eq!(
-            min_damage, 254,
-            "Guts should ignore burn reduction (got {})",
-            min_damage
-        );
+        assert_eq!(min_damage, 254, "Guts should ignore burn reduction (got {})", min_damage);
     }
 }
