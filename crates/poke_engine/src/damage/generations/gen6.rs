@@ -1,8 +1,8 @@
 //! Generation 6 (X/Y, Omega Ruby/Alpha Sapphire) mechanics.
 
 use super::{GenMechanics, Terrain};
-use crate::types::Type;
 use crate::damage::Modifier;
+use crate::types::Type;
 
 /// Generation 6 mechanics (Pokémon X/Y/ORAS).
 ///
@@ -16,7 +16,7 @@ pub struct Gen6;
 
 impl GenMechanics for Gen6 {
     const GEN: u8 = 6;
-    
+
     // Mega Evolution exists
     fn has_mega_evolution(&self) -> bool {
         true
@@ -25,12 +25,16 @@ impl GenMechanics for Gen6 {
     fn can_mega_evolve(&self) -> bool {
         true
     }
-    
+
     // STAB without Tera
     fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> Modifier {
-        if has_adaptability { Modifier::DOUBLE } else { Modifier::ONE_POINT_FIVE }
+        if has_adaptability {
+            Modifier::DOUBLE
+        } else {
+            Modifier::ONE_POINT_FIVE
+        }
     }
-    
+
     // Terrain was 1.5x (and no Psychic Terrain)
     fn terrain_modifier(
         &self,
@@ -44,7 +48,10 @@ impl GenMechanics for Gen6 {
 
         // Grassy Terrain: Halves Earthquake, Bulldoze, Magnitude if TARGET is grounded
         if terrain == Terrain::Grassy && defender_grounded {
-            if matches!(move_id, MoveId::Earthquake | MoveId::Bulldoze | MoveId::Magnitude) {
+            if matches!(
+                move_id,
+                MoveId::Earthquake | MoveId::Bulldoze | MoveId::Magnitude
+            ) {
                 return Some(Modifier::HALF);
             }
         }

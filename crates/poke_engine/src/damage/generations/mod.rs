@@ -1,7 +1,7 @@
 //! Generation-specific mechanics abstraction.
 //!
 //! Each generation implements the `GenMechanics` trait, providing constants
-//! and behaviors specific to that generation. Gen 9 is the "canonical" 
+//! and behaviors specific to that generation. Gen 9 is the "canonical"
 //! implementation; older generations are defined as deltas from their successor.
 //!
 //! # Design Philosophy
@@ -10,28 +10,28 @@
 //! - **Older gens override**: Only mechanics that differ need to be overridden
 //! - **Custom rulesets**: Fan formats can implement `GenMechanics` with arbitrary rules
 
-mod gen9;
-mod gen8;
-mod gen7;
-mod gen6;
-mod gen5;
-mod gen4;
-mod gen3;
-mod gen2;
 mod gen1;
+mod gen2;
+mod gen3;
+mod gen4;
+mod gen5;
+mod gen6;
+mod gen7;
+mod gen8;
+mod gen9;
 
-pub use gen9::Gen9;
-pub use gen8::Gen8;
-pub use gen7::Gen7;
-pub use gen6::Gen6;
-pub use gen5::Gen5;
-pub use gen4::Gen4;
-pub use gen3::Gen3;
-pub use gen2::Gen2;
 pub use gen1::Gen1;
+pub use gen2::Gen2;
+pub use gen3::Gen3;
+pub use gen4::Gen4;
+pub use gen5::Gen5;
+pub use gen6::Gen6;
+pub use gen7::Gen7;
+pub use gen8::Gen8;
+pub use gen9::Gen9;
 
-use crate::types::Type;
 use crate::damage::{DamageContext, DamageResult, Modifier};
+use crate::types::Type;
 
 /// Fixed-point scale for modifiers (4096 = 1.0x)
 pub const MOD_SCALE: u16 = 4096;
@@ -46,10 +46,10 @@ pub enum Weather {
     Rain = 2,
     Sand = 3,
     Hail = 4,
-    Snow = 5,          // Gen 9 replaced Hail with Snow
-    HarshSun = 6,      // Primal Groudon
-    HeavyRain = 7,     // Primal Kyogre
-    StrongWinds = 8,   // Mega Rayquaza
+    Snow = 5,        // Gen 9 replaced Hail with Snow
+    HarshSun = 6,    // Primal Groudon
+    HeavyRain = 7,   // Primal Kyogre
+    StrongWinds = 8, // Mega Rayquaza
 }
 
 impl Weather {
@@ -101,12 +101,12 @@ impl Terrain {
 pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     /// Generation number (1-9, or 0 for custom)
     const GEN: u8;
-    
+
     /// Get the generation number at runtime
     fn generation(&self) -> u8 {
         Self::GEN
     }
-    
+
     // ========================================================================
     // Damage Calculation Entry Point
     // ========================================================================
@@ -122,13 +122,13 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     // ========================================================================
     // Damage Modifiers
     // ========================================================================
-    
+
     /// Critical hit multiplier in 4096-scale.
     /// Gen 6+: 1.5x (6144), Gen 2-5: 2.0x (8192), Gen 1: special formula
     fn crit_multiplier(&self) -> Modifier {
         Modifier::ONE_POINT_FIVE // 1.5x for Gen 6+
     }
-    
+
     /// STAB (Same Type Attack Bonus) multiplier in 4096-scale.
     ///
     /// # Arguments
@@ -136,32 +136,31 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     /// * `is_tera_stab` - Whether this is a Tera-boosted STAB (Gen 9 only)
     fn stab_multiplier(&self, has_adaptability: bool, is_tera_stab: bool) -> Modifier {
         match (has_adaptability, is_tera_stab) {
-            (true, _) => Modifier::DOUBLE,      // 2.0x with Adaptability
-            (false, true) => Modifier::DOUBLE,  // 2.0x with Tera STAB
+            (true, _) => Modifier::DOUBLE,              // 2.0x with Adaptability
+            (false, true) => Modifier::DOUBLE,          // 2.0x with Tera STAB
             (false, false) => Modifier::ONE_POINT_FIVE, // 1.5x normal STAB
         }
     }
-    
+
     /// Weather damage modifier in 4096-scale.
     ///
     /// Returns `Some(modifier)` if weather affects this move type, `None` otherwise.
     fn weather_modifier(&self, weather: Weather, move_type: Type) -> Option<Modifier> {
         match (weather, move_type) {
             // Sun boosts Fire, weakens Water
-            (Weather::Sun | Weather::HarshSun, Type::Fire) => Some(Modifier::ONE_POINT_FIVE),  // 1.5x
+            (Weather::Sun | Weather::HarshSun, Type::Fire) => Some(Modifier::ONE_POINT_FIVE), // 1.5x
             (Weather::Sun | Weather::HarshSun, Type::Water) => Some(Modifier::HALF), // 0.5x
-            
+
             // Rain boosts Water, weakens Fire
             (Weather::Rain | Weather::HeavyRain, Type::Water) => Some(Modifier::ONE_POINT_FIVE), // 1.5x
-            (Weather::Rain | Weather::HeavyRain, Type::Fire) => Some(Modifier::HALF),  // 0.5x
-            
+            (Weather::Rain | Weather::HeavyRain, Type::Fire) => Some(Modifier::HALF), // 0.5x
+
             // Harsh Sun: Water moves fail entirely (handled elsewhere)
             // Heavy Rain: Fire moves fail entirely (handled elsewhere)
-            
             _ => None,
         }
     }
-    
+
     /// Terrain damage modifier in 4096-scale.
     ///
     /// Returns `Some(modifier)` if terrain affects this move, `None` otherwise.
@@ -184,7 +183,10 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
 
         // Grassy Terrain: Halves Earthquake, Bulldoze, Magnitude if TARGET is grounded
         if terrain == Terrain::Grassy && defender_grounded {
-            if matches!(move_id, MoveId::Earthquake | MoveId::Bulldoze | MoveId::Magnitude) {
+            if matches!(
+                move_id,
+                MoveId::Earthquake | MoveId::Bulldoze | MoveId::Magnitude
+            ) {
                 return Some(Modifier::HALF);
             }
         }
@@ -193,8 +195,8 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
         if attacker_grounded {
             match (terrain, move_type) {
                 (Terrain::Electric, Type::Electric) => return Some(Modifier::ONE_POINT_THREE), // 1.3x (Gen 8+)
-                (Terrain::Grassy, Type::Grass) => return Some(Modifier::ONE_POINT_THREE),      // 1.3x
-                (Terrain::Psychic, Type::Psychic) => return Some(Modifier::ONE_POINT_THREE),   // 1.3x
+                (Terrain::Grassy, Type::Grass) => return Some(Modifier::ONE_POINT_THREE), // 1.3x
+                (Terrain::Psychic, Type::Psychic) => return Some(Modifier::ONE_POINT_THREE), // 1.3x
                 _ => {}
             }
         }
@@ -206,35 +208,35 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
 
         None
     }
-    
+
     // ========================================================================
     // Mechanical Differences
     // ========================================================================
-    
+
     /// Whether abilities exist in this generation.
     /// Gen 1-2: false, Gen 3+: true
     fn has_abilities(&self) -> bool {
         Self::GEN >= 3
     }
-    
+
     /// Whether held items affect battle in this generation.
     /// Gen 1: false, Gen 2+: true
     fn has_held_items(&self) -> bool {
         Self::GEN >= 2
     }
-    
+
     /// Whether the Physical/Special split exists.
     /// Gen 1-3: false (determined by type), Gen 4+: true (per-move)
     fn uses_physical_special_split(&self) -> bool {
         Self::GEN >= 4
     }
-    
+
     /// Whether Terastallization exists.
     /// Only Gen 9.
     fn has_terastallization(&self) -> bool {
         Self::GEN >= 9
     }
-    
+
     /// Whether Mega Evolution exists.
     /// Gen 6-7.
     fn has_mega_evolution(&self) -> bool {
@@ -252,13 +254,13 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     fn mega_stat_boosts(&self, _species: crate::species::SpeciesId) -> Option<[u8; 6]> {
         None
     }
-    
+
     /// Whether Z-Moves exist.
     /// Gen 7.
     fn has_z_moves(&self) -> bool {
         Self::GEN == 7
     }
-    
+
     /// Whether Dynamax exists.
     /// Gen 8.
     fn has_dynamax(&self) -> bool {
@@ -275,11 +277,11 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     fn max_move_power(&self, base_power: u16) -> u16 {
         base_power
     }
-    
+
     // ========================================================================
     // Type Chart
     // ========================================================================
-    
+
     /// Calculate type effectiveness multiplier.
     ///
     /// Returns a fixed-point value where 4 = neutral (1x):
@@ -295,28 +297,28 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     fn type_effectiveness(&self, atk_type: Type, def_type1: Type, def_type2: Option<Type>) -> u8 {
         crate::types::type_effectiveness(atk_type, def_type1, def_type2)
     }
-    
+
     // ========================================================================
     // Burn Modifier
     // ========================================================================
-    
+
     /// Burn damage reduction multiplier for Physical moves (4096-scale).
     /// Default: 0.5x (2048). Returns None if burn doesn't reduce damage.
     fn burn_modifier(&self) -> Modifier {
         Modifier::HALF // 0.5x
     }
-    
+
     // ========================================================================
     // Formula Structure
     // ========================================================================
-    
+
     /// Whether the +2 constant is added inside the base damage formula.
     /// Gen 5+: true (added in base damage)
     /// Gen 3-4: false (added after burn/screens, before crit)
     fn adds_two_in_base_damage(&self) -> bool {
         Self::GEN >= 5
     }
-    
+
     /// Whether modifiers use 4096-scale with pokeRound.
     /// Gen 5+: true (use pokeRound with 4096 scale)
     /// Gen 3-4: false (use simple floor division)
@@ -398,7 +400,7 @@ impl Generation {
             _ => Generation::Gen9(Gen9),
         }
     }
-    
+
     /// Get the generation number.
     pub fn num(&self) -> u8 {
         match self {
@@ -451,7 +453,7 @@ impl GenMechanics for Generation {
                     defender_ability: ctx.defender_ability,
                 };
                 g.calculate_damage(&inner)
-            },
+            }
             Generation::Gen2(g) => {
                 let inner = DamageContext {
                     gen: *g,
@@ -476,7 +478,7 @@ impl GenMechanics for Generation {
                     defender_ability: ctx.defender_ability,
                 };
                 g.calculate_damage(&inner)
-            },
+            }
             Generation::Gen3(g) => {
                 let inner = DamageContext {
                     gen: *g,
@@ -501,7 +503,7 @@ impl GenMechanics for Generation {
                     defender_ability: ctx.defender_ability,
                 };
                 g.calculate_damage(&inner)
-            },
+            }
             Generation::Gen4(g) => {
                 let inner = DamageContext {
                     gen: *g,
@@ -526,9 +528,9 @@ impl GenMechanics for Generation {
                     defender_ability: ctx.defender_ability,
                 };
                 g.calculate_damage(&inner)
-            },
+            }
             Generation::Gen5(g) => {
-                 let inner = DamageContext {
+                let inner = DamageContext {
                     gen: *g,
                     state: ctx.state,
                     attacker: ctx.attacker,
@@ -551,9 +553,9 @@ impl GenMechanics for Generation {
                     defender_ability: ctx.defender_ability,
                 };
                 g.calculate_damage(&inner)
-            },
+            }
             Generation::Gen6(g) => {
-                 let inner = DamageContext {
+                let inner = DamageContext {
                     gen: *g,
                     state: ctx.state,
                     attacker: ctx.attacker,
@@ -576,9 +578,9 @@ impl GenMechanics for Generation {
                     defender_ability: ctx.defender_ability,
                 };
                 g.calculate_damage(&inner)
-            },
+            }
             Generation::Gen7(g) => {
-                 let inner = DamageContext {
+                let inner = DamageContext {
                     gen: *g,
                     state: ctx.state,
                     attacker: ctx.attacker,
@@ -601,9 +603,9 @@ impl GenMechanics for Generation {
                     defender_ability: ctx.defender_ability,
                 };
                 g.calculate_damage(&inner)
-            },
+            }
             Generation::Gen8(g) => {
-                 let inner = DamageContext {
+                let inner = DamageContext {
                     gen: *g,
                     state: ctx.state,
                     attacker: ctx.attacker,
@@ -626,9 +628,9 @@ impl GenMechanics for Generation {
                     defender_ability: ctx.defender_ability,
                 };
                 g.calculate_damage(&inner)
-            },
+            }
             Generation::Gen9(g) => {
-                 let inner = DamageContext {
+                let inner = DamageContext {
                     gen: *g,
                     state: ctx.state,
                     attacker: ctx.attacker,
@@ -651,10 +653,10 @@ impl GenMechanics for Generation {
                     defender_ability: ctx.defender_ability,
                 };
                 g.calculate_damage(&inner)
-            },
+            }
         }
     }
-    
+
     fn crit_multiplier(&self) -> Modifier {
         match self {
             Generation::Gen1(g) => g.crit_multiplier(),
@@ -668,7 +670,7 @@ impl GenMechanics for Generation {
             Generation::Gen9(g) => g.crit_multiplier(),
         }
     }
-    
+
     fn stab_multiplier(&self, has_adaptability: bool, is_tera_stab: bool) -> Modifier {
         match self {
             Generation::Gen1(g) => g.stab_multiplier(has_adaptability, is_tera_stab),
@@ -682,7 +684,7 @@ impl GenMechanics for Generation {
             Generation::Gen9(g) => g.stab_multiplier(has_adaptability, is_tera_stab),
         }
     }
-    
+
     fn weather_modifier(&self, weather: Weather, move_type: Type) -> Option<Modifier> {
         match self {
             Generation::Gen1(g) => g.weather_modifier(weather, move_type),
@@ -696,7 +698,7 @@ impl GenMechanics for Generation {
             Generation::Gen9(g) => g.weather_modifier(weather, move_type),
         }
     }
-    
+
     fn terrain_modifier(
         &self,
         terrain: Terrain,
@@ -706,18 +708,72 @@ impl GenMechanics for Generation {
         defender_grounded: bool,
     ) -> Option<Modifier> {
         match self {
-            Generation::Gen1(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
-            Generation::Gen2(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
-            Generation::Gen3(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
-            Generation::Gen4(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
-            Generation::Gen5(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
-            Generation::Gen6(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
-            Generation::Gen7(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
-            Generation::Gen8(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
-            Generation::Gen9(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
+            Generation::Gen1(g) => g.terrain_modifier(
+                terrain,
+                move_id,
+                move_type,
+                attacker_grounded,
+                defender_grounded,
+            ),
+            Generation::Gen2(g) => g.terrain_modifier(
+                terrain,
+                move_id,
+                move_type,
+                attacker_grounded,
+                defender_grounded,
+            ),
+            Generation::Gen3(g) => g.terrain_modifier(
+                terrain,
+                move_id,
+                move_type,
+                attacker_grounded,
+                defender_grounded,
+            ),
+            Generation::Gen4(g) => g.terrain_modifier(
+                terrain,
+                move_id,
+                move_type,
+                attacker_grounded,
+                defender_grounded,
+            ),
+            Generation::Gen5(g) => g.terrain_modifier(
+                terrain,
+                move_id,
+                move_type,
+                attacker_grounded,
+                defender_grounded,
+            ),
+            Generation::Gen6(g) => g.terrain_modifier(
+                terrain,
+                move_id,
+                move_type,
+                attacker_grounded,
+                defender_grounded,
+            ),
+            Generation::Gen7(g) => g.terrain_modifier(
+                terrain,
+                move_id,
+                move_type,
+                attacker_grounded,
+                defender_grounded,
+            ),
+            Generation::Gen8(g) => g.terrain_modifier(
+                terrain,
+                move_id,
+                move_type,
+                attacker_grounded,
+                defender_grounded,
+            ),
+            Generation::Gen9(g) => g.terrain_modifier(
+                terrain,
+                move_id,
+                move_type,
+                attacker_grounded,
+                defender_grounded,
+            ),
         }
     }
-    
+
     fn has_abilities(&self) -> bool {
         match self {
             Generation::Gen1(g) => g.has_abilities(),
@@ -731,7 +787,7 @@ impl GenMechanics for Generation {
             Generation::Gen9(g) => g.has_abilities(),
         }
     }
-    
+
     fn has_held_items(&self) -> bool {
         match self {
             Generation::Gen1(g) => g.has_held_items(),
@@ -745,7 +801,7 @@ impl GenMechanics for Generation {
             Generation::Gen9(g) => g.has_held_items(),
         }
     }
-    
+
     fn uses_physical_special_split(&self) -> bool {
         match self {
             Generation::Gen1(g) => g.uses_physical_special_split(),
@@ -759,7 +815,7 @@ impl GenMechanics for Generation {
             Generation::Gen9(g) => g.uses_physical_special_split(),
         }
     }
-    
+
     fn has_terastallization(&self) -> bool {
         match self {
             Generation::Gen9(g) => g.has_terastallization(),
@@ -818,7 +874,7 @@ impl GenMechanics for Generation {
             _ => base_power,
         }
     }
-    
+
     fn type_effectiveness(&self, atk_type: Type, def_type1: Type, def_type2: Option<Type>) -> u8 {
         match self {
             Generation::Gen1(g) => g.type_effectiveness(atk_type, def_type1, def_type2),
@@ -832,7 +888,7 @@ impl GenMechanics for Generation {
             Generation::Gen9(g) => g.type_effectiveness(atk_type, def_type1, def_type2),
         }
     }
-    
+
     fn burn_modifier(&self) -> Modifier {
         match self {
             Generation::Gen1(g) => g.burn_modifier(),

@@ -26,44 +26,42 @@
 //! // result.rolls contains all 16 damage values (85-100% rolls)
 //! ```
 
+mod ate_tests;
+mod conditional_moves_tests;
 mod context;
+pub mod effectiveness;
 mod formula;
+pub mod generations;
+#[cfg(test)]
+mod missing_implementations_test;
 pub mod modifier;
 mod modifiers;
 pub mod pipeline;
-pub mod generations;
-mod special_moves;
-pub mod effectiveness;
-#[cfg(test)]
-mod special_moves_tests;
 #[cfg(test)]
 mod scrappy_tests;
+mod special_moves;
 #[cfg(test)]
-mod missing_implementations_test;
-mod ate_tests;
-mod conditional_moves_tests;
+mod special_moves_tests;
 
 pub use context::DamageContext;
+pub use formula::{apply_modifier, chain_mods, get_base_damage, of16, of32, pokeround};
+pub use generations::{Gen9, GenMechanics, Generation};
 pub use modifier::Modifier;
-pub use formula::{get_base_damage, pokeround, of16, of32, chain_mods, apply_modifier};
 pub use modifiers::compute_base_power;
-pub use generations::{GenMechanics, Generation, Gen9};
 pub use pipeline::{DamagePipeline, Gen3Pipeline, Gen4Pipeline, Gen5PlusPipeline};
 
 use crate::moves::MoveId;
 use crate::state::BattleState;
 
 /// Calculate the effective priority of a move.
-pub fn calculate_priority(
-    state: &BattleState,
-    attacker: usize,
-    move_id: MoveId,
-) -> i8 {
+pub fn calculate_priority(state: &BattleState, attacker: usize, move_id: MoveId) -> i8 {
     let move_data = move_id.data();
     let mut priority = move_data.priority;
 
     // Ability hooks
-    if let Some(Some(hooks)) = crate::abilities::ABILITY_REGISTRY.get(state.abilities[attacker] as usize) {
+    if let Some(Some(hooks)) =
+        crate::abilities::ABILITY_REGISTRY.get(state.abilities[attacker] as usize)
+    {
         if let Some(hook) = hooks.on_modify_priority {
             priority = hook(state, attacker, move_id, priority);
         }
@@ -77,19 +75,19 @@ pub fn calculate_priority(
 pub struct DamageResult {
     /// All 16 possible damage values (random roll 85-100)
     pub rolls: [u16; 16],
-    
+
     /// Minimum damage (roll index 0)
     pub min: u16,
-    
+
     /// Maximum damage (roll index 15)
     pub max: u16,
-    
+
     /// Type effectiveness multiplier (4 = neutral, 8 = 2x, etc.)
     pub effectiveness: u8,
-    
+
     /// Whether the attack was a critical hit
     pub is_crit: bool,
-    
+
     /// Base power after modifications
     pub final_base_power: u16,
 }
@@ -158,14 +156,15 @@ pub fn calculate_damage_with_overrides<G: GenMechanics>(
     base_power_override: Option<u16>,
 ) -> DamageResult {
     let move_data = move_id.data();
-    
+
     // Status moves deal no damage
     if move_data.category == crate::moves::MoveCategory::Status {
         return DamageResult::zero();
     }
-    
+
     // Check for fixed damage moves first
-    if let Some(fixed_damage) = special_moves::get_fixed_damage(move_id, state, attacker, defender) {
+    if let Some(fixed_damage) = special_moves::get_fixed_damage(move_id, state, attacker, defender)
+    {
         return DamageResult {
             rolls: [fixed_damage; 16],
             min: fixed_damage,
@@ -175,18 +174,18 @@ pub fn calculate_damage_with_overrides<G: GenMechanics>(
             final_base_power: 0,
         };
     }
-    
+
     // Power 0 moves with no special handling deal no damage
     if move_data.power == 0 && !special_moves::is_variable_power(move_id) {
         return DamageResult::zero();
     }
-    
+
     // Create damage context
     let mut ctx = DamageContext::new(gen, state, attacker, defender, move_id, is_crit);
     if let Some(bp) = base_power_override {
         ctx.base_power = bp;
     }
-    
+
     // Check Psychic Terrain priority blocking (Gen 7+)
     if gen.generation() >= 7
         && ctx.state.terrain == crate::damage::generations::Terrain::Psychic as u8
@@ -194,7 +193,7 @@ pub fn calculate_damage_with_overrides<G: GenMechanics>(
     {
         let priority = calculate_priority(state, attacker, move_id);
         if priority > 0 {
-             return DamageResult::zero();
+            return DamageResult::zero();
         }
     }
 
@@ -210,47 +209,47 @@ mod tests {
     use super::*;
     use crate::entities::PokemonConfig;
     use crate::moves::MoveId;
-    
+
     #[test]
     fn test_basic_damage_calc() {
         // Set up a simple battle: Pikachu vs Bulbasaur
         let mut state = BattleState::new();
-        
+
         // Spawn attacker (player 0, slot 0)
         if let Some(mut config) = PokemonConfig::from_str("pikachu") {
             config = config.level(50);
             config.spawn(&mut state, 0, 0);
         }
-        
+
         // Spawn defender (player 1, slot 0)
         if let Some(mut config) = PokemonConfig::from_str("bulbasaur") {
             config = config.level(50);
             config.spawn(&mut state, 1, 0);
         }
-        
+
         // Get Thunderbolt
         let thunderbolt = MoveId::from_str("thunderbolt").expect("thunderbolt should exist");
-        
+
         // Calculate damage
         let result = calculate_damage(
             Gen9,
             &state,
-            0,  // attacker = Pikachu
-            6,  // defender = Bulbasaur (player 1, slot 0)
+            0, // attacker = Pikachu
+            6, // defender = Bulbasaur (player 1, slot 0)
             thunderbolt,
             false,
         );
-        
+
         // Should deal damage (Electric vs Grass/Poison = neutral)
         assert!(result.max > 0, "Should deal some damage");
         assert!(result.min <= result.max, "Min should be <= max");
         assert_eq!(result.rolls.len(), 16, "Should have 16 rolls");
     }
-    
+
     #[test]
     fn test_type_immunity() {
         let mut state = BattleState::new();
-        
+
         // Pikachu vs Gengar (Ghost/Poison)
         // Note: We use Gengar because Gastly has Levitate (immune to Ground).
         // Gengar has Cursed Body (Gen 9), so it should be hit by Ground.
@@ -260,15 +259,18 @@ mod tests {
         if let Some(config) = PokemonConfig::from_str("gengar") {
             config.level(50).spawn(&mut state, 1, 0);
         }
-        
+
         // Get a Ground move (Earthquake)
         let earthquake = MoveId::from_str("earthquake").expect("earthquake should exist");
-        
+
         // Calculate damage
         let result = calculate_damage(Gen9, &state, 0, 6, earthquake, false);
-        
+
         // Gengar is Ghost/Poison - neither is immune to Ground type-wise.
         // So this should deal super effective damage (2x to Poison)
-        assert!(result.effectiveness > 0, "Ghost/Poison is not immune to Ground");
+        assert!(
+            result.effectiveness > 0,
+            "Ghost/Poison is not immune to Ground"
+        );
     }
 }

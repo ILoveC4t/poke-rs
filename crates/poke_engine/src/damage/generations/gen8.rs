@@ -1,8 +1,8 @@
 //! Generation 8 (Sword/Shield) mechanics.
 
 use super::{GenMechanics, Terrain};
-use crate::types::Type;
 use crate::damage::Modifier;
+use crate::types::Type;
 
 /// Generation 8 mechanics (Pokémon Sword/Shield).
 ///
@@ -15,12 +15,12 @@ pub struct Gen8;
 
 impl GenMechanics for Gen8 {
     const GEN: u8 = 8;
-    
+
     // No Terastallization
     fn has_terastallization(&self) -> bool {
         false
     }
-    
+
     // Dynamax exists
     fn has_dynamax(&self) -> bool {
         true
@@ -29,12 +29,16 @@ impl GenMechanics for Gen8 {
     fn dynamax_hp_multiplier(&self) -> f32 {
         2.0
     }
-    
+
     // STAB without Tera
     fn stab_multiplier(&self, has_adaptability: bool, _is_tera_stab: bool) -> Modifier {
-        if has_adaptability { Modifier::DOUBLE } else { Modifier::ONE_POINT_FIVE }
+        if has_adaptability {
+            Modifier::DOUBLE
+        } else {
+            Modifier::ONE_POINT_FIVE
+        }
     }
-    
+
     // Terrain was 1.5x initially, then nerfed to 1.3x in later patches
     // Using 1.3x as the final value
     fn terrain_modifier(
@@ -49,7 +53,10 @@ impl GenMechanics for Gen8 {
 
         // Grassy Terrain: Halves Earthquake, Bulldoze, Magnitude if TARGET is grounded
         if terrain == Terrain::Grassy && defender_grounded {
-            if matches!(move_id, MoveId::Earthquake | MoveId::Bulldoze | MoveId::Magnitude) {
+            if matches!(
+                move_id,
+                MoveId::Earthquake | MoveId::Bulldoze | MoveId::Magnitude
+            ) {
                 return Some(Modifier::HALF);
             }
         }
