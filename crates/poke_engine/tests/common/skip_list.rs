@@ -5,7 +5,7 @@
 //! correctness test in `tests/` to verify the engine's behavior.
 
 /// Fixtures that are intentionally skipped because they test incorrect behavior.
-/// 
+///
 /// When adding a fixture to this list:
 /// 1. Document WHY it's skipped (what's wrong with the fixture)
 /// 2. Create a correctness test in `tests/` that verifies correct behavior
@@ -32,7 +32,9 @@ pub fn should_skip(fixture_id: &str) -> bool {
 /// Get the reason a fixture is skipped, if any.
 pub fn skip_reason(fixture_id: &str) -> Option<&'static str> {
     if fixture_id.contains("Arceus-Plate") {
-        return Some("Smogon fixture doesn't apply Multitype type change (see multitype_correctness.rs)");
+        return Some(
+            "Smogon fixture doesn't apply Multitype type change (see multitype_correctness.rs)",
+        );
     }
     None
 }
@@ -40,7 +42,7 @@ pub fn skip_reason(fixture_id: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_skip_check() {
         assert!(should_skip("gen4-Arceus-Plate--gen-4--4"));
