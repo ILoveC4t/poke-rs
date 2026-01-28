@@ -2,9 +2,9 @@
 //!
 //! Static registry mapping MoveId to MoveHooks for conditional move logic.
 
-use crate::moves::MoveId;
 use super::hooks::MoveHooks;
 use super::implementations::*;
+use crate::moves::MoveId;
 
 pub static MOVE_REGISTRY: [Option<MoveHooks>; MoveId::COUNT] = {
     let mut registry: [Option<MoveHooks>; MoveId::COUNT] = [None; MoveId::COUNT];
@@ -48,7 +48,6 @@ pub static MOVE_REGISTRY: [Option<MoveHooks>; MoveId::COUNT] = {
         conditional_multiplier: 8192, // 2x
         ..MoveHooks::NONE
     });
-
 
     // =========================================================================
     // Special Moves

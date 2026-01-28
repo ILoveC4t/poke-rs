@@ -2,13 +2,13 @@
 //!
 //! Contains the condition check functions for moves with conditional power boosts.
 
-use crate::state::{BattleState, Status};
-use crate::moves::Move;
-use crate::types::Type;
+use crate::abilities::{AbilityFlags, AbilityId};
 use crate::damage::generations::Weather;
-use crate::abilities::{AbilityId, AbilityFlags};
 use crate::items::ItemId;
+use crate::moves::Move;
 use crate::species::SpeciesId;
+use crate::state::{BattleState, Status};
+use crate::types::Type;
 use std::sync::OnceLock;
 
 // ============================================================================
@@ -103,14 +103,17 @@ pub fn on_modify_base_power_weather_ball(
     if state.generation == 3 {
         return bp;
     }
-    
+
     // Gen 4+: Double BP in weather
     let weather = Weather::from_u8(state.weather);
     match weather {
-        Weather::Sun | Weather::HarshSun |
-        Weather::Rain | Weather::HeavyRain |
-        Weather::Sand |
-        Weather::Hail | Weather::Snow => bp * 2,
+        Weather::Sun
+        | Weather::HarshSun
+        | Weather::Rain
+        | Weather::HeavyRain
+        | Weather::Sand
+        | Weather::Hail
+        | Weather::Snow => bp * 2,
         _ => bp,
     }
 }
@@ -127,13 +130,16 @@ pub fn on_modify_final_damage_weather_ball(
     if state.generation != 3 {
         return damage;
     }
-    
+
     let weather = Weather::from_u8(state.weather);
     match weather {
-        Weather::Sun | Weather::HarshSun |
-        Weather::Rain | Weather::HeavyRain |
-        Weather::Sand |
-        Weather::Hail | Weather::Snow => damage * 2,
+        Weather::Sun
+        | Weather::HarshSun
+        | Weather::Rain
+        | Weather::HeavyRain
+        | Weather::Sand
+        | Weather::Hail
+        | Weather::Snow => damage * 2,
         _ => damage,
     }
 }
@@ -173,7 +179,7 @@ pub fn flying_press_effectiveness(
     type_chart: &dyn Fn(Type, Type) -> u8,
 ) -> u8 {
     let def_types = state.types[defender];
-    
+
     // effectiveness passed in is Fighting vs Target.
     // We need to calculate Flying vs Target.
     let flying_eff_1 = type_chart(Type::Flying, def_types[0]);
@@ -182,16 +188,16 @@ pub fn flying_press_effectiveness(
     } else {
         4 // 1x
     };
-    
+
     // Flying total: (e1 * e2) / 4
     let flying_total = (flying_eff_1 as u16 * flying_eff_2 as u16) / 4;
-    
+
     // Combined: (Fighting * Flying) / 4
     ((effectiveness as u16 * flying_total) / 4) as u8
 }
 
 // ============================================================================
-// Thousand Arrows: Hits Flying neutral 
+// Thousand Arrows: Hits Flying neutral
 // ============================================================================
 
 pub fn thousand_arrows_effectiveness(
@@ -204,27 +210,31 @@ pub fn thousand_arrows_effectiveness(
 ) -> u8 {
     let def_types = state.types[defender];
     let t1 = def_types[0];
-    let t2 = if def_types[1] != def_types[0] { Some(def_types[1]) } else { None };
+    let t2 = if def_types[1] != def_types[0] {
+        Some(def_types[1])
+    } else {
+        None
+    };
 
     if t1 == Type::Flying || t2 == Some(Type::Flying) {
-         // Re-calculate with Flying treated as Neutral (Normal)
-         let eff1 = if t1 == Type::Flying { 
-             4 // 1x
-         } else {
-             type_chart(Type::Ground, t1)
-         };
-         
-         let eff2 = if let Some(t) = t2 {
-             if t == Type::Flying {
-                 4 // 1x
-             } else {
-                 type_chart(Type::Ground, t)
-             }
-         } else {
-             4 // 1x
-         };
-         
-         return ((eff1 as u16 * eff2 as u16) / 4) as u8;
+        // Re-calculate with Flying treated as Neutral (Normal)
+        let eff1 = if t1 == Type::Flying {
+            4 // 1x
+        } else {
+            type_chart(Type::Ground, t1)
+        };
+
+        let eff2 = if let Some(t) = t2 {
+            if t == Type::Flying {
+                4 // 1x
+            } else {
+                type_chart(Type::Ground, t)
+            }
+        } else {
+            4 // 1x
+        };
+
+        return ((eff1 as u16 * eff2 as u16) / 4) as u8;
     }
     effectiveness
 }
@@ -258,8 +268,8 @@ pub fn on_ignore_status_damage_reduction_facade(
 /// Calculate effective weight of an entity, applying modifiers.
 /// If attacker has Mold Breaker, weight-modifying abilities are bypassed.
 fn get_modified_weight(
-    state: &BattleState, 
-    entity_idx: usize, 
+    state: &BattleState,
+    entity_idx: usize,
     entity_ability: AbilityId,
     attacker_ability: AbilityId,
 ) -> u32 {
@@ -269,7 +279,9 @@ fn get_modified_weight(
     }
 
     // Check if attacker has Mold Breaker (bypasses target's abilities)
-    let has_mold_breaker = attacker_ability.flags().contains(AbilityFlags::MOLD_BREAKER);
+    let has_mold_breaker = attacker_ability
+        .flags()
+        .contains(AbilityFlags::MOLD_BREAKER);
 
     // Apply ability modifiers (unless bypassed by Mold Breaker)
     if !has_mold_breaker {
@@ -299,7 +311,7 @@ pub fn grass_knot_power(
 ) -> u16 {
     let attacker_ability = state.abilities[attacker];
     let defender_ability = state.abilities[defender];
-    
+
     let weight = get_modified_weight(state, defender, defender_ability, attacker_ability);
     match weight {
         w if w >= 2000 => 120, // >= 200kg
@@ -323,9 +335,10 @@ pub fn heavy_slam_power(
     let attacker_ability = state.abilities[attacker];
     let defender_ability = state.abilities[defender];
 
-    let attacker_weight = get_modified_weight(state, attacker, attacker_ability, AbilityId::Noability);
+    let attacker_weight =
+        get_modified_weight(state, attacker, attacker_ability, AbilityId::Noability);
     let defender_weight = get_modified_weight(state, defender, defender_ability, attacker_ability);
-    
+
     let ratio_x10 = (attacker_weight * 10) / defender_weight;
     match ratio_x10 {
         r if r >= 50 => 120, // >= 5x
@@ -363,12 +376,12 @@ pub fn flail_power(
     let max_hp = state.max_hp[attacker] as u32;
     let hp_percent = (current_hp * 48) / max_hp.max(1);
     match hp_percent {
-        0..=1 => 200,   // < 4.17%
-        2..=4 => 150,   // < 10.42%
-        5..=9 => 100,   // < 20.83%
-        10..=16 => 80,  // < 35.42%
-        17..=32 => 40,  // < 68.75%
-        _ => 20,        // >= 68.75%
+        0..=1 => 200,  // < 4.17%
+        2..=4 => 150,  // < 10.42%
+        5..=9 => 100,  // < 20.83%
+        10..=16 => 80, // < 35.42%
+        17..=32 => 40, // < 68.75%
+        _ => 20,       // >= 68.75%
     }
 }
 // Return: BP = Happiness / 2.5 (Max 102)

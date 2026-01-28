@@ -32,8 +32,18 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
 
     let breaks_screens_moves = ["Brick Break", "Psychic Fangs", "Raging Bull"];
     let variable_power_moves = [
-        "Eruption", "Water Spout", "Flail", "Reversal", "Low Kick", "Grass Knot", "Heavy Slam",
-        "Heat Crash", "Gyro Ball", "Electro Ball", "Crush Grip", "Wring Out",
+        "Eruption",
+        "Water Spout",
+        "Flail",
+        "Reversal",
+        "Low Kick",
+        "Grass Knot",
+        "Heavy Slam",
+        "Heat Crash",
+        "Gyro Ball",
+        "Electro Ball",
+        "Crush Grip",
+        "Wring Out",
     ];
 
     for (_, data) in &valid_moves {
@@ -94,91 +104,94 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
         .collect();
 
     // 3. Generate Move Data Entries
-    let move_data_entries: Vec<TokenStream> = valid_moves.iter().map(|(_, data)| {
-         let name = &data.name;
-         let type_str = data.move_type.as_deref().unwrap_or("Normal");
-         let type_ident = format_ident!("{}", type_str);
+    let move_data_entries: Vec<TokenStream> = valid_moves
+        .iter()
+        .map(|(_, data)| {
+            let name = &data.name;
+            let type_str = data.move_type.as_deref().unwrap_or("Normal");
+            let type_ident = format_ident!("{}", type_str);
 
-         let cat_str = data.category.as_deref().unwrap_or("Status");
-         let cat_ident = format_ident!("{}", cat_str);
+            let cat_str = data.category.as_deref().unwrap_or("Status");
+            let cat_ident = format_ident!("{}", cat_str);
 
-         let power = data.base_power.unwrap_or(0);
+            let power = data.base_power.unwrap_or(0);
 
-         let accuracy = match &data.accuracy {
-             Some(serde_json::Value::Bool(true)) => 0,
-             Some(serde_json::Value::Number(n)) => n.as_u64().unwrap_or(0) as u8,
-             _ => 0,
-         };
+            let accuracy = match &data.accuracy {
+                Some(serde_json::Value::Bool(true)) => 0,
+                Some(serde_json::Value::Number(n)) => n.as_u64().unwrap_or(0) as u8,
+                _ => 0,
+            };
 
-         let pp = data.pp.unwrap_or(0);
-         let priority = data.priority.unwrap_or(0);
+            let pp = data.pp.unwrap_or(0);
+            let priority = data.priority.unwrap_or(0);
 
-         // Flags
-         let mut flag_bits = 0u64;
-         for (flag_key, _) in &data.flags {
-             if let Some(pos) = flag_names.iter().position(|x| x == flag_key) {
-                 flag_bits |= 1 << pos;
-             }
-         }
+            // Flags
+            let mut flag_bits = 0u64;
+            for (flag_key, _) in &data.flags {
+                if let Some(pos) = flag_names.iter().position(|x| x == flag_key) {
+                    flag_bits |= 1 << pos;
+                }
+            }
 
-         // Inject Recoil flag bit
-         if data.recoil.is_some()
-             || data.has_crash_damage.unwrap_or(false)
-             || data.mind_blown_recoil.unwrap_or(false)
-         {
-             if let Some(pos) = flag_names.iter().position(|x| x == "Recoil") {
-                 flag_bits |= 1 << pos;
-             }
-         }
+            // Inject Recoil flag bit
+            if data.recoil.is_some()
+                || data.has_crash_damage.unwrap_or(false)
+                || data.mind_blown_recoil.unwrap_or(false)
+            {
+                if let Some(pos) = flag_names.iter().position(|x| x == "Recoil") {
+                    flag_bits |= 1 << pos;
+                }
+            }
 
-         // Inject HasSecondaryEffects flag bit
-         if has_secondary_effects(data) {
-             if let Some(pos) = flag_names.iter().position(|x| x == "HasSecondaryEffects") {
-                 flag_bits |= 1 << pos;
-             }
-         }
+            // Inject HasSecondaryEffects flag bit
+            if has_secondary_effects(data) {
+                if let Some(pos) = flag_names.iter().position(|x| x == "HasSecondaryEffects") {
+                    flag_bits |= 1 << pos;
+                }
+            }
 
-         if breaks_screens_moves.contains(&data.name.as_str()) {
-             if let Some(pos) = flag_names.iter().position(|x| x == "BreaksScreens") {
-                 flag_bits |= 1 << pos;
-             }
-         }
+            if breaks_screens_moves.contains(&data.name.as_str()) {
+                if let Some(pos) = flag_names.iter().position(|x| x == "BreaksScreens") {
+                    flag_bits |= 1 << pos;
+                }
+            }
 
-         if variable_power_moves.contains(&data.name.as_str()) {
-             if let Some(pos) = flag_names.iter().position(|x| x == "VariablePower") {
-                 flag_bits |= 1 << pos;
-             }
-         }
+            if variable_power_moves.contains(&data.name.as_str()) {
+                if let Some(pos) = flag_names.iter().position(|x| x == "VariablePower") {
+                    flag_bits |= 1 << pos;
+                }
+            }
 
-         let flag_bits_lit = if use_u64 {
-             quote! { #flag_bits }
-         } else {
-             let val = flag_bits as u32;
-             quote! { #val }
-         };
+            let flag_bits_lit = if use_u64 {
+                quote! { #flag_bits }
+            } else {
+                let val = flag_bits as u32;
+                quote! { #val }
+            };
 
-         // Terrain
-         let terrain_ident = if let Some(t) = &data.terrain {
-             let t_ident = format_ident!("{}", t.replace("terrain", "").to_pascal_case());
-             quote! { TerrainId::#t_ident }
-         } else {
-             quote! { TerrainId::None }
-         };
+            // Terrain
+            let terrain_ident = if let Some(t) = &data.terrain {
+                let t_ident = format_ident!("{}", t.replace("terrain", "").to_pascal_case());
+                quote! { TerrainId::#t_ident }
+            } else {
+                quote! { TerrainId::None }
+            };
 
-         quote! {
-             Move {
-                 name: #name,
-                 primary_type: Type::#type_ident,
-                 category: MoveCategory::#cat_ident,
-                 power: #power,
-                 accuracy: #accuracy,
-                 pp: #pp,
-                 priority: #priority,
-                 flags: MoveFlags::from_bits_truncate(#flag_bits_lit),
-                 terrain: #terrain_ident,
-             }
-         }
-    }).collect();
+            quote! {
+                Move {
+                    name: #name,
+                    primary_type: Type::#type_ident,
+                    category: MoveCategory::#cat_ident,
+                    power: #power,
+                    accuracy: #accuracy,
+                    pp: #pp,
+                    priority: #priority,
+                    flags: MoveFlags::from_bits_truncate(#flag_bits_lit),
+                    terrain: #terrain_ident,
+                }
+            }
+        })
+        .collect();
 
     // Generate phf map for string -> MoveId lookup
     let mut phf_map = phf_codegen::Map::new();
