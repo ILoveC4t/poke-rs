@@ -297,6 +297,42 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     fn uses_4096_scale_modifiers(&self) -> bool {
         Self::GEN >= 5
     }
+
+    // ========================================================================
+    // Damage Pipeline
+    // ========================================================================
+
+    /// Returns the damage calculation pipeline for final damage computation.
+    ///
+    /// The pipeline defines the order of operations for:
+    /// - Random roll (85-100%)
+    /// - STAB modifier
+    /// - Type effectiveness
+    /// - Burn reduction
+    /// - Screen reduction
+    /// - Item/Ability final modifiers
+    ///
+    /// Different generations have different orderings. Gen 5+ uses random-first,
+    /// Gen 3 uses random-last, Gen 4 is a hybrid.
+    ///
+    /// # Library Users
+    /// Implement your own `DamagePipeline` to create custom damage formulas:
+    /// ```ignore
+    /// static MY_PIPELINE: MyPipeline = MyPipeline;
+    /// impl GenMechanics for MyGen {
+    ///     fn pipeline(&self) -> &'static dyn DamagePipeline { &MY_PIPELINE }
+    /// }
+    /// ```
+    fn pipeline(&self) -> &'static dyn crate::damage::pipeline::DamagePipeline {
+        use crate::damage::pipeline::*;
+        if Self::GEN >= 5 {
+            &GEN5_PLUS_PIPELINE
+        } else if Self::GEN == 4 {
+            &GEN4_PIPELINE
+        } else {
+            &GEN3_PIPELINE
+        }
+    }
 }
 
 /// Runtime generation selection for when the generation isn't known at compile time.

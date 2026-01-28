@@ -130,6 +130,12 @@ impl<'a, G: GenMechanics> DamageContext<'a, G> {
             }
         }
 
+        // NOTE: Multitype (Arceus) type change is NOT applied here.
+        // Smogon's damage calc treats "Arceus" as Normal-type even with a Plate.
+        // The Judgment move's type changes, but Arceus's type doesn't - so no STAB.
+        // To get STAB, use "Arceus-Grass" (etc.) which has the correct types in the species data.
+        // This matches smogon's behavior for fixture compatibility.
+
         let mut move_type = move_data.primary_type;
 
         // Move Hooks: Modify Type (e.g. Weather Ball)

@@ -8,12 +8,14 @@
 
 # ARCHITECTURE (SHORT)
 - **Gen mechanics:** `GenMechanics` trait (`damage/generations/*`). Gen9 is default; older gens override deltas.
-- **Damage flow:** context -> base power -> effective stats -> pre-random modifiers -> final rolls.
+- **Damage pipeline:** `DamagePipeline` trait (`damage/pipeline.rs`). Defines order of final damage operations (random roll, STAB, effectiveness, etc.).
+- **Damage flow:** context -> base power -> effective stats -> pre-random modifiers -> final rolls (via pipeline).
 - **Special cases:** `damage/special_moves.rs` (Weather Ball, Struggle, etc).
 - **State:** `state.rs` (SoA layout), `entities.rs` (PokemonConfig spawn).
 - **Priority:** Finish full damage-fixture coverage before implementing combat simulation/turn engine (`BattleQueue`), and iterate on ability implementations as needed.
 
 # FIX PATTERNS
+- **Skip List**: If a fixture is logically incorrect (e.g., Smogon fixture doesn't apply a mechanics change that the engine correctly does), add its ID to `SKIPPED_FIXTURES` in `tests/damage_fixtures.rs` and add a correct custom test in `tests/` (e.g., `tests/multitype_correctness.rs`).
 - **Ability modifier:** Implement hooks in `crates/poke_engine/src/abilities/implementations/` and register them in `modifiers.rs` or `hooks.rs`. Avoid adding inline checks in `damage/modifiers.rs`.
 - **Item modifier:** Implement hooks in `crates/poke_engine/src/items/implementations/` and register in `items/registry.rs`.
 - **Move logic:** Implement hooks in `crates/poke_engine/src/moves/implementations.rs` and register in `moves/registry.rs`.

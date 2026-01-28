@@ -9,7 +9,7 @@ use crate::types::Type;
 
 /// Maps a Plate item to its corresponding Type.
 /// Returns None if the item is not a Plate.
-fn plate_to_type(item: ItemId) -> Option<Type> {
+pub fn plate_to_type(item: ItemId) -> Option<Type> {
     match item {
         ItemId::Flameplate => Some(Type::Fire),
         ItemId::Splashplate => Some(Type::Water),

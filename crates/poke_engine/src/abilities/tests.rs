@@ -3,6 +3,18 @@ use crate::state::BattleState;
 use crate::moves::MoveId;
 
 #[test]
+fn test_multitype_plate_to_type() {
+    use super::implementations::multitype::plate_to_type;
+    use crate::items::ItemId;
+    use crate::types::Type;
+    
+    assert_eq!(plate_to_type(ItemId::Meadowplate), Some(Type::Grass));
+    assert_eq!(plate_to_type(ItemId::Flameplate), Some(Type::Fire));
+    assert_eq!(plate_to_type(ItemId::Splashplate), Some(Type::Water));
+    assert_eq!(plate_to_type(ItemId::None), None);
+}
+
+#[test]
 fn test_registry_lookup() {
     // Drizzle should have a hook
     let drizzle = AbilityId::Drizzle;
