@@ -1,0 +1,68 @@
+name: Update Test Baseline
+
+on:
+  push:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  update-baseline:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run test runner
+        run: cargo run -p test_runner -- run
+
+      - name: Update baseline
+        run: |
+          if [ -f ".test_runs/latest.json" ]; then
+            cp .test_runs/latest.json .baseline/test_results.json
+            echo "Baseline updated from test run"
+          else
+            echo "::error::No test results found"
+            exit 1
+          fi
+
+      - name: Commit baseline
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Check if there are changes
+          if git diff --quiet .baseline/test_results.json; then
+            echo "No changes to baseline"
+            exit 0
+          fi
+          
+          # Get summary for commit message
+          PASSED=$(jq -r '.cargo_test.passed' .baseline/test_results.json)
+          FAILED=$(jq -r '.cargo_test.failed' .baseline/test_results.json)
+          
+          git add .baseline/test_results.json
+          git commit -m "chore(baseline): update test baseline [skip ci]" \
+                     -m "Tests: ${PASSED} passed, ${FAILED} failed" \
+                     -m "Triggered by: ${{ github.sha }}"
+          git push

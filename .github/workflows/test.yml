@@ -1,0 +1,100 @@
+name: Test & Regression Check
+
+on:
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run test runner
+        run: cargo run -p test_runner -- run
+
+      - name: Analyze regressions
+        id: analyze
+        run: |
+          chmod +x .github/scripts/analyze_regression.sh
+          .github/scripts/analyze_regression.sh .test_runs/latest.json .baseline/test_results.json > analysis.json
+          
+          # Extract key metrics for workflow
+          REGRESSION_COUNT=$(jq -r '.regression_count // 0' analysis.json)
+          echo "regression_count=$REGRESSION_COUNT" >> $GITHUB_OUTPUT
+          echo "has_regressions=$([[ $REGRESSION_COUNT -gt 0 ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+
+      - name: Generate PR comment
+        id: comment
+        run: |
+          chmod +x .github/scripts/generate_pr_comment.sh
+          .github/scripts/generate_pr_comment.sh .test_runs/latest.json analysis.json > comment.md
+          
+          # Store comment body for GitHub script
+          {
+            echo 'body<<EOF'
+            cat comment.md
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `${{ steps.comment.outputs.body }}`;
+            
+            // Find existing comment from this workflow
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Test Results')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Fail on regressions
+        if: steps.analyze.outputs.has_regressions == 'true'
+        run: |
+          echo "::error::Test regressions detected! See the PR comment for details."
+          exit 1
