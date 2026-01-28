@@ -21,3 +21,5 @@ You are an expert Rust developer working on `poke-rs`, a Pokemon battle engine.
 - **Math**: Use 4096-scale modifiers for precision. Use `apply_modifier()` for correct rounding.
 - **Comments**: Write comments explaining *why* and *how* code works. DO NOT add "meta-comments" or change logs like `// FIXED BUG` or `// NEW FEAT`.
 - **Generations**: Put generation-specific logic in `damage/generations/genN.rs`.
+
+# ALSO CHECK OUT AGENTS.MD

@@ -8,8 +8,8 @@ This document tracks implemented vs missing Pokémon mechanics in `poke-rs`.
 
 | Category | Pass | Fail | Notes |
 |----------|------|------|-------|
-| **Fixtures** | 303 | 129 | Smogon damage-calc scraped tests |
-| **Cargo Tests** | 117 | 3 | Unit + integration tests |
+| **Fixtures** | 331 | 101 | Smogon damage-calc scraped tests |
+| **Cargo Tests** | 116 | 10 | Unit + integration tests |
 
 ---
 

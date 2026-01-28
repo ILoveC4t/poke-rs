@@ -62,6 +62,7 @@ fn call_item_base_power_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, bp: u1
                 ctx.attacker,
                 ctx.defender,
                 ctx.move_data,
+                ctx.move_type,
                 bp,
             );
         }
@@ -106,7 +107,7 @@ fn call_move_base_power_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, bp: u1
         }
         // Check custom base power modifier
         if let Some(hook) = hooks.on_modify_base_power {
-            return hook(ctx.state, ctx.attacker, ctx.defender, ctx.move_data, bp);
+            return hook(ctx.state, ctx.attacker, ctx.defender, ctx.move_data, ctx.move_type, bp);
         }
     }
     bp
@@ -125,6 +126,7 @@ fn call_base_power_hook<G: GenMechanics>(ctx: &DamageContext<'_, G>, bp: u16) ->
                 ctx.attacker,
                 ctx.defender,
                 ctx.move_data,
+                ctx.move_type,
                 bp,
             );
         }
@@ -580,12 +582,53 @@ pub fn compute_final_damage<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_da
     if use_4096_scale {
         // Gen 5+ order: random → STAB → effectiveness → burn → screens → final mods
         compute_final_damage_gen5plus(ctx, base_damage, &mut rolls, attacker_hooks, defender_hooks);
+    } else if ctx.gen.generation() == 4 {
+        // Gen 4 order: random (FIRST) → STAB → effectiveness → others
+        compute_final_damage_gen4(ctx, base_damage, &mut rolls, attacker_hooks, defender_hooks);
     } else {
-        // Gen 3-4 order: STAB → effectiveness → random (burn/screens already applied)
+        // Gen 3 order: STAB → effectiveness → random (burn/screens already applied)
         compute_final_damage_gen34(ctx, base_damage, &mut rolls, attacker_hooks, defender_hooks);
     }
     
     rolls
+}
+
+/// Gen 4 final damage: random → STAB → effectiveness → item → ability
+fn compute_final_damage_gen4<G: GenMechanics>(
+    ctx: &DamageContext<'_, G>,
+    base_damage: u32,
+    rolls: &mut [u16; 16],
+    attacker_hooks: Option<&crate::abilities::AbilityHooks>,
+    defender_hooks: Option<&crate::abilities::AbilityHooks>,
+) {
+     let stab_mod = if ctx.has_stab {
+        ctx.gen.stab_multiplier(ctx.has_adaptability, false)
+    } else {
+        Modifier::ONE
+    };
+
+    for i in 0..16 {
+        // 1. Random Roll (85-100)
+        let roll_percent = 85 + i as u32;
+        let mut damage = of32(base_damage as u64 * roll_percent as u64) / 100;
+        
+        // 2. STAB
+        if stab_mod != Modifier::ONE {
+             damage = apply_modifier(damage, stab_mod);
+        }
+        
+        // 3. Effectiveness
+        // Apply as floor(damage * eff / 4)
+        damage = of32(damage as u64 * ctx.effectiveness as u64) / 4;
+        
+        // 4. Item Final Mods
+        damage = apply_item_final_mods(ctx, damage);
+        
+        // 5. Ability Final Mods
+        damage = apply_final_mods(ctx, damage, attacker_hooks, defender_hooks);
+        
+        rolls[i] = damage.max(1).min(u16::MAX as u32) as u16;
+    }
 }
 
 /// Gen 5+ final damage: random → STAB → effectiveness → burn → screens → final mods
@@ -651,8 +694,10 @@ fn compute_final_damage_gen34<G: GenMechanics>(
     // Step 1: Apply STAB (before type effectiveness in Gen 3)
     let mut damage = base_damage;
     if ctx.has_stab {
-        // Gen 3-4: STAB is always floor(damage * 1.5), no Adaptability
-        damage = damage * 3 / 2;
+        // Gen 3: 1.5x (floor)
+        // Gen 4: 1.5x or 2.0x with Adaptability
+        let modifier = ctx.gen.stab_multiplier(ctx.has_adaptability, false);
+        damage = apply_modifier(damage, modifier);
     }
     
     // Step 2: Type effectiveness

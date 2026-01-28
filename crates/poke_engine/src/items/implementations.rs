@@ -242,153 +242,153 @@ pub fn on_attacker_final_mod_expert_belt(
 use crate::types::Type;
 use crate::moves::Move;
 
-// Generic type-boost helper
-fn type_boost_bp(move_data: &Move, boost_type: Type, bp: u16) -> u16 {
-    if move_data.primary_type == boost_type {
+// Generic type-boost helper - uses dynamic move_type (after type-changing effects)
+fn type_boost_bp(move_type: Type, boost_type: Type, bp: u16) -> u16 {
+    if move_type == boost_type {
         apply_modifier(bp.into(), Modifier::ONE_POINT_TWO).max(1) as u16
     } else {
         bp
     }
 }
 
-pub fn on_modify_bp_charcoal(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Fire, bp)
+pub fn on_modify_bp_charcoal(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Fire, bp)
 }
 
-pub fn on_modify_bp_mystic_water(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Water, bp)
+pub fn on_modify_bp_mystic_water(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Water, bp)
 }
 
-pub fn on_modify_bp_miracle_seed(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Grass, bp)
+pub fn on_modify_bp_miracle_seed(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Grass, bp)
 }
 
-pub fn on_modify_bp_magnet(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Electric, bp)
+pub fn on_modify_bp_magnet(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Electric, bp)
 }
 
-pub fn on_modify_bp_never_melt_ice(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Ice, bp)
+pub fn on_modify_bp_never_melt_ice(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Ice, bp)
 }
 
-pub fn on_modify_bp_black_belt(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Fighting, bp)
+pub fn on_modify_bp_black_belt(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Fighting, bp)
 }
 
-pub fn on_modify_bp_poison_barb(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Poison, bp)
+pub fn on_modify_bp_poison_barb(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Poison, bp)
 }
 
-pub fn on_modify_bp_soft_sand(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Ground, bp)
+pub fn on_modify_bp_soft_sand(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Ground, bp)
 }
 
-pub fn on_modify_bp_sharp_beak(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Flying, bp)
+pub fn on_modify_bp_sharp_beak(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Flying, bp)
 }
 
-pub fn on_modify_bp_twisted_spoon(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Psychic, bp)
+pub fn on_modify_bp_twisted_spoon(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Psychic, bp)
 }
 
-pub fn on_modify_bp_silver_powder(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Bug, bp)
+pub fn on_modify_bp_silver_powder(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Bug, bp)
 }
 
-pub fn on_modify_bp_hard_stone(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Rock, bp)
+pub fn on_modify_bp_hard_stone(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Rock, bp)
 }
 
-pub fn on_modify_bp_spell_tag(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Ghost, bp)
+pub fn on_modify_bp_spell_tag(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Ghost, bp)
 }
 
-pub fn on_modify_bp_dragon_fang(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Dragon, bp)
+pub fn on_modify_bp_dragon_fang(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Dragon, bp)
 }
 
-pub fn on_modify_bp_black_glasses(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Dark, bp)
+pub fn on_modify_bp_black_glasses(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Dark, bp)
 }
 
-pub fn on_modify_bp_metal_coat(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Steel, bp)
+pub fn on_modify_bp_metal_coat(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Steel, bp)
 }
 
-pub fn on_modify_bp_silk_scarf(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Normal, bp)
+pub fn on_modify_bp_silk_scarf(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Normal, bp)
 }
 
 // ============================================================================
 // Plate Items (1.2x type boost, same as corresponding items)
 // ============================================================================
 
-pub fn on_modify_bp_flame_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Fire, bp)
+pub fn on_modify_bp_flame_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Fire, bp)
 }
 
-pub fn on_modify_bp_splash_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Water, bp)
+pub fn on_modify_bp_splash_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Water, bp)
 }
 
-pub fn on_modify_bp_meadow_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Grass, bp)
+pub fn on_modify_bp_meadow_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Grass, bp)
 }
 
-pub fn on_modify_bp_zap_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Electric, bp)
+pub fn on_modify_bp_zap_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Electric, bp)
 }
 
-pub fn on_modify_bp_icicle_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Ice, bp)
+pub fn on_modify_bp_icicle_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Ice, bp)
 }
 
-pub fn on_modify_bp_fist_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Fighting, bp)
+pub fn on_modify_bp_fist_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Fighting, bp)
 }
 
-pub fn on_modify_bp_toxic_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Poison, bp)
+pub fn on_modify_bp_toxic_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Poison, bp)
 }
 
-pub fn on_modify_bp_earth_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Ground, bp)
+pub fn on_modify_bp_earth_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Ground, bp)
 }
 
-pub fn on_modify_bp_sky_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Flying, bp)
+pub fn on_modify_bp_sky_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Flying, bp)
 }
 
-pub fn on_modify_bp_mind_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Psychic, bp)
+pub fn on_modify_bp_mind_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Psychic, bp)
 }
 
-pub fn on_modify_bp_insect_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Bug, bp)
+pub fn on_modify_bp_insect_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Bug, bp)
 }
 
-pub fn on_modify_bp_stone_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Rock, bp)
+pub fn on_modify_bp_stone_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Rock, bp)
 }
 
-pub fn on_modify_bp_spooky_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Ghost, bp)
+pub fn on_modify_bp_spooky_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Ghost, bp)
 }
 
-pub fn on_modify_bp_draco_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Dragon, bp)
+pub fn on_modify_bp_draco_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Dragon, bp)
 }
 
-pub fn on_modify_bp_dread_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Dark, bp)
+pub fn on_modify_bp_dread_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Dark, bp)
 }
 
-pub fn on_modify_bp_iron_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Steel, bp)
+pub fn on_modify_bp_iron_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Steel, bp)
 }
 
-pub fn on_modify_bp_pixie_plate(_state: &BattleState, _attacker: usize, _defender: usize, move_data: &Move, bp: u16) -> u16 {
-    type_boost_bp(move_data, Type::Fairy, bp)
+pub fn on_modify_bp_pixie_plate(_state: &BattleState, _attacker: usize, _defender: usize, _move_data: &Move, move_type: Type, bp: u16) -> u16 {
+    type_boost_bp(move_type, Type::Fairy, bp)
 }
 
 // ============================================================================

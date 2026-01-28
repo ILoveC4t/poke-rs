@@ -5,6 +5,7 @@
 use crate::state::BattleState;
 use crate::moves::{Move, MoveFlags};
 use crate::damage::{Modifier, apply_modifier};
+use crate::types::Type;
 
 /// Technician: 1.5x power for moves with BP ≤ 60
 pub fn technician(
@@ -12,6 +13,7 @@ pub fn technician(
     _attacker: usize,
     _defender: usize,
     _move_data: &Move,
+    _move_type: Type,
     bp: u16,
 ) -> u16 {
     if bp <= 60 {
@@ -27,6 +29,7 @@ pub fn iron_fist(
     _attacker: usize,
     _defender: usize,
     move_data: &Move,
+    _move_type: Type,
     bp: u16,
 ) -> u16 {
     if move_data.flags.contains(MoveFlags::PUNCH) {
@@ -42,6 +45,7 @@ pub fn tough_claws(
     _attacker: usize,
     _defender: usize,
     move_data: &Move,
+    _move_type: Type,
     bp: u16,
 ) -> u16 {
     if move_data.flags.contains(MoveFlags::CONTACT) {
@@ -58,6 +62,7 @@ pub fn strong_jaw(
     _attacker: usize,
     _defender: usize,
     move_data: &Move,
+    _move_type: Type,
     bp: u16,
 ) -> u16 {
     if move_data.flags.contains(MoveFlags::BITE) {
@@ -73,6 +78,7 @@ pub fn mega_launcher(
     _attacker: usize,
     _defender: usize,
     move_data: &Move,
+    _move_type: Type,
     bp: u16,
 ) -> u16 {
     if move_data.flags.contains(MoveFlags::PULSE) {
@@ -92,6 +98,7 @@ pub fn reckless(
     _attacker: usize,
     _defender: usize,
     move_data: &Move,
+    _move_type: Type,
     bp: u16,
 ) -> u16 {
     if move_data.flags.contains(MoveFlags::RECOIL) {
@@ -107,10 +114,11 @@ pub fn steelworker(
     _state: &BattleState,
     _attacker: usize,
     _defender: usize,
-    move_data: &Move,
+    _move_data: &Move,
+    move_type: Type,
     bp: u16,
 ) -> u16 {
-    if move_data.primary_type == crate::types::Type::Steel {
+    if move_type == Type::Steel {
         bp * 3 / 2
     } else {
         bp
@@ -122,10 +130,11 @@ pub fn water_bubble(
     _state: &BattleState,
     _attacker: usize,
     _defender: usize,
-    move_data: &Move,
+    _move_data: &Move,
+    move_type: Type,
     bp: u16,
 ) -> u16 {
-    if move_data.primary_type == crate::types::Type::Water {
+    if move_type == Type::Water {
         bp * 2
     } else {
         bp
@@ -138,6 +147,7 @@ pub fn punk_rock(
     _attacker: usize,
     _defender: usize,
     move_data: &Move,
+    _move_type: Type,
     bp: u16,
 ) -> u16 {
     if move_data.flags.contains(MoveFlags::SOUND) {
@@ -154,6 +164,7 @@ pub fn rivalry(
     attacker: usize,
     defender: usize,
     _move_data: &Move,
+    _move_type: Type,
     bp: u16,
 ) -> u16 {
     use crate::entities::Gender;
@@ -180,6 +191,7 @@ pub fn sheer_force(
     _attacker: usize,
     _defender: usize,
     move_data: &Move,
+    _move_type: Type,
     bp: u16,
 ) -> u16 {
     if move_data.flags.contains(MoveFlags::HAS_SECONDARY_EFFECTS) {
@@ -195,14 +207,14 @@ pub fn sand_force(
     state: &BattleState,
     _attacker: usize,
     _defender: usize,
-    move_data: &Move,
+    _move_data: &Move,
+    move_type: Type,
     bp: u16,
 ) -> u16 {
-    use crate::types::Type;
     use crate::damage::generations::Weather;
     
     if Weather::from_u8(state.weather) == Weather::Sand {
-        if matches!(move_data.primary_type, Type::Rock | Type::Ground | Type::Steel) {
+        if matches!(move_type, Type::Rock | Type::Ground | Type::Steel) {
             // 1.3x (5325/4096)
             (bp as u32 * 5325 / 4096) as u16
         } else {
@@ -219,6 +231,7 @@ pub fn analytic(
     attacker: usize,
     defender: usize,
     move_data: &Move,
+    _move_type: Type,
     bp: u16,
 ) -> u16 {
     use crate::state::TurnOrder;
@@ -235,23 +248,24 @@ pub fn analytic(
 
 /// -ate abilities: 1.2x for converted Normal moves
 /// (Aerilate, Pixilate, Refrigerate, Galvanize)
+/// Note: This checks the ORIGINAL move type (static), not the converted type.
+/// The -ate abilities convert Normal moves to their element, and boost them.
 pub fn ate_boost(
     _state: &BattleState,
     _attacker: usize,
     _defender: usize,
     move_data: &Move,
+    _move_type: Type,
     bp: u16,
 ) -> u16 {
-    if move_data.primary_type == crate::types::Type::Normal {
+    // Must check the original type, not the converted type
+    if move_data.primary_type == Type::Normal {
         // 1.2x (4915/4096)
         apply_modifier(bp as u32, Modifier::ONE_POINT_TWO) as u16
     } else {
         bp
     }
 }
-
-// TODO: Strong Jaw - 1.5x for bite moves
-// pub fn strong_jaw(...) -> u16
 
 // TODO: Mega Launcher - 1.5x for pulse/aura moves
 // pub fn mega_launcher(...) -> u16

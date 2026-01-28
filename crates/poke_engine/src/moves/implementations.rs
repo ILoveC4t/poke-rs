@@ -94,6 +94,7 @@ pub fn on_modify_base_power_weather_ball(
     _attacker: usize,
     _defender: usize,
     _move_data: &'static Move,
+    _move_type: Type,
     bp: u16,
 ) -> u16 {
     // Gen 3: Damage is doubled after crit, not BP doubled
@@ -291,6 +292,7 @@ pub fn grass_knot_power(
     attacker: usize,
     defender: usize,
     _move_data: &'static Move,
+    _move_type: Type,
     _bp: u16,
 ) -> u16 {
     let attacker_ability = state.abilities[attacker];
@@ -313,6 +315,7 @@ pub fn heavy_slam_power(
     attacker: usize,
     defender: usize,
     _move_data: &'static Move,
+    _move_type: Type,
     _bp: u16,
 ) -> u16 {
     let attacker_ability = state.abilities[attacker];
@@ -337,6 +340,7 @@ pub fn eruption_power(
     attacker: usize,
     _defender: usize,
     _move_data: &'static Move,
+    _move_type: Type,
     _bp: u16,
 ) -> u16 {
     let current_hp = state.hp[attacker] as u32;
@@ -350,6 +354,7 @@ pub fn flail_power(
     attacker: usize,
     _defender: usize,
     _move_data: &'static Move,
+    _move_type: Type,
     _bp: u16,
 ) -> u16 {
     let current_hp = state.hp[attacker] as u32;
@@ -370,6 +375,7 @@ pub fn return_power(
     attacker: usize,
     _defender: usize,
     _move_data: &'static Move,
+    _move_type: Type,
     _bp: u16,
 ) -> u16 {
     let happiness = state.happiness[attacker] as u16;
@@ -383,6 +389,7 @@ pub fn frustration_power(
     attacker: usize,
     _defender: usize,
     _move_data: &'static Move,
+    _move_type: Type,
     _bp: u16,
 ) -> u16 {
     let happiness = state.happiness[attacker] as u16;

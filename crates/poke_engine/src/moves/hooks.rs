@@ -23,11 +23,13 @@ pub type OnBasePowerCondition = fn(
 
 /// Called during base power calculation to modify the base power.
 /// More flexible than OnBasePowerCondition for moves with variable BP formulas.
+/// `move_type` is the dynamically-resolved type (after type-changing effects like Judgment, Weather Ball).
 pub type OnModifyBasePower = fn(
     state: &BattleState,
     attacker: usize,
     defender: usize,
     move_data: &'static Move,
+    move_type: Type,
     bp: u16,
 ) -> u16;
 
