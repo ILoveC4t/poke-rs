@@ -1,8 +1,8 @@
 //! Generation 2 (Gold/Silver/Crystal) mechanics.
 
 use super::{GenMechanics, Terrain};
-use crate::types::Type;
 use crate::damage::Modifier;
+use crate::types::Type;
 
 /// Generation 2 mechanics.
 ///
@@ -19,9 +19,15 @@ impl GenMechanics for Gen2 {
     const GEN: u8 = 2;
 
     // Gen 2 has items, no abilities
-    fn has_abilities(&self) -> bool { false }
-    fn has_held_items(&self) -> bool { true }
-    fn uses_physical_special_split(&self) -> bool { false }
+    fn has_abilities(&self) -> bool {
+        false
+    }
+    fn has_held_items(&self) -> bool {
+        true
+    }
+    fn uses_physical_special_split(&self) -> bool {
+        false
+    }
 
     // 2.0x crit
     fn crit_multiplier(&self) -> Modifier {
@@ -57,7 +63,14 @@ impl GenMechanics for Gen2 {
     }
 
     // No terrain
-    fn terrain_modifier(&self, _terrain: Terrain, _move_type: Type, _is_grounded: bool) -> Option<Modifier> {
+    fn terrain_modifier(
+        &self,
+        _terrain: Terrain,
+        _move_id: crate::moves::MoveId,
+        _move_type: Type,
+        _attacker_grounded: bool,
+        _defender_grounded: bool,
+    ) -> Option<Modifier> {
         None
     }
 }
