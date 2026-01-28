@@ -119,16 +119,14 @@ impl DamageFixture {
     pub fn load() -> Result<Self, String> {
         Self::load_from("../../tests/fixtures/damage-calc/damage.json")
     }
-    
+
     /// Load fixture from a custom path.
     pub fn load_from(path: &str) -> Result<Self, String> {
         use std::fs::File;
         use std::io::BufReader;
-        
-        let file = File::open(path)
-            .map_err(|e| format!("Failed to open {}: {}", path, e))?;
+
+        let file = File::open(path).map_err(|e| format!("Failed to open {}: {}", path, e))?;
         let reader = BufReader::new(file);
-        serde_json::from_reader(reader)
-            .map_err(|e| format!("Failed to parse {}: {}", path, e))
+        serde_json::from_reader(reader).map_err(|e| format!("Failed to parse {}: {}", path, e))
     }
 }

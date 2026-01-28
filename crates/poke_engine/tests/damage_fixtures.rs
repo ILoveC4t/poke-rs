@@ -24,16 +24,16 @@
 
 mod common;
 
+use common::categories::build_category_tags;
 use common::fixtures::DamageFixture;
 use common::helpers::{run_damage_test, sanitize_name};
 use common::skip_list::should_skip;
-use common::categories::build_category_tags;
 
-use libtest_mimic::{Arguments, Trial, Failed};
+use libtest_mimic::{Arguments, Failed, Trial};
 
 fn main() {
     let args = Arguments::from_args();
-    
+
     let fixture = match DamageFixture::load() {
         Ok(f) => f,
         Err(e) => {
@@ -41,41 +41,45 @@ fn main() {
             std::process::exit(1);
         }
     };
-    
+
     println!("Loaded {} damage test cases", fixture.cases.len());
-    
-    let tests: Vec<Trial> = fixture.cases.into_iter().map(|case| {
-        // Build test name with generation and categories
-        // Format: gen{N}::{category_tags}::{test_name}::{id}
-        let category_tags = build_category_tags(&case);
-        let test_name = if category_tags.is_empty() {
-            format!(
-                "gen{}::{}::{}",
-                case.gen,
-                sanitize_name(&case.test_name),
-                sanitize_name(&case.id)
-            )
-        } else {
-            format!(
-                "gen{}::{}::{}::{}",
-                case.gen,
-                category_tags,
-                sanitize_name(&case.test_name),
-                sanitize_name(&case.id)
-            )
-        };
-        
-        // Check if this fixture should be skipped
-        if should_skip(&case.id) {
-            Trial::test(test_name, || Ok(())).with_ignored_flag(true)
-        } else {
-            Trial::test(test_name, move || {
-                run_damage_test(&case).map_err(|e| Failed::from(e))
-            })
-        }
-    }).collect();
-    
+
+    let tests: Vec<Trial> = fixture
+        .cases
+        .into_iter()
+        .map(|case| {
+            // Build test name with generation and categories
+            // Format: gen{N}::{category_tags}::{test_name}::{id}
+            let category_tags = build_category_tags(&case);
+            let test_name = if category_tags.is_empty() {
+                format!(
+                    "gen{}::{}::{}",
+                    case.gen,
+                    sanitize_name(&case.test_name),
+                    sanitize_name(&case.id)
+                )
+            } else {
+                format!(
+                    "gen{}::{}::{}::{}",
+                    case.gen,
+                    category_tags,
+                    sanitize_name(&case.test_name),
+                    sanitize_name(&case.id)
+                )
+            };
+
+            // Check if this fixture should be skipped
+            if should_skip(&case.id) {
+                Trial::test(test_name, || Ok(())).with_ignored_flag(true)
+            } else {
+                Trial::test(test_name, move || {
+                    run_damage_test(&case).map_err(|e| Failed::from(e))
+                })
+            }
+        })
+        .collect();
+
     println!("Running {} tests", tests.len());
-    
+
     libtest_mimic::run(&args, tests).exit();
 }

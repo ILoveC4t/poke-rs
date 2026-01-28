@@ -23,7 +23,7 @@ pub enum Category {
     Gen7,
     Gen8,
     Gen9,
-    
+
     /// Feature categories
     Abilities,
     Items,
@@ -44,7 +44,7 @@ impl Category {
     /// Get all categories that apply to a test case.
     pub fn categorize(case: &DamageTestCase) -> Vec<Category> {
         let mut cats = vec![];
-        
+
         // Generation
         match case.gen {
             1 => cats.push(Category::Gen1),
@@ -58,22 +58,22 @@ impl Category {
             9 => cats.push(Category::Gen9),
             _ => {}
         }
-        
+
         let test_name_lower = case.test_name.to_lowercase();
         let id_lower = case.id.to_lowercase();
-        
+
         // Abilities
         if has_ability_keywords(&test_name_lower, &id_lower) {
             cats.push(Category::Abilities);
         }
-        
+
         // Items
         if has_item_keywords(&test_name_lower, &id_lower) {
             cats.push(Category::Items);
         }
-        
+
         // Weather
-        if case.field.as_ref().map_or(false, |f| f.weather.is_some()) 
+        if case.field.as_ref().map_or(false, |f| f.weather.is_some())
             || test_name_lower.contains("weather")
             || test_name_lower.contains("sun")
             || test_name_lower.contains("rain")
@@ -83,67 +83,63 @@ impl Category {
         {
             cats.push(Category::Weather);
         }
-        
+
         // Terrain
         if case.field.as_ref().map_or(false, |f| f.terrain.is_some())
             || test_name_lower.contains("terrain")
         {
             cats.push(Category::Terrain);
         }
-        
+
         // Screens
         if has_screen_keywords(&test_name_lower, case) {
             cats.push(Category::Screens);
         }
-        
+
         // Multi-hit
-        if test_name_lower.contains("multi") 
+        if test_name_lower.contains("multi")
             || test_name_lower.contains("parental bond")
             || case.move_data.hits.is_some()
         {
             cats.push(Category::MultiHit);
         }
-        
+
         // Critical hits
-        if case.move_data.is_crit == Some(true) 
-            || test_name_lower.contains("crit")
-        {
+        if case.move_data.is_crit == Some(true) || test_name_lower.contains("crit") {
             cats.push(Category::Critical);
         }
-        
+
         // Status
-        if case.attacker.status.is_some() 
+        if case.attacker.status.is_some()
             || case.defender.status.is_some()
             || test_name_lower.contains("burn")
             || test_name_lower.contains("paralysis")
         {
             cats.push(Category::Status);
         }
-        
+
         // Tera
-        if case.attacker.tera_type.is_some() 
+        if case.attacker.tera_type.is_some()
             || case.defender.tera_type.is_some()
             || test_name_lower.contains("tera")
             || test_name_lower.contains("stellar")
         {
             cats.push(Category::Tera);
         }
-        
+
         // Z-Moves
         if case.move_data.use_z == Some(true) {
             cats.push(Category::ZMoves);
         }
-        
+
         // Dynamax
-        if case.attacker.is_dynamaxed == Some(true) 
-            || case.defender.is_dynamaxed == Some(true)
-        {
+        if case.attacker.is_dynamaxed == Some(true) || case.defender.is_dynamaxed == Some(true) {
             cats.push(Category::Dynamax);
         }
-        
+
         cats
     }
-    
+
     /// Get the category tag for test naming.
     pub fn tag(&self) -> &'static str {
         match self {
@@ -175,32 +171,62 @@ impl Category {
 
 fn has_ability_keywords(test_name: &str, id: &str) -> bool {
     let keywords = [
-        "ability", "intimidate", "mold breaker", "levitate", "flash fire",
-        "water absorb", "volt absorb", "multitype", "parental bond",
-        "weak armor", "mummy", "steely spirit", "quark drive", "protosynthesis",
-        "ice scales", "wind rider", "supreme overlord", "gale wings", "triage",
-        "power spot", "battery", "flower gift",
+        "ability",
+        "intimidate",
+        "mold breaker",
+        "levitate",
+        "flash fire",
+        "water absorb",
+        "volt absorb",
+        "multitype",
+        "parental bond",
+        "weak armor",
+        "mummy",
+        "steely spirit",
+        "quark drive",
+        "protosynthesis",
+        "ice scales",
+        "wind rider",
+        "supreme overlord",
+        "gale wings",
+        "triage",
+        "power spot",
+        "battery",
+        "flower gift",
     ];
-    keywords.iter().any(|k| test_name.contains(k) || id.contains(k))
+    keywords
+        .iter()
+        .any(|k| test_name.contains(k) || id.contains(k))
 }
 
 fn has_item_keywords(test_name: &str, id: &str) -> bool {
     let keywords = [
-        "item", "plate", "orb", "berry", "choice", "band", "specs", "scarf",
-        "life orb", "expert belt", "assault vest",
+        "item",
+        "plate",
+        "orb",
+        "berry",
+        "choice",
+        "band",
+        "specs",
+        "scarf",
+        "life orb",
+        "expert belt",
+        "assault vest",
     ];
-    keywords.iter().any(|k| test_name.contains(k) || id.contains(k))
+    keywords
+        .iter()
+        .any(|k| test_name.contains(k) || id.contains(k))
 }
 
 fn has_screen_keywords(test_name: &str, case: &DamageTestCase) -> bool {
     let has_screen_in_field = case.field.as_ref().map_or(false, |f| {
         f.defender_side.as_ref().map_or(false, |s| {
-            s.is_reflect == Some(true) 
-            || s.is_light_screen == Some(true)
-            || s.is_aurora_veil == Some(true)
+            s.is_reflect == Some(true)
+                || s.is_light_screen == Some(true)
+                || s.is_aurora_veil == Some(true)
         })
     });
-    
+
     has_screen_in_field
         || test_name.contains("screen")
         || test_name.contains("reflect")
@@ -217,15 +243,27 @@ pub fn build_category_tags(case: &DamageTestCase) -> String {
     if cats.is_empty() {
         return String::new();
     }
-    
+
     // Skip generation tag (already in test name), include feature tags
-    let feature_tags: Vec<&str> = cats.iter()
-        .filter(|c| !matches!(c, Category::Gen1 | Category::Gen2 | Category::Gen3 
-            | Category::Gen4 | Category::Gen5 | Category::Gen6 | Category::Gen7 
-            | Category::Gen8 | Category::Gen9))
+    let feature_tags: Vec<&str> = cats
+        .iter()
+        .filter(|c| {
+            !matches!(
+                c,
+                Category::Gen1
+                    | Category::Gen2
+                    | Category::Gen3
+                    | Category::Gen4
+                    | Category::Gen5
+                    | Category::Gen6
+                    | Category::Gen7
+                    | Category::Gen8
+                    | Category::Gen9
+            )
+        })
         .map(|c| c.tag())
         .collect();
-    
+
     if feature_tags.is_empty() {
         String::new()
     } else {
