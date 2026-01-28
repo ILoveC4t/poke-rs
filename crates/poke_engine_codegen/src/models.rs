@@ -105,7 +105,7 @@ pub struct ItemData {
     #[serde(default)]
     pub gen: u8,
     #[serde(rename = "isNonstandard")]
-    pub is_nonstandard: Option<String>,
+    pub _is_nonstandard: Option<String>,
     pub fling: Option<Fling>,
     #[serde(default)]
     #[serde(rename = "megaStone")]

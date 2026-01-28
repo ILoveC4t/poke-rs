@@ -187,9 +187,11 @@ pub fn calculate_damage_with_overrides<G: GenMechanics>(
     }
 
     // Check Psychic Terrain priority blocking (Gen 7+)
+    // Blocks priority moves from OPPONENTS targeting grounded Pokémon
     if gen.generation() >= 7
         && ctx.state.terrain == crate::damage::generations::Terrain::Psychic as u8
         && ctx.defender_grounded
+        && state.get_side(attacker) != state.get_side(defender)
     {
         let priority = calculate_priority(state, attacker, move_id);
         if priority > 0 {
