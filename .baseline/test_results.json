@@ -1,7 +1,7 @@
 {
-  "timestamp": "1769643395",
-  "timestamp_human": "2026-01-28T23:36:35Z",
-  "duration_seconds": 14.720055333,
+  "timestamp": "1769643797",
+  "timestamp_human": "2026-01-28T23:43:17Z",
+  "duration_seconds": 14.132818851,
   "status": "FAILURE",
   "cargo_test": {
     "passed": 458,
@@ -518,7 +518,7 @@
     {
       "id": "gen9-Raging-Bull-should-break-screens-430",
       "name": "Raging Bull should break screens",
-      "error": "Roll 0 mismatch: expected 51, got 22"
+      "error": "Roll 0 mismatch: expected 51, got 33"
     },
     {
       "id": "gen9-Raging-Bull-should-break-screens-431",
