@@ -8,6 +8,8 @@ use crate::types::Type;
 use crate::damage::generations::Weather;
 use crate::abilities::{AbilityId, AbilityFlags};
 use crate::items::ItemId;
+use crate::species::SpeciesId;
+use std::sync::OnceLock;
 
 // ============================================================================
 // Knock Off: 1.5x if target has removable item
@@ -437,3 +439,34 @@ pub fn on_modify_type_judgment(
     plate_to_type(item).unwrap_or(base_type)
 }
 
+// ============================================================================
+// Raging Bull: Type changes based on user's form
+// ============================================================================
+
+static TAUROS_PALDEA_COMBAT: OnceLock<Option<SpeciesId>> = OnceLock::new();
+static TAUROS_PALDEA_BLAZE: OnceLock<Option<SpeciesId>> = OnceLock::new();
+static TAUROS_PALDEA_AQUA: OnceLock<Option<SpeciesId>> = OnceLock::new();
+
+pub fn on_modify_type_raging_bull(
+    state: &BattleState,
+    attacker: usize,
+    _defender: usize,
+    _move_data: &'static Move,
+    base_type: Type,
+) -> Type {
+    let species = state.species[attacker];
+
+    let combat = *TAUROS_PALDEA_COMBAT.get_or_init(|| SpeciesId::from_str("taurospaldeacombat"));
+    let blaze = *TAUROS_PALDEA_BLAZE.get_or_init(|| SpeciesId::from_str("taurospaldeablaze"));
+    let aqua = *TAUROS_PALDEA_AQUA.get_or_init(|| SpeciesId::from_str("taurospaldeaaqua"));
+
+    if Some(species) == combat {
+        Type::Fighting
+    } else if Some(species) == blaze {
+        Type::Fire
+    } else if Some(species) == aqua {
+        Type::Water
+    } else {
+        base_type
+    }
+}

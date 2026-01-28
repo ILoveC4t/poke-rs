@@ -134,5 +134,10 @@ pub static MOVE_REGISTRY: [Option<MoveHooks>; MoveId::COUNT] = {
         ..MoveHooks::NONE
     });
 
+    registry[MoveId::Ragingbull as usize] = Some(MoveHooks {
+        on_modify_type: Some(on_modify_type_raging_bull),
+        ..MoveHooks::NONE
+    });
+
     registry
 };

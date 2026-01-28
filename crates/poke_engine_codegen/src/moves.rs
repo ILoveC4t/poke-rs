@@ -30,7 +30,7 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
     // 1. Collect Flags
     let mut flag_names = BTreeSet::new();
 
-    let breaks_screens_moves = ["Brick Break", "Psychic Fangs"];
+    let breaks_screens_moves = ["Brick Break", "Psychic Fangs", "Raging Bull"];
     let variable_power_moves = [
         "Eruption", "Water Spout", "Flail", "Reversal", "Low Kick", "Grass Knot", "Heavy Slam",
         "Heat Crash", "Gyro Ball", "Electro Ball", "Crush Grip", "Wring Out",
