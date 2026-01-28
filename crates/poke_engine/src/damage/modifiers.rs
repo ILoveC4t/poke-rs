@@ -460,13 +460,20 @@ pub fn apply_weather_mod_bp<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, bp:
 }
 
 /// Apply terrain modifier.
-#[allow(dead_code)]
-pub fn apply_terrain_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
+pub fn apply_terrain_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_damage: &mut u32) {
     let terrain = Terrain::from_u8(ctx.state.terrain);
     
-    // Terrain affects the user of the move if they're grounded
-    if let Some(modifier) = ctx.gen.terrain_modifier(terrain, ctx.move_type, ctx.attacker_grounded) {
-        ctx.apply_mod(modifier);
+    // Terrain affects:
+    // 1. Attacker damage boost (Electric/Grass/Psychic) if attacker grounded
+    // 2. Damage reduction (Misty/Grassy) if defender grounded
+    if let Some(modifier) = ctx.gen.terrain_modifier(
+        terrain,
+        ctx.move_id,
+        ctx.move_type,
+        ctx.attacker_grounded,
+        ctx.defender_grounded
+    ) {
+        *base_damage = apply_modifier(*base_damage, modifier);
     }
 }
 

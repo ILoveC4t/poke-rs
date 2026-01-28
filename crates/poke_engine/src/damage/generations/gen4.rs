@@ -27,7 +27,14 @@ impl GenMechanics for Gen4 {
     }
     
     // No terrain
-    fn terrain_modifier(&self, _terrain: super::Terrain, _move_type: crate::types::Type, _is_grounded: bool) -> Option<Modifier> {
+    fn terrain_modifier(
+        &self,
+        _terrain: super::Terrain,
+        _move_id: crate::moves::MoveId,
+        _move_type: crate::types::Type,
+        _attacker_grounded: bool,
+        _defender_grounded: bool,
+    ) -> Option<Modifier> {
         None
     }
 

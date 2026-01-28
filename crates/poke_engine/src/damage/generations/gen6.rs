@@ -31,18 +31,38 @@ impl GenMechanics for Gen6 {
         if has_adaptability { Modifier::DOUBLE } else { Modifier::ONE_POINT_FIVE }
     }
     
-    // Terrain was 1.5x
-    fn terrain_modifier(&self, terrain: Terrain, move_type: Type, is_grounded: bool) -> Option<Modifier> {
-        if !is_grounded {
-            return None;
+    // Terrain was 1.5x (and no Psychic Terrain)
+    fn terrain_modifier(
+        &self,
+        terrain: Terrain,
+        move_id: crate::moves::MoveId,
+        move_type: Type,
+        attacker_grounded: bool,
+        defender_grounded: bool,
+    ) -> Option<Modifier> {
+        use crate::moves::MoveId;
+
+        // Grassy Terrain: Halves Earthquake, Bulldoze, Magnitude if TARGET is grounded
+        if terrain == Terrain::Grassy && defender_grounded {
+            if matches!(move_id, MoveId::Earthquake | MoveId::Bulldoze | MoveId::Magnitude) {
+                return Some(Modifier::HALF);
+            }
         }
-        
-        match (terrain, move_type) {
-            (Terrain::Electric, Type::Electric) => Some(Modifier::ONE_POINT_FIVE),
-            (Terrain::Grassy, Type::Grass) => Some(Modifier::ONE_POINT_FIVE),
-            // Psychic Terrain didn't boost damage in Gen 6 (only priority blocking)
-            (Terrain::Misty, Type::Dragon) => Some(Modifier::HALF),
-            _ => None,
+
+        // Boosts (1.5x in Gen 6)
+        if attacker_grounded {
+            match (terrain, move_type) {
+                (Terrain::Electric, Type::Electric) => return Some(Modifier::ONE_POINT_FIVE),
+                (Terrain::Grassy, Type::Grass) => return Some(Modifier::ONE_POINT_FIVE),
+                _ => {}
+            }
         }
+
+        // Misty Terrain: 0.5x Dragon reduction
+        if defender_grounded && terrain == Terrain::Misty && move_type == Type::Dragon {
+            return Some(Modifier::HALF);
+        }
+
+        None
     }
 }

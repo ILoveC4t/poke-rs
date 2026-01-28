@@ -71,15 +71,21 @@ mod tests {
     #[test]
     fn test_gen9_terrain() {
         let gen = Gen9;
+        use crate::moves::MoveId;
         
         // Electric Terrain boosts Electric moves for grounded Pokemon
-        assert_eq!(gen.terrain_modifier(Terrain::Electric, Type::Electric, true), Some(Modifier::ONE_POINT_THREE));
+        // We pass MoveId::Thunderbolt as a dummy Electric move
+        assert_eq!(gen.terrain_modifier(Terrain::Electric, MoveId::Thunderbolt, Type::Electric, true, true), Some(Modifier::ONE_POINT_THREE));
         
-        // Not grounded = no boost
-        assert_eq!(gen.terrain_modifier(Terrain::Electric, Type::Electric, false), None);
+        // Not grounded (attacker) = no boost
+        assert_eq!(gen.terrain_modifier(Terrain::Electric, MoveId::Thunderbolt, Type::Electric, false, true), None);
         
-        // Misty Terrain weakens Dragon
-        assert_eq!(gen.terrain_modifier(Terrain::Misty, Type::Dragon, true), Some(Modifier::HALF));
+        // Misty Terrain weakens Dragon (if target grounded)
+        // MoveId::Dragonclaw as dummy
+        assert_eq!(gen.terrain_modifier(Terrain::Misty, MoveId::Dragonclaw, Type::Dragon, true, true), Some(Modifier::HALF));
+
+        // Grassy Terrain reduces Earthquake (if target grounded)
+        assert_eq!(gen.terrain_modifier(Terrain::Grassy, MoveId::Earthquake, Type::Ground, true, true), Some(Modifier::HALF));
     }
     
     #[test]

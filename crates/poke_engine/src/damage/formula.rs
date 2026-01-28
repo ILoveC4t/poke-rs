@@ -260,6 +260,7 @@ pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageR
     
     modifiers::apply_spread_mod(&mut ctx, &mut base_damage);
     modifiers::apply_weather_mod_damage(&mut ctx, &mut base_damage);
+    modifiers::apply_terrain_mod(&mut ctx, &mut base_damage);
     
     // Gen 3-4: Add +2 after burn/screens/spread/weather but before crit
     if !adds_two_now {

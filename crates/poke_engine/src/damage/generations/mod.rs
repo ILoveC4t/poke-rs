@@ -165,20 +165,46 @@ pub trait GenMechanics: Copy + Clone + Send + Sync + 'static {
     /// Terrain damage modifier in 4096-scale.
     ///
     /// Returns `Some(modifier)` if terrain affects this move, `None` otherwise.
-    /// Note: Terrain only affects grounded Pokémon.
-    fn terrain_modifier(&self, terrain: Terrain, move_type: Type, is_grounded: bool) -> Option<Modifier> {
-        if !is_grounded {
-            return None;
+    ///
+    /// # Arguments
+    /// * `terrain` - Active terrain
+    /// * `move_id` - ID of the move being used
+    /// * `move_type` - Type of the move (could be modified)
+    /// * `attacker_grounded` - Whether attacker is grounded (for damage boost)
+    /// * `defender_grounded` - Whether defender is grounded (for damage reduction)
+    fn terrain_modifier(
+        &self,
+        terrain: Terrain,
+        move_id: crate::moves::MoveId,
+        move_type: Type,
+        attacker_grounded: bool,
+        defender_grounded: bool,
+    ) -> Option<Modifier> {
+        use crate::moves::MoveId;
+
+        // Grassy Terrain: Halves Earthquake, Bulldoze, Magnitude if TARGET is grounded
+        if terrain == Terrain::Grassy && defender_grounded {
+            if matches!(move_id, MoveId::Earthquake | MoveId::Bulldoze | MoveId::Magnitude) {
+                return Some(Modifier::HALF);
+            }
         }
-        
-        match (terrain, move_type) {
-            (Terrain::Electric, Type::Electric) => Some(Modifier::ONE_POINT_THREE), // 1.3x (Gen 8+)
-            (Terrain::Grassy, Type::Grass) => Some(Modifier::ONE_POINT_THREE),      // 1.3x
-            (Terrain::Psychic, Type::Psychic) => Some(Modifier::ONE_POINT_THREE),   // 1.3x
-            // Misty Terrain: 0.5x to Dragon moves hitting grounded targets
-            (Terrain::Misty, Type::Dragon) => Some(Modifier::HALF),      // 0.5x
-            _ => None,
+
+        // Boosts require attacker grounding
+        if attacker_grounded {
+            match (terrain, move_type) {
+                (Terrain::Electric, Type::Electric) => return Some(Modifier::ONE_POINT_THREE), // 1.3x (Gen 8+)
+                (Terrain::Grassy, Type::Grass) => return Some(Modifier::ONE_POINT_THREE),      // 1.3x
+                (Terrain::Psychic, Type::Psychic) => return Some(Modifier::ONE_POINT_THREE),   // 1.3x
+                _ => {}
+            }
         }
+
+        // Reductions require defender grounding (Misty Terrain vs Dragon)
+        if defender_grounded && terrain == Terrain::Misty && move_type == Type::Dragon {
+            return Some(Modifier::HALF);
+        }
+
+        None
     }
     
     // ========================================================================
@@ -671,17 +697,24 @@ impl GenMechanics for Generation {
         }
     }
     
-    fn terrain_modifier(&self, terrain: Terrain, move_type: Type, is_grounded: bool) -> Option<Modifier> {
+    fn terrain_modifier(
+        &self,
+        terrain: Terrain,
+        move_id: crate::moves::MoveId,
+        move_type: Type,
+        attacker_grounded: bool,
+        defender_grounded: bool,
+    ) -> Option<Modifier> {
         match self {
-            Generation::Gen1(g) => g.terrain_modifier(terrain, move_type, is_grounded),
-            Generation::Gen2(g) => g.terrain_modifier(terrain, move_type, is_grounded),
-            Generation::Gen3(g) => g.terrain_modifier(terrain, move_type, is_grounded),
-            Generation::Gen4(g) => g.terrain_modifier(terrain, move_type, is_grounded),
-            Generation::Gen5(g) => g.terrain_modifier(terrain, move_type, is_grounded),
-            Generation::Gen6(g) => g.terrain_modifier(terrain, move_type, is_grounded),
-            Generation::Gen7(g) => g.terrain_modifier(terrain, move_type, is_grounded),
-            Generation::Gen8(g) => g.terrain_modifier(terrain, move_type, is_grounded),
-            Generation::Gen9(g) => g.terrain_modifier(terrain, move_type, is_grounded),
+            Generation::Gen1(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
+            Generation::Gen2(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
+            Generation::Gen3(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
+            Generation::Gen4(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
+            Generation::Gen5(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
+            Generation::Gen6(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
+            Generation::Gen7(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
+            Generation::Gen8(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
+            Generation::Gen9(g) => g.terrain_modifier(terrain, move_id, move_type, attacker_grounded, defender_grounded),
         }
     }
     

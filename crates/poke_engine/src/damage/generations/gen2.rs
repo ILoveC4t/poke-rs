@@ -57,7 +57,14 @@ impl GenMechanics for Gen2 {
     }
 
     // No terrain
-    fn terrain_modifier(&self, _terrain: Terrain, _move_type: Type, _is_grounded: bool) -> Option<Modifier> {
+    fn terrain_modifier(
+        &self,
+        _terrain: Terrain,
+        _move_id: crate::moves::MoveId,
+        _move_type: Type,
+        _attacker_grounded: bool,
+        _defender_grounded: bool,
+    ) -> Option<Modifier> {
         None
     }
 }

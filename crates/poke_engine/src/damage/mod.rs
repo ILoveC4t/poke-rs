@@ -53,6 +53,25 @@ pub use pipeline::{DamagePipeline, Gen3Pipeline, Gen4Pipeline, Gen5PlusPipeline}
 use crate::moves::MoveId;
 use crate::state::BattleState;
 
+/// Calculate the effective priority of a move.
+pub fn calculate_priority(
+    state: &BattleState,
+    attacker: usize,
+    move_id: MoveId,
+) -> i8 {
+    let move_data = move_id.data();
+    let mut priority = move_data.priority;
+
+    // Ability hooks
+    if let Some(Some(hooks)) = crate::abilities::ABILITY_REGISTRY.get(state.abilities[attacker] as usize) {
+        if let Some(hook) = hooks.on_modify_priority {
+            priority = hook(state, attacker, move_id, priority);
+        }
+    }
+
+    priority
+}
+
 /// Result of a damage calculation.
 #[derive(Clone, Debug)]
 pub struct DamageResult {
@@ -168,6 +187,17 @@ pub fn calculate_damage_with_overrides<G: GenMechanics>(
         ctx.base_power = bp;
     }
     
+    // Check Psychic Terrain priority blocking (Gen 7+)
+    if gen.generation() >= 7
+        && ctx.state.terrain == crate::damage::generations::Terrain::Psychic as u8
+        && ctx.defender_grounded
+    {
+        let priority = calculate_priority(state, attacker, move_id);
+        if priority > 0 {
+             return DamageResult::zero();
+        }
+    }
+
     // Apply special move overrides (e.g. Weather Ball, Struggle, Flying Press)
     special_moves::apply_special_moves(&mut ctx);
 
