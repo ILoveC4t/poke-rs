@@ -128,6 +128,30 @@ mod tests {
             ),
             Some(Modifier::HALF)
         );
+
+        // Psychic Terrain boosts Psychic moves for grounded Pokemon
+        assert_eq!(
+            gen.terrain_modifier(
+                Terrain::Psychic,
+                MoveId::Psychic,
+                Type::Psychic,
+                true,
+                true
+            ),
+            Some(Modifier::ONE_POINT_THREE)
+        );
+
+        // Not grounded (attacker) = no boost
+        assert_eq!(
+            gen.terrain_modifier(
+                Terrain::Psychic,
+                MoveId::Psychic,
+                Type::Psychic,
+                false,
+                true
+            ),
+            None
+        );
     }
 
     #[test]
