@@ -1,13 +1,13 @@
 {
-  "timestamp": "1769643852",
-  "timestamp_human": "2026-01-28T23:44:12Z",
-  "duration_seconds": 13.57545692,
+  "timestamp": "1769644956",
+  "timestamp_human": "2026-01-29T00:02:36Z",
+  "duration_seconds": 16.580174697,
   "status": "FAILURE",
   "cargo_test": {
-    "passed": 458,
-    "failed": 108,
-    "ignored": 7,
-    "total": 573
+    "passed": 465,
+    "failed": 104,
+    "ignored": 11,
+    "total": 580
   },
   "fixture_results": {
     "passed": 330,
@@ -53,12 +53,12 @@
     {
       "id": "gen1-Critical-hits-ignore-attack-decreases--gen-1--45",
       "name": "Critical hits ignore attack decreases (gen 1)",
-      "error": "Roll 0 mismatch: expected 102, got 457"
+      "error": "Roll 0 mismatch: expected 102, got 229"
     },
     {
       "id": "gen2-Critical-hits-ignore-attack-decreases--gen-2--46",
       "name": "Critical hits ignore attack decreases (gen 2)",
-      "error": "Roll 0 mismatch: expected 850, got 923"
+      "error": "Roll 0 mismatch: expected 850, got 1842"
     },
     {
       "id": "gen2-Critical-hits-ignore-attack-decreases--gen-2--47",
