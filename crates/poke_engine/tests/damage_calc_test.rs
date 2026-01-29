@@ -4,13 +4,13 @@
 //! from smogon/damage-calc.
 
 use poke_engine::abilities::AbilityId;
-use poke_engine::damage::generations::{Generation, Weather, Terrain};
+use poke_engine::damage::calculate_damage_with_overrides;
+use poke_engine::damage::generations::{Generation, Terrain, Weather};
 use poke_engine::entities::PokemonConfig;
 use poke_engine::items::ItemId;
 use poke_engine::moves::MoveId;
 use poke_engine::natures::NatureId;
 use poke_engine::state::BattleState;
-use poke_engine::damage::calculate_damage_with_overrides;
 
 use serde::Deserialize;
 use std::fs::File;
@@ -34,7 +34,7 @@ fn get_target_gen() -> Option<u8> {
             return Some(gen);
         }
     }
-    
+
     // Default: All generations
     None
 }
@@ -168,19 +168,23 @@ fn spawn_pokemon(
 ) -> Result<(), String> {
     // Normalize name for lookup (lowercase, remove spaces/hyphens)
     let name_normalized = data.name.to_lowercase().replace(['-', ' ', '\'', '.'], "");
-    
-    let species = poke_engine::species::SpeciesId::from_str(&name_normalized)
-        .ok_or_else(|| format!("Unknown species: {} (normalized: {})", data.name, name_normalized))?;
-    
+
+    let species = poke_engine::species::SpeciesId::from_str(&name_normalized).ok_or_else(|| {
+        format!(
+            "Unknown species: {} (normalized: {})",
+            data.name, name_normalized
+        )
+    })?;
+
     let mut config = PokemonConfig::new(species);
-    
+
     // Level
     if let Some(level) = data.level {
         config = config.level(level);
     } else {
         config = config.level(100); // Default level in damage calc
     }
-    
+
     // Nature
     if let Some(ref nature_str) = data.nature {
         let nature_normalized = nature_str.to_lowercase();
@@ -188,7 +192,7 @@ fn spawn_pokemon(
             config = config.nature(nature);
         }
     }
-    
+
     // Ability
     if let Some(ref ability_str) = data.ability {
         let ability_normalized = ability_str.to_lowercase().replace(['-', ' '], "");
@@ -196,7 +200,7 @@ fn spawn_pokemon(
             config = config.ability(ability);
         }
     }
-    
+
     // Item
     if let Some(ref item_str) = data.item {
         let item_normalized = item_str.to_lowercase().replace(['-', ' '], "");
@@ -204,7 +208,7 @@ fn spawn_pokemon(
             config = config.item(item);
         }
     }
-    
+
     // EVs
     if let Some(ref evs) = data.evs {
         let ev_array = [
@@ -217,7 +221,7 @@ fn spawn_pokemon(
         ];
         config = config.evs(ev_array);
     }
-    
+
     // IVs
     if let Some(ref ivs) = data.ivs {
         let iv_array = [
@@ -230,10 +234,10 @@ fn spawn_pokemon(
         ];
         config = config.ivs(iv_array);
     }
-    
+
     // Spawn
     config.spawn(state, player, slot);
-    
+
     // Apply boosts after spawning
     if let Some(ref boosts) = data.boosts {
         let entity_idx = BattleState::entity_index(player, slot);
@@ -244,7 +248,7 @@ fn spawn_pokemon(
         state.boosts[entity_idx][3] = boosts.spd.unwrap_or_default();
         state.boosts[entity_idx][4] = boosts.spe.unwrap_or_default();
     }
-    
+
     // Apply status
     if let Some(ref status_str) = data.status {
         use poke_engine::state::Status;
@@ -259,20 +263,20 @@ fn spawn_pokemon(
             _ => Status::NONE,
         };
     }
-    
+
     // Apply current HP if specified
     if let Some(cur_hp) = data.cur_hp {
         let entity_idx = BattleState::entity_index(player, slot);
         state.hp[entity_idx] = cur_hp;
     }
-    
+
     Ok(())
 }
 
 /// Apply field conditions to state.
 fn apply_field(field: &Option<FieldData>, state: &mut BattleState) {
     let Some(field) = field else { return };
-    
+
     // Weather
     if let Some(ref weather_str) = field.weather {
         state.weather = match weather_str.to_lowercase().as_str() {
@@ -287,7 +291,7 @@ fn apply_field(field: &Option<FieldData>, state: &mut BattleState) {
             _ => Weather::None as u8,
         };
     }
-    
+
     // Terrain
     if let Some(ref terrain_str) = field.terrain {
         state.terrain = match terrain_str.to_lowercase().as_str() {
@@ -298,17 +302,17 @@ fn apply_field(field: &Option<FieldData>, state: &mut BattleState) {
             _ => Terrain::None as u8,
         };
     }
-    
+
     // Gravity
     if field.is_gravity == Some(true) {
         state.gravity = true;
     }
-    
+
     // Defender side conditions (screens)
     if let Some(ref def_side) = field.defender_side {
         use poke_engine::state::SideConditions;
         let mut conditions = SideConditions::default();
-        
+
         if def_side.is_reflect == Some(true) {
             conditions.reflect_turns = 5;
         }
@@ -321,7 +325,7 @@ fn apply_field(field: &Option<FieldData>, state: &mut BattleState) {
         if def_side.is_tailwind == Some(true) {
             conditions.tailwind_turns = 4;
         }
-        
+
         state.side_conditions[1] = conditions; // Defender is player 1
     }
 }
@@ -354,54 +358,134 @@ fn parse_expected_damage(value: &serde_json::Value) -> Vec<u16> {
 /// Verify a single damage calculation test case.
 fn verify_damage_calc(case: &DamageTestCase) -> Result<(), String> {
     let mut state = BattleState::new();
-    
+
     // Spawn attacker (player 0, slot 0)
     spawn_pokemon(&case.attacker, &mut state, 0, 0)?;
-    
+
     // Spawn defender (player 1, slot 0)
     spawn_pokemon(&case.defender, &mut state, 1, 0)?;
-    
+
     // Apply field conditions
     apply_field(&case.field, &mut state);
-    
+
     // Set generation for hooks (Weather Ball, etc.)
     state.generation = case.gen;
-    
+
     // Get move
-    let move_normalized = case.move_data.name.to_lowercase().replace(['-', ' ', '\''], "");
-    let move_id = MoveId::from_str(&move_normalized)
-        .ok_or_else(|| format!("Unknown move: {} (normalized: {})", case.move_data.name, move_normalized))?;
-    
+    let move_normalized = case
+        .move_data
+        .name
+        .to_lowercase()
+        .replace(['-', ' ', '\''], "");
+    let move_id = MoveId::from_str(&move_normalized).ok_or_else(|| {
+        format!(
+            "Unknown move: {} (normalized: {})",
+            case.move_data.name, move_normalized
+        )
+    })?;
+
     let is_crit = case.move_data.is_crit.unwrap_or_default();
-    
+
     // Get generation
     let gen = Generation::from_num(case.gen);
-    
+
     // Calculate damage
     let attacker_idx = 0;
     let defender_idx = 6; // Player 1, slot 0
-    
+
     // Use dynamic dispatch for the generation
     let base_power_override = z_move_base_power(case);
     let result = match gen {
-        Generation::Gen9(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
-        Generation::Gen8(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
-        Generation::Gen7(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
-        Generation::Gen6(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
-        Generation::Gen5(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
-        Generation::Gen4(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
-        Generation::Gen3(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
-        Generation::Gen2(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
-        Generation::Gen1(g) => calculate_damage_with_overrides(g, &state, attacker_idx, defender_idx, move_id, is_crit, base_power_override),
+        Generation::Gen9(g) => calculate_damage_with_overrides(
+            g,
+            &state,
+            attacker_idx,
+            defender_idx,
+            move_id,
+            is_crit,
+            base_power_override,
+        ),
+        Generation::Gen8(g) => calculate_damage_with_overrides(
+            g,
+            &state,
+            attacker_idx,
+            defender_idx,
+            move_id,
+            is_crit,
+            base_power_override,
+        ),
+        Generation::Gen7(g) => calculate_damage_with_overrides(
+            g,
+            &state,
+            attacker_idx,
+            defender_idx,
+            move_id,
+            is_crit,
+            base_power_override,
+        ),
+        Generation::Gen6(g) => calculate_damage_with_overrides(
+            g,
+            &state,
+            attacker_idx,
+            defender_idx,
+            move_id,
+            is_crit,
+            base_power_override,
+        ),
+        Generation::Gen5(g) => calculate_damage_with_overrides(
+            g,
+            &state,
+            attacker_idx,
+            defender_idx,
+            move_id,
+            is_crit,
+            base_power_override,
+        ),
+        Generation::Gen4(g) => calculate_damage_with_overrides(
+            g,
+            &state,
+            attacker_idx,
+            defender_idx,
+            move_id,
+            is_crit,
+            base_power_override,
+        ),
+        Generation::Gen3(g) => calculate_damage_with_overrides(
+            g,
+            &state,
+            attacker_idx,
+            defender_idx,
+            move_id,
+            is_crit,
+            base_power_override,
+        ),
+        Generation::Gen2(g) => calculate_damage_with_overrides(
+            g,
+            &state,
+            attacker_idx,
+            defender_idx,
+            move_id,
+            is_crit,
+            base_power_override,
+        ),
+        Generation::Gen1(g) => calculate_damage_with_overrides(
+            g,
+            &state,
+            attacker_idx,
+            defender_idx,
+            move_id,
+            is_crit,
+            base_power_override,
+        ),
     };
-    
+
     // Parse expected damage
     let expected = parse_expected_damage(&case.expected.damage);
-    
+
     if expected.is_empty() {
         return Err("No expected damage values".to_string());
     }
-    
+
     // Compare results
     if expected.len() == 16 {
         // Full roll comparison
@@ -434,7 +518,7 @@ fn verify_damage_calc(case: &DamageTestCase) -> Result<(), String> {
             }
         }
     }
-    
+
     Ok(())
 }
 
@@ -467,25 +551,29 @@ fn test_damage_calculations() {
             return;
         }
     };
-    
+
     let reader = BufReader::new(file);
-    let fixture: DamageFixture = serde_json::from_reader(reader).expect("failed to parse damage.json");
-    
+    let fixture: DamageFixture =
+        serde_json::from_reader(reader).expect("failed to parse damage.json");
+
     let target_gen = get_target_gen();
     let total_cases = fixture.cases.len();
-    
+
     println!("Loaded {} damage test cases", total_cases);
     if let Some(gen) = target_gen {
-        println!("Filtering to Gen {} only (set POKE_TEST_GEN env var to change)", gen);
+        println!(
+            "Filtering to Gen {} only (set POKE_TEST_GEN env var to change)",
+            gen
+        );
     }
-    
+
     let mut passed = 0;
     let mut failed = 0;
     let mut skipped = 0;
     let mut skipped_species = 0;
     let mut skipped_moves = 0;
     let mut errors: Vec<String> = vec![];
-    
+
     for case in &fixture.cases {
         // Filter by generation
         if let Some(target) = target_gen {
@@ -494,7 +582,7 @@ fn test_damage_calculations() {
                 continue;
             }
         }
-        
+
         match verify_damage_calc(case) {
             Ok(()) => passed += 1,
             Err(e) => {
@@ -513,30 +601,35 @@ fn test_damage_calculations() {
             }
         }
     }
-    
+
     println!("\n=== Damage Calc Test Results ===");
     println!("Passed:  {}", passed);
     println!("Failed:  {}", failed);
-    println!("Skipped: {} (gen filter: {}, species: {}, moves: {})", 
-             skipped, 
-             skipped - skipped_species - skipped_moves,
-             skipped_species,
-             skipped_moves);
-    
+    println!(
+        "Skipped: {} (gen filter: {}, species: {}, moves: {})",
+        skipped,
+        skipped - skipped_species - skipped_moves,
+        skipped_species,
+        skipped_moves
+    );
+
     if !errors.is_empty() {
         println!("\nAll {} errors:", errors.len());
         for err in &errors {
             println!("  {}", err);
         }
     }
-    
+
     // Don't fail the test yet - we're still implementing
     if STRICT_MODE && failed > 0 {
         panic!("{} test cases failed", failed);
     }
-    
+
     // Just verify we processed some cases
-    assert!(passed + failed + skipped > 0, "No test cases were processed");
+    assert!(
+        passed + failed + skipped > 0,
+        "No test cases were processed"
+    );
 }
 
 // ============================================================================
@@ -552,7 +645,7 @@ fn test_weather_parsing() {
     };
     apply_field(&Some(field), &mut state);
     assert_eq!(state.weather, Weather::Sun as u8);
-    
+
     let field = FieldData {
         weather: Some("Rain".to_string()),
         ..Default::default()

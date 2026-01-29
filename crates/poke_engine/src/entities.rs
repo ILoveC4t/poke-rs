@@ -30,45 +30,45 @@ pub enum Gender {
 }
 
 /// Blueprint for spawning a Pokémon into battle.
-/// 
+///
 /// Use builder methods to customize, then call `spawn()` to inject
 /// into a `BattleState` at a specific slot.
 #[derive(Clone, Debug)]
 pub struct PokemonConfig {
     /// Species (determines base stats and types)
     pub species: SpeciesId,
-    
+
     /// Level (1-100)
     pub level: u8,
-    
+
     /// Individual Values [HP, Atk, Def, SpA, SpD, Spe] (0-31)
     pub ivs: [u8; 6],
-    
+
     /// Effort Values [HP, Atk, Def, SpA, SpD, Spe] (0-255, max 510 total)
     pub evs: [u8; 6],
-    
+
     /// Nature (affects stat growth)
     pub nature: NatureId,
-    
+
     /// Ability (if None, uses species' first ability)
     pub ability: Option<AbilityId>,
-    
+
     /// Held item
     pub item: ItemId,
-    
+
     /// Move set
     pub moves: [MoveId; MAX_MOVES],
 
     /// PP Ups used for each move (0-3)
     pub pp_ups: [u8; MAX_MOVES],
-    
+
     /// Happiness (affects Return/Frustration power)
     /// FIXME: May not be needed if these moves are deprecated in Gen 9
     pub happiness: u8,
-    
+
     /// Override types (for custom forms, etc.)
     pub types_override: Option<[Type; 2]>,
-    
+
     /// Current HP (if less than max, e.g., for restoring a saved team)
     pub current_hp: Option<u16>,
 
@@ -108,28 +108,28 @@ impl PokemonConfig {
             ..Default::default()
         }
     }
-    
+
     /// Create from species string key
     pub fn from_str(species_key: &str) -> Option<Self> {
         SpeciesId::from_str(species_key).map(Self::new)
     }
-    
+
     // ========================================================================
     // Builder methods
     // ========================================================================
-    
+
     /// Set level
     pub fn level(mut self, level: u8) -> Self {
         self.level = level.clamp(1, 100);
         self
     }
-    
+
     /// Set IVs
     pub fn ivs(mut self, ivs: [u8; 6]) -> Self {
         self.ivs = ivs.map(|v| v.min(31));
         self
     }
-    
+
     /// Set EVs
     pub fn evs(mut self, evs: [u8; 6]) -> Self {
         // Clamp individual EVs to 252 and total to 510
@@ -143,31 +143,31 @@ impl PokemonConfig {
         }
         self
     }
-    
+
     /// Set nature
     pub fn nature(mut self, nature: NatureId) -> Self {
         self.nature = nature;
         self
     }
-    
+
     /// Set ability
     pub fn ability(mut self, ability: AbilityId) -> Self {
         self.ability = Some(ability);
         self
     }
-    
+
     /// Set held item
     pub fn item(mut self, item: ItemId) -> Self {
         self.item = item;
         self
     }
-    
+
     /// Set moves
     pub fn moves(mut self, moves: [MoveId; MAX_MOVES]) -> Self {
         self.moves = moves;
         self
     }
-    
+
     /// Set a single move at a slot
     pub fn set_move(mut self, slot: usize, move_id: MoveId) -> Self {
         if slot < MAX_MOVES {
@@ -189,7 +189,7 @@ impl PokemonConfig {
         }
         self
     }
-    
+
     /// Set current HP (for partially damaged Pokémon)
     pub fn current_hp(mut self, hp: u16) -> Self {
         self.current_hp = Some(hp);
@@ -233,30 +233,30 @@ impl PokemonConfig {
         }
         self
     }
-    
+
     // ========================================================================
     // Stat Calculation
     // ========================================================================
-    
+
     /// Calculate final stats based on base stats, IVs, EVs, level, and nature
     pub fn calculate_stats(&self) -> [u16; 6] {
         let species = self.species.data();
         let base = species.base_stats;
         let level = self.level as u32;
-        
+
         let mut stats = [0u16; 6];
-        
+
         // HP formula: floor((2 * Base + IV + floor(EV/4)) * Level / 100) + Level + 10
         stats[0] = self.calculate_hp(base[0] as u32, level);
-        
+
         // Other stats: floor((floor((2 * Base + IV + floor(EV/4)) * Level / 100) + 5) * Nature)
         for i in 1..6 {
             stats[i] = self.calculate_stat(i, base[i] as u32, level);
         }
-        
+
         stats
     }
-    
+
     /// Calculate HP stat (special formula)
     fn calculate_hp(&self, base: u32, level: u32) -> u16 {
         // Shedinja always has 1 HP
@@ -266,18 +266,18 @@ impl PokemonConfig {
 
         let iv = self.ivs[0] as u32;
         let ev = self.evs[0] as u32;
-        
+
         let hp = ((2 * base + iv + ev / 4) * level / 100) + level + 10;
         hp as u16
     }
-    
+
     /// Calculate non-HP stat with nature modifier
     fn calculate_stat(&self, stat_index: usize, base: u32, level: u32) -> u16 {
         let iv = self.ivs[stat_index] as u32;
         let ev = self.evs[stat_index] as u32;
-        
+
         let raw = ((2 * base + iv + ev / 4) * level / 100) + 5;
-        
+
         // Apply nature modifier (9 = -10%, 10 = neutral, 11 = +10%)
         let nature_stat = match stat_index {
             1 => BattleStat::Atk,
@@ -288,28 +288,28 @@ impl PokemonConfig {
             _ => unreachable!(),
         };
         let modifier = self.nature.stat_modifier(nature_stat) as u32;
-        
+
         ((raw * modifier) / 10) as u16
     }
-    
+
     /// Get effective types (from override or species)
     fn get_types(&self) -> [Type; 2] {
         if let Some(types) = self.types_override {
             return types;
         }
-        
+
         let species = self.species.data();
         let type1 = species.primary_type();
         let type2 = species.secondary_type().unwrap_or_else(|| type1);
         [type1, type2]
     }
-    
+
     /// Get ability (from override or species default)
     fn get_ability(&self, species: &Species) -> AbilityId {
         if let Some(ability) = self.ability {
             return ability;
         }
-        
+
         species.primary_ability()
     }
 
@@ -328,25 +328,25 @@ impl PokemonConfig {
             _ => Gender::Male,
         }
     }
-    
+
     // ========================================================================
     // Spawning
     // ========================================================================
-    
+
     /// Spawn this Pokémon into the battle state at the given player/slot
     pub fn spawn(&self, state: &mut BattleState, player: usize, slot: usize) {
         let index = BattleState::entity_index(player, slot);
         let species = self.species.data();
-        
+
         // Calculate and set stats
         let stats = self.calculate_stats();
         state.stats[index] = stats;
-        
+
         // Set HP
         let max_hp = stats[0];
         state.max_hp[index] = max_hp;
         state.hp[index] = self.current_hp.unwrap_or_else(|| max_hp).min(max_hp);
-        
+
         // Set identity
         state.species[index] = self.species;
         state.level[index] = self.level;
@@ -354,19 +354,19 @@ impl PokemonConfig {
         state.gender[index] = self.get_gender();
         state.ivs[index] = self.ivs;
         state.evs[index] = self.evs;
-        
+
         // Set types
         state.types[index] = self.get_types();
-        
+
         // Set ability
         state.abilities[index] = self.get_ability(species);
-        
+
         // Set item
         state.items[index] = self.item;
 
         // Set weight
         state.weight[index] = self.weight.unwrap_or_else(|| species.weight);
-        
+
         // Set moves and PP
         state.moves[index] = self.moves;
         for i in 0..MAX_MOVES {
@@ -386,7 +386,7 @@ impl PokemonConfig {
             state.pp[index][i] = max_pp;
             state.max_pp[index][i] = max_pp;
         }
-        
+
         // Reset volatile state
         state.boosts[index] = [0; 7];
         state.status[index] = crate::state::Status::NONE;
@@ -394,12 +394,12 @@ impl PokemonConfig {
         state.status_counter[index] = 0;
         // Mark as transformed if spawning in a non-base form (e.g. Mega)
         state.transformed[index] = species.base_species != 0;
-        
+
         // Update team size if needed
         if slot >= state.team_sizes[player] as usize {
             state.team_sizes[player] = (slot + 1) as u8;
         }
-        
+
         // Trigger ability switch-in hooks (e.g., Multitype for Arceus type)
         let ability = state.abilities[index];
         if let Some(Some(hooks)) = crate::abilities::ABILITY_REGISTRY.get(ability as usize) {
@@ -416,9 +416,7 @@ impl PokemonConfig {
 
 /// Create a basic config with common competitive defaults
 pub fn competitive_config(species: SpeciesId) -> PokemonConfig {
-    PokemonConfig::new(species)
-        .level(50)
-        .ivs(DEFAULT_IVS)
+    PokemonConfig::new(species).level(50).ivs(DEFAULT_IVS)
 }
 
 // FIXME: Add preset factory functions for specific Pokémon (like pokedex::gengar())
@@ -570,8 +568,8 @@ mod tests {
             }
         };
         let reader = BufReader::new(file);
-        let fixture: StatFixture = serde_json::from_reader(reader)
-            .expect("Failed to parse stats.json fixture");
+        let fixture: StatFixture =
+            serde_json::from_reader(reader).expect("Failed to parse stats.json fixture");
 
         let mut passed = 0;
         let mut failed = 0;
@@ -621,8 +619,15 @@ mod tests {
             if result != case.expected {
                 eprintln!(
                     "FAIL [{}]: {} base={} iv={} ev={} lvl={} nature={} => got {} expected {}",
-                    case.id, case.stat, case.base, case.iv, case.ev, case.level, case.nature,
-                    result, case.expected
+                    case.id,
+                    case.stat,
+                    case.base,
+                    case.iv,
+                    case.ev,
+                    case.level,
+                    case.nature,
+                    result,
+                    case.expected
                 );
                 failed += 1;
             } else {
@@ -645,32 +650,56 @@ mod tests {
         config1.spawn(&mut state, 0, 0);
 
         let expected_base_pp = thunderbolt.data().pp;
-        assert_eq!(state.pp[0][0], expected_base_pp, "PP should match base PP without PP Ups");
-        assert_eq!(state.max_pp[0][0], expected_base_pp, "Max PP should match base PP without PP Ups");
+        assert_eq!(
+            state.pp[0][0], expected_base_pp,
+            "PP should match base PP without PP Ups"
+        );
+        assert_eq!(
+            state.max_pp[0][0], expected_base_pp,
+            "Max PP should match base PP without PP Ups"
+        );
 
         // Test with 1 PP Up
         let config2 = pikachu.clone().set_move(0, thunderbolt).set_pp_up(0, 1);
         config2.spawn(&mut state, 0, 1);
 
         let expected_pp_1up = expected_base_pp + (expected_base_pp * 1 / 5);
-        assert_eq!(state.pp[1][0], expected_pp_1up, "PP should be increased with 1 PP Up");
-        assert_eq!(state.max_pp[1][0], expected_pp_1up, "Max PP should be increased with 1 PP Up");
+        assert_eq!(
+            state.pp[1][0], expected_pp_1up,
+            "PP should be increased with 1 PP Up"
+        );
+        assert_eq!(
+            state.max_pp[1][0], expected_pp_1up,
+            "Max PP should be increased with 1 PP Up"
+        );
 
         // Test with 2 PP Ups
         let config3 = pikachu.clone().set_move(0, thunderbolt).set_pp_up(0, 2);
         config3.spawn(&mut state, 0, 2);
 
         let expected_pp_2up = expected_base_pp + (expected_base_pp * 2 / 5);
-        assert_eq!(state.pp[2][0], expected_pp_2up, "PP should be increased with 2 PP Ups");
-        assert_eq!(state.max_pp[2][0], expected_pp_2up, "Max PP should be increased with 2 PP Ups");
+        assert_eq!(
+            state.pp[2][0], expected_pp_2up,
+            "PP should be increased with 2 PP Ups"
+        );
+        assert_eq!(
+            state.max_pp[2][0], expected_pp_2up,
+            "Max PP should be increased with 2 PP Ups"
+        );
 
         // Test with max PP Ups
         let config4 = pikachu.clone().set_move(0, thunderbolt).set_pp_up(0, 3);
         config4.spawn(&mut state, 0, 3);
 
         let expected_max_pp = expected_base_pp + (expected_base_pp * 3 / 5);
-        assert_eq!(state.pp[3][0], expected_max_pp, "PP should be maximized with 3 PP Ups");
-        assert_eq!(state.max_pp[3][0], expected_max_pp, "Max PP should be maximized with 3 PP Ups");
+        assert_eq!(
+            state.pp[3][0], expected_max_pp,
+            "PP should be maximized with 3 PP Ups"
+        );
+        assert_eq!(
+            state.max_pp[3][0], expected_max_pp,
+            "Max PP should be maximized with 3 PP Ups"
+        );
     }
 
     #[test]
@@ -688,8 +717,8 @@ mod tests {
             }
         };
         let reader = BufReader::new(file);
-        let fixture: StatsFullFixture = serde_json::from_reader(reader)
-            .expect("Failed to parse stats-full.json fixture");
+        let fixture: StatsFullFixture =
+            serde_json::from_reader(reader).expect("Failed to parse stats-full.json fixture");
 
         let mut passed = 0;
         let mut failed = 0;
@@ -759,20 +788,23 @@ mod tests {
             }
         }
 
-        eprintln!("stats-full.json calcStat: {} passed, {} failed", passed, failed);
+        eprintln!(
+            "stats-full.json calcStat: {} passed, {} failed",
+            passed, failed
+        );
         assert_eq!(failed, 0, "Some fixture cases failed");
     }
 
     // ========================================================================
     // Original manual tests
     // ========================================================================
-    
+
     #[test]
     fn test_stat_calculation() {
         // Test cases derived from smogon/damage-calc stats.test.ts
         // Level 100, Base 100 all stats, 31 IVs, 252 EVs, Adamant (+Atk, -SpA)
         // Expected: { hp: 404, atk: 328, def: 299, spa: 269, spd: 299, spe: 299 }
-        
+
         if let Some(config) = PokemonConfig::from_str("pikachu") {
             // Pikachu base stats: 35/55/40/50/50/90
             let config = config
@@ -780,23 +812,23 @@ mod tests {
                 .ivs([31, 31, 31, 31, 31, 31])
                 .evs([0, 0, 0, 0, 0, 252])
                 .nature(NatureId::from_str("timid").unwrap()); // +Spe, -Atk
-            
+
             let stats = config.calculate_stats();
-            
+
             // HP formula: floor((2*35 + 31 + 0) * 50 / 100) + 50 + 10 = 110
             assert_eq!(stats[0], 110, "Pikachu HP mismatch");
-            
+
             // Speed with Timid (+10%) and 252 EVs:
             // Raw = floor((2*90 + 31 + 63) * 50 / 100) + 5 = 142
             // With Timid = floor(142 * 1.1) = 156
             assert_eq!(stats[5], 156, "Pikachu Speed mismatch");
-            
+
             // Attack with Timid (-10%):
             // Raw = floor((2*55 + 31 + 0) * 50 / 100) + 5 = 75
             // With Timid = floor(75 * 0.9) = 67
             assert_eq!(stats[1], 67, "Pikachu Attack mismatch");
         }
-        
+
         // Test with base 100 stats at level 100 (from damage-calc test)
         // Using Mew: 100/100/100/100/100/100 base stats
         if let Some(config) = PokemonConfig::from_str("mew") {
@@ -805,31 +837,31 @@ mod tests {
                 .ivs([31, 31, 31, 31, 31, 31])
                 .evs([252, 252, 0, 0, 0, 0])
                 .nature(NatureId::from_str("adamant").unwrap()); // +Atk, -SpA
-            
+
             let stats = config.calculate_stats();
-            
+
             // HP: floor((2*100 + 31 + 63) * 100 / 100) + 100 + 10 = 404
             assert_eq!(stats[0], 404, "Mew HP mismatch");
-            
+
             // Atk with Adamant (+10%) and 252 EVs:
             // Raw = floor((2*100 + 31 + 63) * 100 / 100) + 5 = 299
             // With Adamant = floor(299 * 1.1) = 328
             assert_eq!(stats[1], 328, "Mew Attack mismatch");
-            
+
             // SpA with Adamant (-10%) and 0 EVs:
             // Raw = floor((2*100 + 31 + 0) * 100 / 100) + 5 = 236
             // With Adamant = floor(236 * 0.9) = 212
             assert_eq!(stats[3], 212, "Mew SpA mismatch");
         }
     }
-    
+
     #[test]
     fn test_spawn() {
         let mut state = BattleState::new();
-        
+
         if let Some(config) = PokemonConfig::from_str("pikachu") {
             config.level(50).spawn(&mut state, 0, 0);
-            
+
             assert!(!state.is_fainted(0));
             assert!(state.hp[0] > 0);
             assert_eq!(state.level[0], 50);
@@ -846,10 +878,13 @@ mod tests {
             // Even at level 100 with max IVs/EVs
             let config_max = config.level(100).ivs([31; 6]).evs([252; 6]);
             let stats_max = config_max.calculate_stats();
-            assert_eq!(stats_max[0], 1, "Shedinja must have 1 HP even at max level/investment");
+            assert_eq!(
+                stats_max[0], 1,
+                "Shedinja must have 1 HP even at max level/investment"
+            );
         } else {
-             // panic!("Shedinja not found in pokedex data");
-             // Suppress panic if data missing (e.g. running minimal tests)
+            // panic!("Shedinja not found in pokedex data");
+            // Suppress panic if data missing (e.g. running minimal tests)
         }
     }
 
@@ -924,7 +959,8 @@ mod tests {
             }
         };
         let reader = BufReader::new(file);
-        let fixture: PokemonFixture = serde_json::from_reader(reader).expect("failed to parse pokemon.json");
+        let fixture: PokemonFixture =
+            serde_json::from_reader(reader).expect("failed to parse pokemon.json");
 
         let mut passed = 0;
         let mut skipped = 0;
@@ -937,8 +973,8 @@ mod tests {
             }
 
             if case.gen < 3 {
-                 skipped += 1;
-                 continue;
+                skipped += 1;
+                continue;
             }
 
             let expected: ExpectedPokemon = serde_json::from_value(case.expected).unwrap();
@@ -961,49 +997,86 @@ mod tests {
                 if let Some(lvl) = opts.level {
                     config = config.level(lvl);
                 }
-                
+
                 if let Some(ivs) = opts.ivs {
-                     let mut new_ivs = [31; 6];
-                     if let Some(v) = ivs.hp { new_ivs[0] = v as u8; }
-                     if let Some(v) = ivs.atk { new_ivs[1] = v as u8; }
-                     if let Some(v) = ivs.def { new_ivs[2] = v as u8; }
-                     if let Some(v) = ivs.spa { new_ivs[3] = v as u8; }
-                     if let Some(v) = ivs.spd { new_ivs[4] = v as u8; }
-                     if let Some(v) = ivs.spe { new_ivs[5] = v as u8; }
-                     config = config.ivs(new_ivs);
+                    let mut new_ivs = [31; 6];
+                    if let Some(v) = ivs.hp {
+                        new_ivs[0] = v as u8;
+                    }
+                    if let Some(v) = ivs.atk {
+                        new_ivs[1] = v as u8;
+                    }
+                    if let Some(v) = ivs.def {
+                        new_ivs[2] = v as u8;
+                    }
+                    if let Some(v) = ivs.spa {
+                        new_ivs[3] = v as u8;
+                    }
+                    if let Some(v) = ivs.spd {
+                        new_ivs[4] = v as u8;
+                    }
+                    if let Some(v) = ivs.spe {
+                        new_ivs[5] = v as u8;
+                    }
+                    config = config.ivs(new_ivs);
                 } else {
-                     // Default IVs are all 31 (from new)
+                    // Default IVs are all 31 (from new)
                 }
-                
-                 if let Some(evs) = opts.evs {
-                     let mut new_evs = [0; 6];
-                     if let Some(v) = evs.hp { new_evs[0] = v as u8; }
-                     if let Some(v) = evs.atk { new_evs[1] = v as u8; }
-                     if let Some(v) = evs.def { new_evs[2] = v as u8; }
-                     if let Some(v) = evs.spa { new_evs[3] = v as u8; }
-                     if let Some(v) = evs.spd { new_evs[4] = v as u8; }
-                     if let Some(v) = evs.spe { new_evs[5] = v as u8; }
-                     config = config.evs(new_evs);
+
+                if let Some(evs) = opts.evs {
+                    let mut new_evs = [0; 6];
+                    if let Some(v) = evs.hp {
+                        new_evs[0] = v as u8;
+                    }
+                    if let Some(v) = evs.atk {
+                        new_evs[1] = v as u8;
+                    }
+                    if let Some(v) = evs.def {
+                        new_evs[2] = v as u8;
+                    }
+                    if let Some(v) = evs.spa {
+                        new_evs[3] = v as u8;
+                    }
+                    if let Some(v) = evs.spd {
+                        new_evs[4] = v as u8;
+                    }
+                    if let Some(v) = evs.spe {
+                        new_evs[5] = v as u8;
+                    }
+                    config = config.evs(new_evs);
                 } else {
-                     // Default EVs are 0 (from new)
+                    // Default EVs are 0 (from new)
                 }
 
                 if let Some(n) = opts.nature_name {
-                    config = config.nature(NatureId::from_str(&n.to_lowercase()).unwrap_or_default());
+                    config =
+                        config.nature(NatureId::from_str(&n.to_lowercase()).unwrap_or_default());
                 }
             }
 
             let stats = config.calculate_stats();
-            
+
             let e = expected.stats;
             // Allow for small differences? Or exact?
             // "hp"
-            if let Some(v) = e.hp { assert_eq!(stats[0], v, "{}: HP mismatch", case.id); }
-            if let Some(v) = e.atk { assert_eq!(stats[1], v, "{}: Atk mismatch", case.id); }
-            if let Some(v) = e.def { assert_eq!(stats[2], v, "{}: Def mismatch", case.id); }
-            if let Some(v) = e.spa { assert_eq!(stats[3], v, "{}: SpA mismatch", case.id); }
-            if let Some(v) = e.spd { assert_eq!(stats[4], v, "{}: SpD mismatch", case.id); }
-            if let Some(v) = e.spe { assert_eq!(stats[5], v, "{}: Spe mismatch", case.id); }
+            if let Some(v) = e.hp {
+                assert_eq!(stats[0], v, "{}: HP mismatch", case.id);
+            }
+            if let Some(v) = e.atk {
+                assert_eq!(stats[1], v, "{}: Atk mismatch", case.id);
+            }
+            if let Some(v) = e.def {
+                assert_eq!(stats[2], v, "{}: Def mismatch", case.id);
+            }
+            if let Some(v) = e.spa {
+                assert_eq!(stats[3], v, "{}: SpA mismatch", case.id);
+            }
+            if let Some(v) = e.spd {
+                assert_eq!(stats[4], v, "{}: SpD mismatch", case.id);
+            }
+            if let Some(v) = e.spe {
+                assert_eq!(stats[5], v, "{}: Spe mismatch", case.id);
+            }
 
             passed += 1;
         }
@@ -1019,15 +1092,23 @@ mod tests {
             // Bulbasaur's first ability is Overgrow
             config.spawn(&mut state, 0, 0);
 
-            assert_eq!(state.abilities[0], AbilityId::Overgrow, "Default ability should be Overgrow");
+            assert_eq!(
+                state.abilities[0],
+                AbilityId::Overgrow,
+                "Default ability should be Overgrow"
+            );
         }
 
         if let Some(config) = PokemonConfig::from_str("charmander") {
             // Charmander's first ability is Blaze
-             config.spawn(&mut state, 1, 0);
+            config.spawn(&mut state, 1, 0);
 
-             let index = BattleState::entity_index(1, 0);
-             assert_eq!(state.abilities[index], AbilityId::Blaze, "Default ability should be Blaze");
+            let index = BattleState::entity_index(1, 0);
+            assert_eq!(
+                state.abilities[index],
+                AbilityId::Blaze,
+                "Default ability should be Blaze"
+            );
         }
     }
 
@@ -1084,12 +1165,16 @@ mod tests {
 
         // Manual override
         if let Some(pikachu) = PokemonConfig::from_str("pikachu") {
-             // Default (likely Male due to our heuristic)
-             let default_gender = pikachu.get_gender();
+            // Default (likely Male due to our heuristic)
+            let default_gender = pikachu.get_gender();
 
-             let female_pikachu = pikachu.gender(Gender::Female);
-             assert_eq!(female_pikachu.get_gender(), Gender::Female);
-             assert_ne!(default_gender, Gender::Female, "Pikachu shouldn't be female by default unless heuristic changed");
+            let female_pikachu = pikachu.gender(Gender::Female);
+            assert_eq!(female_pikachu.get_gender(), Gender::Female);
+            assert_ne!(
+                default_gender,
+                Gender::Female,
+                "Pikachu shouldn't be female by default unless heuristic changed"
+            );
         }
     }
 
