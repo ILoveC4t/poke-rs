@@ -1,8 +1,8 @@
-use crate::state::{BattleState, Status};
-use crate::damage::{DamageContext, Gen9, compute_base_power};
-use crate::species::SpeciesId;
-use crate::types::Type;
+use crate::damage::{compute_base_power, DamageContext, Gen9};
 use crate::moves::MoveId;
+use crate::species::SpeciesId;
+use crate::state::{BattleState, Status};
+use crate::types::Type;
 
 #[test]
 fn test_venoshock() {
@@ -25,7 +25,10 @@ fn test_venoshock() {
         let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
         compute_base_power(&mut ctx);
         // Base power should be 65
-        assert_eq!(ctx.base_power, 65, "Venoshock BP should be 65 without status");
+        assert_eq!(
+            ctx.base_power, 65,
+            "Venoshock BP should be 65 without status"
+        );
     }
 
     // Case 2: Poisoned (2x)
@@ -34,7 +37,10 @@ fn test_venoshock() {
         let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
         compute_base_power(&mut ctx);
         // 65 * 2 = 130
-        assert_eq!(ctx.base_power, 130, "Venoshock BP should double when target is poisoned");
+        assert_eq!(
+            ctx.base_power, 130,
+            "Venoshock BP should double when target is poisoned"
+        );
     }
 
     // Case 3: Toxic (2x)
@@ -42,7 +48,10 @@ fn test_venoshock() {
         state.status[6] = Status::TOXIC;
         let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
         compute_base_power(&mut ctx);
-        assert_eq!(ctx.base_power, 130, "Venoshock BP should double when target is badly poisoned");
+        assert_eq!(
+            ctx.base_power, 130,
+            "Venoshock BP should double when target is badly poisoned"
+        );
     }
 
     // Case 4: Other status (1x)
@@ -50,7 +59,10 @@ fn test_venoshock() {
         state.status[6] = Status::BURN;
         let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
         compute_base_power(&mut ctx);
-        assert_eq!(ctx.base_power, 65, "Venoshock BP should NOT double for other status");
+        assert_eq!(
+            ctx.base_power, 65,
+            "Venoshock BP should NOT double for other status"
+        );
     }
 }
 
@@ -81,7 +93,10 @@ fn test_hex() {
         state.status[6] = Status::BURN;
         let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
         compute_base_power(&mut ctx);
-        assert_eq!(ctx.base_power, 130, "Hex BP should double when target is burned");
+        assert_eq!(
+            ctx.base_power, 130,
+            "Hex BP should double when target is burned"
+        );
     }
 
     // Case 3: Sleep (2x)
@@ -89,7 +104,10 @@ fn test_hex() {
         state.status[6] = Status::SLEEP;
         let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
         compute_base_power(&mut ctx);
-        assert_eq!(ctx.base_power, 130, "Hex BP should double when target is asleep");
+        assert_eq!(
+            ctx.base_power, 130,
+            "Hex BP should double when target is asleep"
+        );
     }
 }
 
