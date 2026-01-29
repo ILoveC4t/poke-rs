@@ -218,7 +218,6 @@ fn apply_final_mods<G: GenMechanics>(
     if !has_mold_breaker(ctx.attacker_ability) {
         if let Some(hooks) = defender_hooks {
             if let Some(hook) = hooks.on_defender_final_mod {
-                let is_contact = ctx.move_data.flags.contains(MoveFlags::CONTACT);
                 damage = hook(
                     ctx.state,
                     ctx.attacker,
@@ -226,7 +225,7 @@ fn apply_final_mods<G: GenMechanics>(
                     ctx.effectiveness,
                     ctx.move_type,
                     ctx.category,
-                    is_contact,
+                    ctx.move_data,
                     damage,
                 );
             }
