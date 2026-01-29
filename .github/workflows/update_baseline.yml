@@ -56,4 +56,5 @@ jobs:
           retention-days: 365
 
       - name: Baseline uploaded
-        run: echo "Baseline artifact uploaded: .baseline/test_results.json (retention 365 days)"
+        run: |
+          echo "Baseline artifact uploaded: .baseline/test_results.json (retention 365 days)"
