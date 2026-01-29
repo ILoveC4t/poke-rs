@@ -12,7 +12,7 @@ fn test_pixilate() {
 
     // Attacker: Sylveon with Pixilate
     let attacker = 0;
-    state.species[attacker] = SpeciesId::from_str("sylveon").unwrap_or(SpeciesId(700));
+    state.species[attacker] = SpeciesId::from_str("sylveon").unwrap_or_else(|| SpeciesId(700));
     state.types[attacker] = [Type::Fairy, Type::Fairy];
     state.abilities[attacker] = AbilityId::Pixilate;
     state.stats[attacker][1] = 100; // Atk
@@ -56,7 +56,7 @@ fn test_pixilate_no_boost_on_fairy() {
 
     // Attacker: Sylveon with Pixilate
     let attacker = 0;
-    state.species[attacker] = SpeciesId::from_str("sylveon").unwrap_or(SpeciesId(700));
+    state.species[attacker] = SpeciesId::from_str("sylveon").unwrap_or_else(|| SpeciesId(700));
     state.types[attacker] = [Type::Fairy, Type::Fairy];
     state.abilities[attacker] = AbilityId::Pixilate;
 

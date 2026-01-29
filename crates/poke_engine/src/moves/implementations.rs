@@ -449,7 +449,7 @@ pub fn on_modify_type_judgment(
     base_type: Type,
 ) -> Type {
     let item = state.items[attacker];
-    plate_to_type(item).unwrap_or(base_type)
+    plate_to_type(item).unwrap_or_else(|| base_type)
 }
 
 // ============================================================================

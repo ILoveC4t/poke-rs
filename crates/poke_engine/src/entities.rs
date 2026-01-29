@@ -300,7 +300,7 @@ impl PokemonConfig {
         
         let species = self.species.data();
         let type1 = species.primary_type();
-        let type2 = species.secondary_type().unwrap_or(type1);
+        let type2 = species.secondary_type().unwrap_or_else(|| type1);
         [type1, type2]
     }
     
@@ -345,7 +345,7 @@ impl PokemonConfig {
         // Set HP
         let max_hp = stats[0];
         state.max_hp[index] = max_hp;
-        state.hp[index] = self.current_hp.unwrap_or(max_hp).min(max_hp);
+        state.hp[index] = self.current_hp.unwrap_or_else(|| max_hp).min(max_hp);
         
         // Set identity
         state.species[index] = self.species;
@@ -365,7 +365,7 @@ impl PokemonConfig {
         state.items[index] = self.item;
 
         // Set weight
-        state.weight[index] = self.weight.unwrap_or(species.weight);
+        state.weight[index] = self.weight.unwrap_or_else(|| species.weight);
         
         // Set moves and PP
         state.moves[index] = self.moves;
