@@ -41,6 +41,7 @@ jobs:
       - name: Update baseline
         run: |
           if [ -f ".test_runs/latest.json" ]; then
+            mkdir -p .baseline
             cp .test_runs/latest.json .baseline/test_results.json
             echo "Baseline updated from test run"
           else
