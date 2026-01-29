@@ -2,9 +2,9 @@
 //!
 //! These are called via `OnModifyBasePower` during the damage calculation pipeline.
 
-use crate::state::BattleState;
+use crate::damage::{apply_modifier, Modifier};
 use crate::moves::{Move, MoveFlags};
-use crate::damage::{Modifier, apply_modifier};
+use crate::state::BattleState;
 use crate::types::Type;
 
 /// Technician: 1.5x power for moves with BP ≤ 60
@@ -168,10 +168,10 @@ pub fn rivalry(
     bp: u16,
 ) -> u16 {
     use crate::entities::Gender;
-    
+
     let attacker_gender = state.gender[attacker];
     let defender_gender = state.gender[defender];
-    
+
     if attacker_gender != Gender::Genderless && defender_gender != Gender::Genderless {
         if attacker_gender == defender_gender {
             // 1.25x (5120/4096)
@@ -212,7 +212,7 @@ pub fn sand_force(
     bp: u16,
 ) -> u16 {
     use crate::damage::generations::Weather;
-    
+
     if Weather::from_u8(state.weather) == Weather::Sand {
         if matches!(move_type, Type::Rock | Type::Ground | Type::Steel) {
             // 1.3x (5325/4096)

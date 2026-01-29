@@ -43,10 +43,7 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
         .collect();
 
     // Collect type names as PascalCase for distinguishing types from status keys
-    let type_name_set: HashSet<String> = type_names
-        .iter()
-        .map(|s| s.to_pascal_case())
-        .collect();
+    let type_name_set: HashSet<String> = type_names.iter().map(|s| s.to_pascal_case()).collect();
 
     // Extract status immunity keys dynamically (keys in damageTaken that aren't type names)
     let mut status_key_set: BTreeSet<String> = BTreeSet::new();

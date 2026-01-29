@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
+    use crate::abilities::AbilityId;
     use crate::damage::{calculate_damage, Gen9};
     use crate::entities::PokemonConfig;
     use crate::moves::MoveId;
     use crate::state::BattleState;
-    use crate::abilities::AbilityId;
 
     #[test]
     fn test_scrappy_normal_vs_ghost() {
@@ -15,7 +15,10 @@ mod tests {
         attacker.spawn(&mut state, 0, 0);
 
         // Defender: Gengar (Ghost/Poison)
-        PokemonConfig::from_str("gengar").unwrap().level(50).spawn(&mut state, 1, 0);
+        PokemonConfig::from_str("gengar")
+            .unwrap()
+            .level(50)
+            .spawn(&mut state, 1, 0);
 
         // Move: Pound (Normal)
         let move_id = MoveId::Pound;
@@ -27,7 +30,11 @@ mod tests {
         // Since Gengar is also Poison, Normal vs Poison is Neutral.
         // So overall should be Neutral (4).
         assert!(result.max > 0, "Damage should be > 0 with Scrappy");
-        assert_eq!(result.effectiveness, 4, "Effectiveness should be 1x (4) with Scrappy, got {}", result.effectiveness);
+        assert_eq!(
+            result.effectiveness, 4,
+            "Effectiveness should be 1x (4) with Scrappy, got {}",
+            result.effectiveness
+        );
     }
 
     #[test]
@@ -39,7 +46,10 @@ mod tests {
         attacker.spawn(&mut state, 0, 0);
 
         // Defender: Gengar (Ghost/Poison)
-        PokemonConfig::from_str("gengar").unwrap().level(50).spawn(&mut state, 1, 0);
+        PokemonConfig::from_str("gengar")
+            .unwrap()
+            .level(50)
+            .spawn(&mut state, 1, 0);
 
         // Move: Karate Chop (Fighting)
         let move_id = MoveId::Karatechop;
@@ -50,7 +60,11 @@ mod tests {
         // Fighting vs Poison is Resistant (0.5x).
         // Total: 0.5x (2).
         assert!(result.max > 0, "Damage should be > 0 with Scrappy");
-        assert_eq!(result.effectiveness, 2, "Effectiveness should be 0.5x (2) vs Ghost/Poison with Scrappy, got {}", result.effectiveness);
+        assert_eq!(
+            result.effectiveness, 2,
+            "Effectiveness should be 0.5x (2) vs Ghost/Poison with Scrappy, got {}",
+            result.effectiveness
+        );
     }
 
     #[test]
@@ -63,7 +77,10 @@ mod tests {
         attacker.spawn(&mut state, 0, 0);
 
         // Defender: Misdreavus (Pure Ghost)
-        PokemonConfig::from_str("misdreavus").unwrap().level(50).spawn(&mut state, 1, 0);
+        PokemonConfig::from_str("misdreavus")
+            .unwrap()
+            .level(50)
+            .spawn(&mut state, 1, 0);
 
         // Move: Tackle (Normal)
         let move_id = MoveId::Tackle;
@@ -73,6 +90,10 @@ mod tests {
         // Normal vs Ghost is 0. With Mind's Eye, it is Neutral.
         // Total: 1x (4).
         assert!(result.max > 0, "Damage should be > 0 with Mind's Eye");
-        assert_eq!(result.effectiveness, 4, "Effectiveness should be 1x (4) with Mind's Eye, got {}", result.effectiveness);
+        assert_eq!(
+            result.effectiveness, 4,
+            "Effectiveness should be 1x (4) with Mind's Eye, got {}",
+            result.effectiveness
+        );
     }
 }

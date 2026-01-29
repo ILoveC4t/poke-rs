@@ -157,20 +157,25 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
                 Some("N") => quote! { GenderRatio::Genderless },
                 Some("M") => quote! { GenderRatio::AlwaysMale },
                 Some("F") => quote! { GenderRatio::AlwaysFemale },
-                _ => {
-                    match &entry.gender_ratio {
-                        Some(ratio) => {
-                             let m = ratio.get("M").copied().unwrap_or(0.5);
-                             if m >= 0.875 { quote! { GenderRatio::SevenToOne } }
-                             else if m >= 0.75 { quote! { GenderRatio::ThreeToOne } }
-                             else if m >= 0.5 { quote! { GenderRatio::OneToOne } }
-                             else if m >= 0.25 { quote! { GenderRatio::OneToThree } }
-                             else if m >= 0.125 { quote! { GenderRatio::OneToSeven } }
-                             else { quote! { GenderRatio::AlwaysFemale } }
-                        },
-                        None => quote! { GenderRatio::OneToOne },
+                _ => match &entry.gender_ratio {
+                    Some(ratio) => {
+                        let m = ratio.get("M").copied().unwrap_or(0.5);
+                        if m >= 0.875 {
+                            quote! { GenderRatio::SevenToOne }
+                        } else if m >= 0.75 {
+                            quote! { GenderRatio::ThreeToOne }
+                        } else if m >= 0.5 {
+                            quote! { GenderRatio::OneToOne }
+                        } else if m >= 0.25 {
+                            quote! { GenderRatio::OneToThree }
+                        } else if m >= 0.125 {
+                            quote! { GenderRatio::OneToSeven }
+                        } else {
+                            quote! { GenderRatio::AlwaysFemale }
+                        }
                     }
-                }
+                    None => quote! { GenderRatio::OneToOne },
+                },
             };
 
             // Forme Lookups
@@ -179,25 +184,25 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
             let mut primal = 0u16;
 
             if let Some(formes) = &entry.other_formes {
-                 for forme_name in formes {
-                     let forme_key = forme_name
+                for forme_name in formes {
+                    let forme_key = forme_name
                         .to_lowercase()
                         .chars()
                         .filter(|c| c.is_alphanumeric())
                         .collect::<String>();
 
-                     if let Some(&idx) = key_to_idx.get(forme_key.as_str()) {
-                         if forme_key.ends_with("megax") {
-                             mega = idx + 1;
-                         } else if forme_key.ends_with("megay") {
-                             mega_y = idx + 1;
-                         } else if forme_key.ends_with("mega") {
-                             mega = idx + 1;
-                         } else if forme_key.ends_with("primal") {
-                             primal = idx + 1;
-                         }
-                     }
-                 }
+                    if let Some(&idx) = key_to_idx.get(forme_key.as_str()) {
+                        if forme_key.ends_with("megax") {
+                            mega = idx + 1;
+                        } else if forme_key.ends_with("megay") {
+                            mega_y = idx + 1;
+                        } else if forme_key.ends_with("mega") {
+                            mega = idx + 1;
+                        } else if forme_key.ends_with("primal") {
+                            primal = idx + 1;
+                        }
+                    }
+                }
             }
 
             quote! {

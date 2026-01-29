@@ -13,7 +13,7 @@ mod models;
 mod utils;
 
 use clap::{Parser, Subcommand};
-use cmd::{run, analyze};
+use cmd::{analyze, run};
 
 #[derive(Parser)]
 #[command(name = "test_runner")]
@@ -26,7 +26,7 @@ struct Cli {
 enum Commands {
     /// Run tests and generate summary
     Run(run::RunArgs),
-    
+
     /// Analyze regressions between runs
     Analyze(analyze::AnalyzeArgs),
 }

@@ -2,8 +2,8 @@
 //!
 //! Called via `OnModifySpeed` during effective speed calculation.
 
+use crate::damage::generations::{Terrain, Weather};
 use crate::state::BattleState;
-use crate::damage::generations::{Weather, Terrain};
 
 /// Chlorophyll: 2x Speed in Sun
 pub fn chlorophyll(state: &BattleState, _entity: usize, speed: u16) -> u16 {

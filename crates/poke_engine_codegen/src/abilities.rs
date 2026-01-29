@@ -110,12 +110,7 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
     )
     .unwrap();
     writeln!(file).unwrap();
-    writeln!(
-        file,
-        "static ABILITY_FLAGS: [AbilityFlags; {}] = [",
-        count
-    )
-    .unwrap();
+    writeln!(file, "static ABILITY_FLAGS: [AbilityFlags; {}] = [", count).unwrap();
     for flag in flags_values {
         writeln!(file, "    {},", flag).unwrap();
     }

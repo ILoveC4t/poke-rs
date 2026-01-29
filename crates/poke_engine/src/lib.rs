@@ -45,15 +45,15 @@ pub mod damage;
 
 // Re-export commonly used types
 pub use abilities::AbilityId;
+pub use damage::{calculate_damage, DamageResult, Gen9, Generation};
 pub use entities::PokemonConfig;
 pub use items::ItemId;
 pub use moves::{Move, MoveCategory, MoveFlags, MoveId};
 pub use natures::{BattleStat, NatureId};
-pub use terrains::TerrainId;
 pub use species::{Species, SpeciesId};
 pub use state::BattleState;
+pub use terrains::TerrainId;
 pub use types::{Type, TypeEffectiveness, TypeImmunities};
-pub use damage::{calculate_damage, DamageResult, Gen9, Generation};
 
 #[cfg(test)]
 mod tests {
