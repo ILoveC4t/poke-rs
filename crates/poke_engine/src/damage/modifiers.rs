@@ -354,12 +354,18 @@ pub fn compute_effective_stats<G: GenMechanics>(ctx: &DamageContext<'_, G>) -> (
     // - Ignore attacker's negative offensive boosts
     // - Ignore defender's positive defensive boosts
     if ctx.is_crit {
-        if atk_boost > 0 {
-            attack = apply_boost(attack, atk_boost);
-        }
-        // Ignore positive defense boosts (use base)
-        if def_boost < 0 {
-            defense = apply_boost(defense, def_boost);
+        // Gen 2: Ignore ALL boosts (positive and negative)
+        if ctx.gen.generation() == 2 {
+            // Keep raw stats
+        } else {
+            // Gen 3+: Modern logic
+            if atk_boost > 0 {
+                attack = apply_boost(attack, atk_boost);
+            }
+            // Ignore positive defense boosts (use base)
+            if def_boost < 0 {
+                defense = apply_boost(defense, def_boost);
+            }
         }
     } else {
         attack = apply_boost(attack, atk_boost);
@@ -489,6 +495,11 @@ pub fn apply_terrain_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_d
 pub fn apply_burn_mod_early<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_damage: &mut u32) {
     // Only for Gen 3-4 (uses_4096_scale_modifiers returns false)
     if ctx.gen.uses_4096_scale_modifiers() {
+        return;
+    }
+
+    // Gen 2 Critical Hits ignore Burn reduction
+    if ctx.gen.generation() == 2 && ctx.is_crit {
         return;
     }
 
