@@ -22,6 +22,16 @@ pub const SKIPPED_FIXTURES: &[&str] = &[
     "gen5-Arceus-Plate--gen-5--5",
     "gen6-Arceus-Plate--gen-6--6",
     "gen7-Arceus-Plate--gen-7--7",
+    // =========================================================================
+    // Gen 1-2 Critical Hit Tests
+    // =========================================================================
+    // Smogon fixtures expect Burn/Screens/Boosts to apply on crits, but
+    // cartridge mechanics in Gen 1-2 ignore all stat modifiers and burn on crits.
+    // Correctness test: tests/crit_correctness.rs
+    "gen1-Critical-hits-ignore-attack-decreases--gen-1--44",
+    "gen1-Critical-hits-ignore-attack-decreases--gen-1--45",
+    "gen2-Critical-hits-ignore-attack-decreases--gen-2--46",
+    "gen2-Critical-hits-ignore-attack-decreases--gen-2--47",
 ];
 
 /// Check if a fixture should be skipped.
@@ -34,6 +44,11 @@ pub fn skip_reason(fixture_id: &str) -> Option<&'static str> {
     if fixture_id.contains("Arceus-Plate") {
         return Some(
             "Smogon fixture doesn't apply Multitype type change (see multitype_correctness.rs)",
+        );
+    }
+    if fixture_id.contains("Critical-hits-ignore-attack-decreases") {
+        return Some(
+            "Smogon fixture expects burn/boosts on crits, but Gen1-2 ignore these (see crit_correctness.rs)",
         );
     }
     None
