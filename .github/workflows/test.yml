@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -32,8 +34,22 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Run test runner
-        run: cargo run -p test_runner -- run
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Run test runner with coverage
+        run: |
+          cargo llvm-cov clean --workspace
+          cargo llvm-cov run -p test_runner -- run
+          cargo llvm-cov report --lcov --output-path lcov.info
+
+      - name: Install DeepSource CLI
+        run: curl https://deepsource.com/cli | sh
+
+      - name: Report coverage to DeepSource
+        run: ./bin/deepsource report --analyzer test-coverage --key rust --value-file lcov.info
+        env:
+          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
 
       - name: Download baseline artifact
         env:
