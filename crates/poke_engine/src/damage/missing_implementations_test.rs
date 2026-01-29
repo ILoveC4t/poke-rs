@@ -228,8 +228,6 @@ mod tests {
         // Min Roll (0.85) -> 86.
 
         // Without Neuroforce: 41 * 2 * 0.85 = 69.
-
-        // Numeric check: Neuroforce should increase min damage above 80 for this scenario
         assert!(
             result_with.min > 80,
             "Neuroforce should boost super effective damage to be > 80 (got {})",

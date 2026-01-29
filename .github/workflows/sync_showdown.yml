@@ -3,7 +3,7 @@ name: Sync Showdown Data
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 1'
+    - cron: "0 0 * * 1"
 
 jobs:
   update-data:
@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Fetch Showdown
         run: |
@@ -27,14 +27,12 @@ jobs:
 
       - name: Install tools
         run: |
-          npm init -y
-          npm pkg set type=module
-          npm install tsx
+          npm ci
 
       - name: Generate JSON data
         run: |
           SHOWDOWN_PATH="${{ github.workspace }}/showdown-temp/pokemon-showdown" \
-            npx tsx "${{ github.workspace }}/scripts/sync_showdown_data.ts"
+            npx tsx "${{ github.workspace }}/scripts/sync_showdown_data.mts"
 
       - name: Cleanup
         run: |
