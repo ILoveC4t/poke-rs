@@ -801,11 +801,11 @@ mod tests {
         let gen = Gen9;
 
         // Setup attacker (index 0) and defender (index 6)
-        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.types[0] = [Type::Normal, Type::Normal];
         state.stats[0][1] = 100; // 100 Atk
 
-        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.types[6] = [Type::Normal, Type::Normal];
         state.stats[6][2] = 100; // 100 Def
 
@@ -880,12 +880,12 @@ mod tests {
         let gen = Gen9;
 
         // Setup: Atk 100, SpA 100, Def 100, SpD 100
-        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.types[0] = [Type::Normal, Type::Normal];
         state.stats[0][1] = 100; // Atk
         state.stats[0][3] = 100; // SpA
 
-        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.types[6] = [Type::Normal, Type::Normal];
         state.stats[6][2] = 100; // Def
         state.stats[6][4] = 100; // SpD
@@ -1017,11 +1017,11 @@ mod tests {
         let gen = Gen9;
 
         // Setup: Atk 100, Def 100
-        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.types[0] = [Type::Normal, Type::Normal];
         state.stats[0][1] = 100; // Atk
 
-        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.types[6] = [Type::Rock, Type::Rock]; // Rock resists Normal
         state.stats[6][2] = 100; // Def
 
@@ -1135,12 +1135,12 @@ mod tests {
         let gen = Gen9;
 
         // Setup: Atk 100, Def 100
-        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.types[0] = [Type::Normal, Type::Normal];
         state.stats[0][1] = 100; // Atk
         state.abilities[0] = AbilityId::Sniper;
 
-        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.types[6] = [Type::Normal, Type::Normal];
         state.stats[6][2] = 100; // Def
 
@@ -1184,11 +1184,11 @@ mod tests {
         let gen = Gen9;
 
         // Setup: Atk 100, Def 100
-        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.types[0] = [Type::Normal, Type::Normal];
         state.stats[0][1] = 100; // Atk
 
-        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.types[6] = [Type::Normal, Type::Normal];
         state.stats[6][2] = 100; // Def
 
@@ -1241,11 +1241,11 @@ mod tests {
         let gen = Gen9;
 
         // Setup: Atk 100, Def 100
-        state.species[0] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[0] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.types[0] = [Type::Fighting, Type::Fighting]; // Fighting for SE vs Normal
         state.stats[0][1] = 100; // Atk
 
-        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.types[6] = [Type::Normal, Type::Normal];
         state.stats[6][2] = 100; // Def
         state.abilities[6] = AbilityId::Filter;
@@ -1307,13 +1307,13 @@ mod tests {
         let gen = Gen9;
 
         // Setup: Atk 100
-        state.species[0] = SpeciesId::from_str("nidorino").unwrap_or(SpeciesId(33)); // Male
+        state.species[0] = SpeciesId::from_str("nidorino").unwrap_or_else(|| SpeciesId(33)); // Male
         state.types[0] = [Type::Poison, Type::Poison];
         state.stats[0][1] = 100;
         state.abilities[0] = AbilityId::Rivalry;
         state.gender[0] = Gender::Male;
 
-        state.species[6] = SpeciesId::from_str("nidorino").unwrap_or(SpeciesId(33));
+        state.species[6] = SpeciesId::from_str("nidorino").unwrap_or_else(|| SpeciesId(33));
         state.types[6] = [Type::Poison, Type::Poison];
         state.stats[6][2] = 100;
         state.gender[6] = Gender::Male;
@@ -1370,12 +1370,12 @@ mod tests {
         let gen = Gen9;
 
         // Setup: Atk 100
-        state.species[0] = SpeciesId::from_str("tauros").unwrap_or(SpeciesId(128));
+        state.species[0] = SpeciesId::from_str("tauros").unwrap_or_else(|| SpeciesId(128));
         state.types[0] = [Type::Normal, Type::Normal];
         state.stats[0][1] = 100;
         state.abilities[0] = AbilityId::Sheerforce;
 
-        state.species[6] = SpeciesId::from_str("tauros").unwrap_or(SpeciesId(128));
+        state.species[6] = SpeciesId::from_str("tauros").unwrap_or_else(|| SpeciesId(128));
         state.types[6] = [Type::Normal, Type::Normal];
         state.stats[6][2] = 100;
 
@@ -1421,12 +1421,12 @@ mod tests {
         let gen = Gen9;
 
         // Setup: Atk 100
-        state.species[0] = SpeciesId::from_str("probopass").unwrap_or(SpeciesId(476));
+        state.species[0] = SpeciesId::from_str("probopass").unwrap_or_else(|| SpeciesId(476));
         state.types[0] = [Type::Rock, Type::Steel];
         state.stats[0][1] = 100;
         state.abilities[0] = AbilityId::Sandforce;
 
-        state.species[6] = SpeciesId::from_str("probopass").unwrap_or(SpeciesId(476));
+        state.species[6] = SpeciesId::from_str("probopass").unwrap_or_else(|| SpeciesId(476));
         state.types[6] = [Type::Rock, Type::Steel];
         state.stats[6][2] = 100;
 
@@ -1483,12 +1483,12 @@ mod tests {
         let gen = Gen9;
 
         // Setup: Atk 100
-        state.species[0] = SpeciesId::from_str("machamp").unwrap_or(SpeciesId(68));
+        state.species[0] = SpeciesId::from_str("machamp").unwrap_or_else(|| SpeciesId(68));
         state.types[0] = [Type::Fighting, Type::Fighting];
         state.stats[0][1] = 100;
         state.abilities[0] = AbilityId::Guts;
 
-        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.types[6] = [Type::Normal, Type::Normal];
         state.stats[6][2] = 100;
 

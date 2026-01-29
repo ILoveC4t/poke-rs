@@ -197,12 +197,12 @@ fn spawn_pokemon(
 
     if let Some(ref evs) = data.evs {
         let ev_array = [
-            evs.hp.unwrap_or(0).min(255) as u8,
-            evs.atk.unwrap_or(0).min(255) as u8,
-            evs.def.unwrap_or(0).min(255) as u8,
-            evs.spa.unwrap_or(0).min(255) as u8,
-            evs.spd.unwrap_or(0).min(255) as u8,
-            evs.spe.unwrap_or(0).min(255) as u8,
+            evs.hp.unwrap_or_default().min(255) as u8,
+            evs.atk.unwrap_or_default().min(255) as u8,
+            evs.def.unwrap_or_default().min(255) as u8,
+            evs.spa.unwrap_or_default().min(255) as u8,
+            evs.spd.unwrap_or_default().min(255) as u8,
+            evs.spe.unwrap_or_default().min(255) as u8,
         ];
         config = config.evs(ev_array);
     }
@@ -223,11 +223,11 @@ fn spawn_pokemon(
 
     if let Some(ref boosts) = data.boosts {
         let entity_idx = BattleState::entity_index(player, slot);
-        state.boosts[entity_idx][0] = boosts.atk.unwrap_or(0);
-        state.boosts[entity_idx][1] = boosts.def.unwrap_or(0);
-        state.boosts[entity_idx][2] = boosts.spa.unwrap_or(0);
-        state.boosts[entity_idx][3] = boosts.spd.unwrap_or(0);
-        state.boosts[entity_idx][4] = boosts.spe.unwrap_or(0);
+        state.boosts[entity_idx][0] = boosts.atk.unwrap_or_default();
+        state.boosts[entity_idx][1] = boosts.def.unwrap_or_default();
+        state.boosts[entity_idx][2] = boosts.spa.unwrap_or_default();
+        state.boosts[entity_idx][3] = boosts.spd.unwrap_or_default();
+        state.boosts[entity_idx][4] = boosts.spe.unwrap_or_default();
     }
 
     if let Some(ref status_str) = data.status {
@@ -307,7 +307,7 @@ fn apply_field(field: &Option<FieldData>, state: &mut BattleState) {
 fn parse_expected_damage(value: &serde_json::Value) -> Vec<u16> {
     match value {
         serde_json::Value::Number(n) => {
-            vec![n.as_u64().unwrap_or(0) as u16]
+            vec![n.as_u64().unwrap_or_default() as u16]
         }
         serde_json::Value::Array(arr) => {
             if let Some(serde_json::Value::Array(first_hit)) = arr.first() {
@@ -379,7 +379,7 @@ fn run_damage_test(case: &DamageTestCase) -> Result<(), String> {
         )
     })?;
 
-    let is_crit = case.move_data.is_crit.unwrap_or(false);
+    let is_crit = case.move_data.is_crit.unwrap_or_default();
     let gen = Generation::from_num(case.gen);
 
     let attacker_idx = 0;

@@ -1,13 +1,13 @@
 #[cfg(test)]
 mod tests {
-    use crate::state::{BattleState, Status};
-    use crate::damage::{calculate_damage, Gen9};
-    use crate::species::SpeciesId;
-    use crate::types::Type;
     use crate::abilities::AbilityId;
-    use crate::moves::{MoveId, MoveCategory};
-    use crate::items::ItemId;
+    use crate::damage::{calculate_damage, Gen9};
     use crate::entities::PokemonConfig;
+    use crate::items::ItemId;
+    use crate::moves::{MoveCategory, MoveId};
+    use crate::species::SpeciesId;
+    use crate::state::{BattleState, Status};
+    use crate::types::Type;
 
     #[test]
     fn test_huge_power() {
@@ -20,7 +20,7 @@ mod tests {
         state.level[0] = 50;
 
         // Fallback to Rattata's National Dex ID if name lookup fails
-        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.stats[6][2] = 100; // 100 Def
         state.level[6] = 50;
 
@@ -34,7 +34,11 @@ mod tests {
         // STAB (1.5x) -> 55.
         // Min Roll (0.85) -> 46.
 
-        assert!(result.min >= 46, "Huge Power should double attack (got {})", result.min);
+        assert!(
+            result.min >= 46,
+            "Huge Power should double attack (got {})",
+            result.min
+        );
     }
 
     #[test]
@@ -56,13 +60,17 @@ mod tests {
         // Base damage = floor(22 * 90 * 1 / 50) + 2 = 41.
         // Min Roll (0.85) -> 34.
 
-        assert!(result_with.min >= 34, "Strong Jaw should boost Bite (got {})", result_with.min);
+        assert!(
+            result_with.min >= 34,
+            "Strong Jaw should boost Bite (got {})",
+            result_with.min
+        );
     }
 
     #[test]
     fn test_body_press() {
         let mut state = BattleState::new();
-        state.stats[0][1] = 10;  // Low Atk
+        state.stats[0][1] = 10; // Low Atk
         state.stats[0][2] = 200; // High Def
         state.level[0] = 50;
 
@@ -77,14 +85,18 @@ mod tests {
         // Base = floor(22 * 80 * 200/100 / 50) + 2 = 72.
         // Min Roll (0.85) -> 61.
 
-        assert!(result.min >= 60, "Body Press should use Defense (got {})", result.min);
+        assert!(
+            result.min >= 60,
+            "Body Press should use Defense (got {})",
+            result.min
+        );
     }
 
     #[test]
     fn test_body_press_huge_power() {
         // Huge Power should NOT boost Body Press
         let mut state = BattleState::new();
-        state.stats[0][1] = 10;  // Low Atk
+        state.stats[0][1] = 10; // Low Atk
         state.stats[0][2] = 100; // Def
         state.abilities[0] = AbilityId::Hugepower;
         state.level[0] = 50;
@@ -101,7 +113,11 @@ mod tests {
         // Min Roll -> 31.
         // If Huge Power applied (2x), damage would be ~61.
 
-        assert!(result.max < 50, "Huge Power should NOT boost Body Press (got {})", result.max);
+        assert!(
+            result.max < 50,
+            "Huge Power should NOT boost Body Press (got {})",
+            result.max
+        );
     }
 
     #[test]
@@ -110,7 +126,7 @@ mod tests {
         state.stats[0][3] = 100; // SpA
         state.level[0] = 50;
 
-        state.stats[6][2] = 50;  // Low Def
+        state.stats[6][2] = 50; // Low Def
         state.stats[6][4] = 200; // High SpD
         state.level[6] = 50;
 
@@ -122,7 +138,11 @@ mod tests {
         // Base = floor(22 * 80 * 100/50 / 50) + 2 = 72.
         // Min Roll -> 61.
 
-        assert!(result.min >= 60, "Psyshock should target Defense (got {})", result.min);
+        assert!(
+            result.min >= 60,
+            "Psyshock should target Defense (got {})",
+            result.min
+        );
     }
 
     #[test]
@@ -143,7 +163,11 @@ mod tests {
         // Roll 100% -> 41.
         // Ice Scales (0.5x) -> 20.
 
-        assert!(result.max <= 25, "Ice Scales should halve special damage (got {})", result.max);
+        assert!(
+            result.max <= 25,
+            "Ice Scales should halve special damage (got {})",
+            result.max
+        );
     }
 
     #[test]
@@ -164,7 +188,11 @@ mod tests {
         // Base = floor(22 * 95 * 2 / 50) + 2 = 85.
         // Min Roll -> 72.
 
-        assert!(result.min >= 70, "Foul Play should use target Attack (got {})", result.min);
+        assert!(
+            result.min >= 70,
+            "Foul Play should use target Attack (got {})",
+            result.min
+        );
     }
 
     #[test]
@@ -187,9 +215,26 @@ mod tests {
         let result_without = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
         // Should do more damage with Neuroforce on super-effective hits
-        assert!(result_with.min > result_without.min, 
-            "Neuroforce should boost super effective damage (with: {}, without: {})", 
-            result_with.min, result_without.min);
+        assert!(
+            result_with.min > result_without.min,
+            "Neuroforce should boost super effective damage (with: {}, without: {})",
+            result_with.min,
+            result_without.min
+        );
+
+        // Base (90 BP) = 41.
+        // SE (2x) -> 82.
+        // Neuroforce (1.25x) -> 102.
+        // Min Roll (0.85) -> 86.
+
+        // Without Neuroforce: 41 * 2 * 0.85 = 69.
+
+        // Numeric check: Neuroforce should increase min damage above 80 for this scenario
+        assert!(
+            result_with.min > 80,
+            "Neuroforce should boost super effective damage to be > 80 (got {})",
+            result_with.min
+        );
     }
 
     #[test]
@@ -214,9 +259,12 @@ mod tests {
         let result_without = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
         // With Guts should do more damage than without
-        assert!(result_with_guts.min > result_without.min, 
-            "Guts should boost Attack when poisoned (with: {}, without: {})", 
-            result_with_guts.min, result_without.min);
+        assert!(
+            result_with_guts.min > result_without.min,
+            "Guts should boost Attack when poisoned (with: {}, without: {})",
+            result_with_guts.min,
+            result_without.min
+        );
     }
 
     #[test]
@@ -239,7 +287,11 @@ mod tests {
         // Body Press uses Defense, Guts shouldn't apply
         // Expected: ~69 damage (same as without Guts)
 
-        assert!(result.max < 85, "Guts should NOT boost Body Press (got {})", result.max);
+        assert!(
+            result.max < 85,
+            "Guts should NOT boost Body Press (got {})",
+            result.max
+        );
     }
 
     #[test]
@@ -261,9 +313,12 @@ mod tests {
         let result_without = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
         // Should do more damage with Gorilla Tactics
-        assert!(result_with.min > result_without.min, 
-            "Gorilla Tactics should boost physical Attack (with: {}, without: {})", 
-            result_with.min, result_without.min);
+        assert!(
+            result_with.min > result_without.min,
+            "Gorilla Tactics should boost physical Attack (with: {}, without: {})",
+            result_with.min,
+            result_without.min
+        );
     }
 
     #[test]
@@ -285,7 +340,11 @@ mod tests {
         // HP at 50%: Defeatist applies (0.5x)
         // 50 Atk vs 100 Def -> ~18 damage
 
-        assert!(result.max < 25, "Defeatist should halve Attack at 50% HP (got {})", result.max);
+        assert!(
+            result.max < 25,
+            "Defeatist should halve Attack at 50% HP (got {})",
+            result.max
+        );
     }
 
     #[test]
@@ -309,9 +368,12 @@ mod tests {
         let result_low_hp = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
         // High HP should do more damage than low HP
-        assert!(result_high_hp.min > result_low_hp.min, 
-            "Defeatist should NOT apply above 50% HP (high: {}, low: {})", 
-            result_high_hp.min, result_low_hp.min);
+        assert!(
+            result_high_hp.min > result_low_hp.min,
+            "Defeatist should NOT apply above 50% HP (high: {}, low: {})",
+            result_high_hp.min,
+            result_low_hp.min
+        );
     }
 
     #[test]
@@ -333,9 +395,12 @@ mod tests {
         let result_without = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
         // Should do more damage with Mega Launcher
-        assert!(result_with.min > result_without.min, 
-            "Mega Launcher should boost pulse moves (with: {}, without: {})", 
-            result_with.min, result_without.min);
+        assert!(
+            result_with.min > result_without.min,
+            "Mega Launcher should boost pulse moves (with: {}, without: {})",
+            result_with.min,
+            result_without.min
+        );
     }
 
     #[test]
@@ -355,19 +420,23 @@ mod tests {
         // Normal: 100 Atk vs 100 Def -> ~35 damage
         // Fur Coat (2x Def): 100 Atk vs 200 Def -> ~18 damage
 
-        assert!(result.max < 25, "Fur Coat should double Defense (got {})", result.max);
+        assert!(
+            result.max < 25,
+            "Fur Coat should double Defense (got {})",
+            result.max
+        );
     }
 
     #[test]
     fn test_protosynthesis_sun() {
         use crate::damage::generations::Weather;
-        
+
         let mut state = BattleState::new();
         state.stats[0][1] = 100; // Atk
-        state.stats[0][2] = 50;  // Lower Def
-        state.stats[0][3] = 50;  // Lower SpA
-        state.stats[0][4] = 50;  // Lower SpD
-        state.stats[0][5] = 50;  // Lower Spe
+        state.stats[0][2] = 50; // Lower Def
+        state.stats[0][3] = 50; // Lower SpA
+        state.stats[0][4] = 50; // Lower SpD
+        state.stats[0][5] = 50; // Lower Spe
         state.abilities[0] = AbilityId::Protosynthesis;
         state.weather = Weather::Sun as u8;
         state.level[0] = 50;
@@ -384,21 +453,24 @@ mod tests {
         let result_without = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
         // Should do more damage with Protosynthesis in Sun
-        assert!(result_with.min > result_without.min, 
-            "Protosynthesis should boost highest stat in Sun (with: {}, without: {})", 
-            result_with.min, result_without.min);
+        assert!(
+            result_with.min > result_without.min,
+            "Protosynthesis should boost highest stat in Sun (with: {}, without: {})",
+            result_with.min,
+            result_without.min
+        );
     }
 
     #[test]
     fn test_protosynthesis_body_press() {
         use crate::damage::generations::Weather;
-        
+
         let mut state = BattleState::new();
-        state.stats[0][1] = 50;  // Lower Atk
+        state.stats[0][1] = 50; // Lower Atk
         state.stats[0][2] = 100; // High Def (highest stat)
-        state.stats[0][3] = 50;  // Lower SpA
-        state.stats[0][4] = 50;  // Lower SpD
-        state.stats[0][5] = 50;  // Lower Spe
+        state.stats[0][3] = 50; // Lower SpA
+        state.stats[0][4] = 50; // Lower SpD
+        state.stats[0][5] = 50; // Lower Spe
         state.abilities[0] = AbilityId::Protosynthesis;
         state.weather = Weather::Sun as u8;
         state.level[0] = 50;
@@ -415,21 +487,24 @@ mod tests {
         let result_without = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
         // Should do more damage with Protosynthesis
-        assert!(result_with.min > result_without.min, 
-            "Protosynthesis should boost Defense for Body Press (with: {}, without: {})", 
-            result_with.min, result_without.min);
+        assert!(
+            result_with.min > result_without.min,
+            "Protosynthesis should boost Defense for Body Press (with: {}, without: {})",
+            result_with.min,
+            result_without.min
+        );
     }
 
     #[test]
     fn test_quark_drive_electric_terrain() {
         use crate::damage::generations::Terrain;
-        
+
         let mut state = BattleState::new();
         state.stats[0][1] = 100; // Atk (highest)
-        state.stats[0][2] = 50;  // Lower Def
-        state.stats[0][3] = 50;  // Lower SpA
-        state.stats[0][4] = 50;  // Lower SpD
-        state.stats[0][5] = 50;  // Lower Spe
+        state.stats[0][2] = 50; // Lower Def
+        state.stats[0][3] = 50; // Lower SpA
+        state.stats[0][4] = 50; // Lower SpD
+        state.stats[0][5] = 50; // Lower Spe
         state.abilities[0] = AbilityId::Quarkdrive;
         state.terrain = Terrain::Electric as u8;
         state.level[0] = 50;
@@ -446,20 +521,23 @@ mod tests {
         let result_without = calculate_damage(Gen9, &state, 0, 6, move_id, false);
 
         // Should do more damage with Quark Drive
-        assert!(result_with.min > result_without.min, 
-            "Quark Drive should boost highest stat in Electric Terrain (with: {}, without: {})", 
-            result_with.min, result_without.min);
+        assert!(
+            result_with.min > result_without.min,
+            "Quark Drive should boost highest stat in Electric Terrain (with: {}, without: {})",
+            result_with.min,
+            result_without.min
+        );
     }
 
     #[test]
     fn test_quark_drive_speed() {
         use crate::damage::generations::Terrain;
-        
+
         let mut state = BattleState::new();
-        state.stats[0][1] = 50;  // Lower Atk
-        state.stats[0][2] = 50;  // Lower Def
-        state.stats[0][3] = 50;  // Lower SpA
-        state.stats[0][4] = 50;  // Lower SpD
+        state.stats[0][1] = 50; // Lower Atk
+        state.stats[0][2] = 50; // Lower Def
+        state.stats[0][3] = 50; // Lower SpA
+        state.stats[0][4] = 50; // Lower SpD
         state.stats[0][5] = 100; // High Spe (highest stat)
         state.abilities[0] = AbilityId::Quarkdrive;
         state.terrain = Terrain::Electric as u8;
@@ -475,14 +553,10 @@ mod tests {
         // Highest stat is Spe (100), but Speed boost doesn't affect damage
         // 50 Atk vs 100 Def -> ~18 damage (no boost)
 
-        assert!(result.max < 25, "Quark Drive Speed boost should not affect damage (got {})", result.max);
-        // Base (90 BP) = 41.
-        // SE (2x) -> 82.
-        // Neuroforce (1.25x) -> 102.
-        // Min Roll (0.85) -> 86.
-
-        // Without Neuroforce: 41 * 2 * 0.85 = 69.
-
-        assert!(result.min > 80, "Neuroforce should boost super effective damage (got {})", result.min);
+        assert!(
+            result.max < 25,
+            "Quark Drive Speed boost should not affect damage (got {})",
+            result.max
+        );
     }
 }

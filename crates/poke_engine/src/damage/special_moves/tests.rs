@@ -1,10 +1,10 @@
 use super::*;
-use crate::state::BattleState;
 use crate::damage::{DamageContext, Gen9};
-use crate::species::SpeciesId;
-use crate::types::Type;
 use crate::moves::MoveId;
+use crate::species::SpeciesId;
+use crate::state::BattleState;
 use crate::state::Status;
+use crate::types::Type;
 
 #[test]
 fn test_fixed_damage_moves() {
@@ -48,13 +48,13 @@ fn test_base_power_modifiers() {
     let gen = Gen9;
 
     // Eruption: HP-based
-    state.species[0] = SpeciesId::from_str("typhlosion").unwrap_or(SpeciesId(157));
+    state.species[0] = SpeciesId::from_str("typhlosion").unwrap_or_else(|| SpeciesId(157));
     state.hp[0] = 150; // Full HP
     state.max_hp[0] = 150;
-    
+
     let move_id = MoveId::Eruption;
     let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
-    
+
     let bp = power::modify_base_power(&mut ctx);
     assert_eq!(bp, 150);
 
@@ -69,7 +69,7 @@ fn test_base_power_modifiers() {
     state.status[0] = Status::BURN;
     let move_id = MoveId::Facade;
     let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
-    
+
     // Default Facade BP is 70
     let bp = power::modify_base_power(&mut ctx);
     assert_eq!(bp, 140);
@@ -83,11 +83,11 @@ fn test_grass_knot() {
     // Snorlax - Heavy (460.0 kg = 4600 units)
     // Manually set weight since power.rs now uses state.weight
     state.weight[6] = 4600;
-    
+
     let move_id = MoveId::Grassknot;
     let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
     let bp = power::modify_base_power(&mut ctx);
-    
+
     // 460kg >= 200kg -> 120 BP
     assert_eq!(bp, 120, "Grass Knot vs 460kg target should be 120 BP");
 }
@@ -96,32 +96,38 @@ fn test_grass_knot() {
 fn test_reckless_ability() {
     let mut state = BattleState::new();
     let gen = Gen9;
-    
+
     // Attacker has Reckless
     use crate::abilities::AbilityId;
     state.abilities[0] = AbilityId::Reckless;
-    
+
     // Double-Edge (Recoil move) - BP 120
     let move_id = MoveId::Doubleedge;
     let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
     // Move flags must be set. `ctx.move_data` is from `move_id.data()`.
     // Double-Edge data should have recoil flag if build.rs worked.
-    
+
     // Initialize BP
     ctx.base_power = 120;
-    
+
     // Call compute_base_power (public function)
     crate::damage::modifiers::compute_base_power(&mut ctx);
-    
+
     let expected = (120u32 * 4915 / 4096) as u16; // ~144
-    assert_eq!(ctx.base_power, expected, "Reckless should boost recoil moves by 1.2x");
-    
+    assert_eq!(
+        ctx.base_power, expected,
+        "Reckless should boost recoil moves by 1.2x"
+    );
+
     // Tackle (No recoil) - BP 40
     let move_id = MoveId::Tackle;
     let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
     ctx.base_power = 40;
     crate::damage::modifiers::compute_base_power(&mut ctx);
-    assert_eq!(ctx.base_power, 40, "Reckless should not boost non-recoil moves");
+    assert_eq!(
+        ctx.base_power, 40,
+        "Reckless should not boost non-recoil moves"
+    );
 }
 
 #[test]
@@ -161,7 +167,10 @@ fn test_weight_modifiers() {
     state.items[6] = crate::items::ItemId::Floatstone;
     let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
     let bp = power::modify_base_power(&mut ctx);
-    assert_eq!(bp, 60, "Light Metal + Float Stone should quarter weight to 25kg");
+    assert_eq!(
+        bp, 60,
+        "Light Metal + Float Stone should quarter weight to 25kg"
+    );
 
     // Test Case 5: Heavy Slam
     // Attacker: 100kg + Heavy Metal -> 200kg
@@ -179,5 +188,8 @@ fn test_weight_modifiers() {
     let move_id = MoveId::Heavyslam;
     let mut ctx = DamageContext::new(gen, &state, 0, 6, move_id, false);
     let bp = power::modify_base_power(&mut ctx);
-    assert_eq!(bp, 100, "Heavy Slam should account for attacker Heavy Metal");
+    assert_eq!(
+        bp, 100,
+        "Heavy Slam should account for attacker Heavy Metal"
+    );
 }

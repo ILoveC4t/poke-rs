@@ -1,9 +1,9 @@
-use crate::state::BattleState;
-use crate::damage::{DamageContext, Gen9, compute_base_power};
-use crate::species::SpeciesId;
-use crate::types::Type;
 use crate::abilities::AbilityId;
+use crate::damage::{compute_base_power, DamageContext, Gen9};
 use crate::moves::MoveId;
+use crate::species::SpeciesId;
+use crate::state::BattleState;
+use crate::types::Type;
 
 #[test]
 fn test_pixilate() {
@@ -12,14 +12,14 @@ fn test_pixilate() {
 
     // Attacker: Sylveon with Pixilate
     let attacker = 0;
-    state.species[attacker] = SpeciesId::from_str("sylveon").unwrap_or(SpeciesId(700));
+    state.species[attacker] = SpeciesId::from_str("sylveon").unwrap_or_else(|| SpeciesId(700));
     state.types[attacker] = [Type::Fairy, Type::Fairy];
     state.abilities[attacker] = AbilityId::Pixilate;
     state.stats[attacker][1] = 100; // Atk
 
     // Defender: Dragonite (Dragon/Flying)
     let defender = 6;
-    state.species[defender] = SpeciesId::from_str("dragonite").unwrap_or(SpeciesId(149));
+    state.species[defender] = SpeciesId::from_str("dragonite").unwrap_or_else(|| SpeciesId(149));
     state.types[defender] = [Type::Dragon, Type::Flying];
     state.stats[defender][2] = 100; // Def
 
@@ -29,7 +29,11 @@ fn test_pixilate() {
     let mut ctx = DamageContext::new(gen, &state, attacker, defender, move_id, false);
 
     // Check type change
-    assert_eq!(ctx.move_type, Type::Fairy, "Pixilate should change Normal move to Fairy");
+    assert_eq!(
+        ctx.move_type,
+        Type::Fairy,
+        "Pixilate should change Normal move to Fairy"
+    );
 
     // Check Effectiveness (Fairy vs Dragon/Flying) -> 2x * 1x = 2x
     assert_eq!(ctx.effectiveness, 8, "Fairy vs Dragon should be 2x");
@@ -39,7 +43,10 @@ fn test_pixilate() {
     // Tackle BP 40.
     // Pixilate: 40 * 1.2 = 48.
     // 40 * 4915 / 4096 = 48.
-    assert_eq!(ctx.base_power, 48, "Pixilate should boost converted move BP by 1.2x");
+    assert_eq!(
+        ctx.base_power, 48,
+        "Pixilate should boost converted move BP by 1.2x"
+    );
 }
 
 #[test]
@@ -49,7 +56,7 @@ fn test_pixilate_no_boost_on_fairy() {
 
     // Attacker: Sylveon with Pixilate
     let attacker = 0;
-    state.species[attacker] = SpeciesId::from_str("sylveon").unwrap_or(SpeciesId(700));
+    state.species[attacker] = SpeciesId::from_str("sylveon").unwrap_or_else(|| SpeciesId(700));
     state.types[attacker] = [Type::Fairy, Type::Fairy];
     state.abilities[attacker] = AbilityId::Pixilate;
 
@@ -65,7 +72,10 @@ fn test_pixilate_no_boost_on_fairy() {
     assert_eq!(ctx.move_type, Type::Fairy);
 
     compute_base_power(&mut ctx);
-    assert_eq!(ctx.base_power, 95, "Pixilate should NOT boost already Fairy moves");
+    assert_eq!(
+        ctx.base_power, 95,
+        "Pixilate should NOT boost already Fairy moves"
+    );
 }
 
 #[test]
@@ -75,7 +85,7 @@ fn test_analytic() {
 
     // Attacker: Magnezone with Analytic
     let attacker = 0;
-    state.species[attacker] = SpeciesId::from_str("magnezone").unwrap_or(SpeciesId(462));
+    state.species[attacker] = SpeciesId::from_str("magnezone").unwrap_or_else(|| SpeciesId(462));
     state.types[attacker] = [Type::Electric, Type::Steel];
     state.abilities[attacker] = AbilityId::Analytic;
     state.stats[attacker][3] = 100; // SpA
@@ -89,12 +99,15 @@ fn test_analytic() {
 
     // Scenario 1: Attacker is Faster (Moves First) -> No Boost
     state.stats[attacker][5] = 100; // Spe
-    state.stats[defender][5] = 50;  // Spe
+    state.stats[defender][5] = 50; // Spe
 
     {
         let mut ctx = DamageContext::new(gen, &state, attacker, defender, move_id, false);
         compute_base_power(&mut ctx);
-        assert_eq!(ctx.base_power, 90, "Analytic should NOT boost if moving first");
+        assert_eq!(
+            ctx.base_power, 90,
+            "Analytic should NOT boost if moving first"
+        );
     }
 
     // Scenario 2: Attacker is Slower (Moves Last) -> Boost 1.3x
@@ -116,6 +129,9 @@ fn test_analytic() {
         let mut ctx = DamageContext::new(gen, &state, attacker, defender, priority_move, false);
         compute_base_power(&mut ctx);
         // Should use base power of Quick Attack (40) without boost
-        assert_eq!(ctx.base_power, 40, "Analytic should NOT boost if moving first due to priority");
+        assert_eq!(
+            ctx.base_power, 40,
+            "Analytic should NOT boost if moving first due to priority"
+        );
     }
 }
