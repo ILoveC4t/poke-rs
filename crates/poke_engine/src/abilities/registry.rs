@@ -110,6 +110,7 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
     });
     registry[AbilityId::Punkrock as usize] = Some(AbilityHooks {
         on_modify_base_power: Some(damage_modifiers::punk_rock),
+        on_defender_final_mod: Some(final_modifiers::punk_rock),
         ..AbilityHooks::NONE
     });
     registry[AbilityId::Rivalry as usize] = Some(AbilityHooks {
