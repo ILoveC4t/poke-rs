@@ -1,9 +1,9 @@
-use crate::abilities::AbilityId;
 use crate::abilities::hooks::AbilityHooks;
 use crate::abilities::implementations::{
-    weather_setters, priority, intimidate,
-    damage_modifiers, stat_modifiers, final_modifiers, immunity, speed, status, multitype,
+    damage_modifiers, final_modifiers, immunity, intimidate, multitype, priority, speed,
+    stat_modifiers, status, weather_setters,
 };
+use crate::abilities::AbilityId;
 
 pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
     let mut registry: [Option<AbilityHooks>; AbilityId::COUNT] = [None; AbilityId::COUNT];
@@ -117,7 +117,6 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
         on_modify_base_power: Some(damage_modifiers::rivalry),
         ..AbilityHooks::NONE
     });
-
 
     registry[AbilityId::Sheerforce as usize] = Some(AbilityHooks {
         on_modify_base_power: Some(damage_modifiers::sheer_force),
