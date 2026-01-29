@@ -1,5 +1,22 @@
 version = 1
 
+test_patterns = [
+  "tests/**",
+  "crates/*/tests/**",
+  "tests/fixtures/**",
+  "**/*_test.rs"
+]
+
+exclude_patterns = [
+  "target/**",
+  "vendor/**",
+  "attachments/**",
+  ".test_runs/**",
+  ".baseline/**",
+  "**/node_modules/**",
+  "**/*.min.js"
+]
+
 [[analyzers]]
 name = "rust"
 
