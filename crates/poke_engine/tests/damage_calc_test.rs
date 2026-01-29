@@ -372,7 +372,7 @@ fn verify_damage_calc(case: &DamageTestCase) -> Result<(), String> {
     let move_id = MoveId::from_str(&move_normalized)
         .ok_or_else(|| format!("Unknown move: {} (normalized: {})", case.move_data.name, move_normalized))?;
     
-    let is_crit = case.move_data.is_crit.unwrap_or(false);
+    let is_crit = case.move_data.is_crit.unwrap_or_default();
     
     // Get generation
     let gen = Generation::from_num(case.gen);

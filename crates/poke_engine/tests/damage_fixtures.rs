@@ -379,7 +379,7 @@ fn run_damage_test(case: &DamageTestCase) -> Result<(), String> {
         )
     })?;
 
-    let is_crit = case.move_data.is_crit.unwrap_or(false);
+    let is_crit = case.move_data.is_crit.unwrap_or_default();
     let gen = Generation::from_num(case.gen);
 
     let attacker_idx = 0;
