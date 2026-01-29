@@ -241,7 +241,7 @@ fn has_screen_keywords(test_name: &str, case: &DamageTestCase) -> bool {
 pub fn build_category_tags(case: &DamageTestCase) -> String {
     let cats = Category::categorize(case);
     if cats.is_empty() {
-        return String::new();
+        return String::default();
     }
 
     // Skip generation tag (already in test name), include feature tags
@@ -265,7 +265,7 @@ pub fn build_category_tags(case: &DamageTestCase) -> String {
         .collect();
 
     if feature_tags.is_empty() {
-        String::new()
+        String::default()
     } else {
         format!("[{}]", feature_tags.join(","))
     }
