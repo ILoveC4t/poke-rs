@@ -34,11 +34,10 @@ There are ~101 remaining failures in the test suite.
 2.  Ensure the boost is applied *before* damage calculation on the execution turn.
 
 ### 4. Terrain Mechanics (~4 failures)
-**Problem**: `Psychic Terrain`, `Misty Terrain`, `Grassy Terrain` failures.
-**Plan**:
-1.  **Psychic Terrain**: Should block priority moves targeting grounded opponents. Check `check_priority_blocking`.
-2.  **Misty Terrain**: Should halve Dragon moves against grounded targets.
-3.  **Grassy Terrain**: Boosts Grass moves, halves Magnitude/Earthquake/Bulldoze.
+- ✅ **Completed**: 
+  - Verified Terrain Modifiers (Electric/Grassy/Psychic/Misty) are applied to Base Power (matching Smogon behavior).
+  - Fixed "Psychic Terrain" test failures by implementing `Marvel Scale` (missing ability on test dummy caused damage mismatch).
+  - Priority blocking and type-specific interactions verified.
 
 ### 5. Gen 1-2 Critical Hits (~4 failures)
 **Problem**: `Critical hits ignore attack decreases`.

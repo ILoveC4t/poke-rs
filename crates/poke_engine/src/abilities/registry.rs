@@ -188,6 +188,10 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
         on_modify_defense: Some(stat_modifiers::fur_coat),
         ..AbilityHooks::NONE
     });
+    registry[AbilityId::Marvelscale as usize] = Some(AbilityHooks {
+        on_modify_defense: Some(stat_modifiers::marvel_scale),
+        ..AbilityHooks::NONE
+    });
 
     // =========================================================================
     // Attacker Final Modifiers (OnAttackerFinalMod)

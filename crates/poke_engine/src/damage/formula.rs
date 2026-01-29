@@ -265,6 +265,7 @@ pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageR
     // Phase 4: Apply pre-random modifiers
     // Gen 3-4 order: burn → screens → spread → weather → +2 → crit
     // Gen 5+ order:  spread → weather → (crit later)
+    // Note: Terrain is applied in compute_base_power (base power modifier, not damage)
 
     // Gen 3-4: Apply burn and screens BEFORE spread/weather
     modifiers::apply_burn_mod_early(&ctx, &mut base_damage);
@@ -272,7 +273,7 @@ pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageR
 
     modifiers::apply_spread_mod(&mut ctx, &mut base_damage);
     modifiers::apply_weather_mod_damage(&mut ctx, &mut base_damage);
-    modifiers::apply_terrain_mod(&mut ctx, &mut base_damage);
+    // Terrain is applied in compute_base_power, not here (matches Smogon bpMods)
 
     // Gen 3-4: Add +2 after burn/screens/spread/weather but before crit
     if !adds_two_now {

@@ -189,8 +189,20 @@ pub fn quark_drive(
 // Defense modifiers
 // =============================================================================
 
-// TODO: Marvel Scale - 1.5x Def when statused
-// pub fn marvel_scale(state: &BattleState, defender: usize, _attacker: usize, category: MoveCategory, defense: u16) -> u16
+/// Marvel Scale: 1.5x Defense when statused
+pub fn marvel_scale(
+    state: &BattleState,
+    defender: usize,
+    _attacker: usize,
+    _category: MoveCategory,
+    defense: u16,
+) -> u16 {
+    if state.status[defender] != Status::NONE {
+        apply_modifier(defense as u32, Modifier::ONE_POINT_FIVE).max(1) as u16
+    } else {
+        defense
+    }
+}
 
 /// Fur Coat: 2x Defense
 pub fn fur_coat(

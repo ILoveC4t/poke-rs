@@ -271,6 +271,14 @@ pub fn compute_base_power<G: GenMechanics>(ctx: &mut DamageContext<'_, G>) {
 
     bp = call_item_base_power_hook(ctx, bp as u16) as u32;
 
+    // ========================================================================
+    // Terrain-based BP modifiers (Gen 6+)
+    // ========================================================================
+    // Smogon applies terrain as a base power modifier (bpMods), not damage.
+    // Electric/Grassy/Psychic boost matching types, Misty halves Dragon.
+    // Grassy Terrain also halves Earthquake/Bulldoze/Magnitude.
+    apply_terrain_mod_bp(ctx, &mut bp);
+
     // TODO: Parental Bond ability: Multi-hit (2 hits), second hit at 0.25x power (Gen 7+)
     //       Requires special handling in damage pipeline to return combined damage
 
@@ -464,7 +472,30 @@ pub fn apply_weather_mod_bp<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, bp:
     }
 }
 
-/// Apply terrain modifier.
+/// Apply terrain modifier to base power (Gen 6+).
+///
+/// Smogon applies terrain as a base power modifier (bpMods), not a final damage modifier.
+/// This affects:
+/// - Electric/Grassy/Psychic Terrain: boost matching types when attacker is grounded
+/// - Misty Terrain: halves Dragon moves when defender is grounded
+/// - Grassy Terrain: halves Earthquake/Bulldoze/Magnitude when defender is grounded
+pub fn apply_terrain_mod_bp<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, bp: &mut u32) {
+    let terrain = Terrain::from_u8(ctx.state.terrain);
+
+    if let Some(modifier) = ctx.gen.terrain_modifier(
+        terrain,
+        ctx.move_id,
+        ctx.move_type,
+        ctx.attacker_grounded,
+        ctx.defender_grounded,
+    ) {
+        *bp = apply_modifier(*bp, modifier);
+    }
+}
+
+/// Apply terrain modifier (DEPRECATED - kept for reference).
+/// This should NOT be used; terrain is applied to base power, not damage.
+#[allow(dead_code)]
 pub fn apply_terrain_mod<G: GenMechanics>(ctx: &mut DamageContext<'_, G>, base_damage: &mut u32) {
     let terrain = Terrain::from_u8(ctx.state.terrain);
 
