@@ -957,7 +957,7 @@ mod tests {
 
     #[test]
     fn test_effective_speed_modifiers() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         let idx = 0;
         state.stats[idx][5] = 100;
 
@@ -1015,7 +1015,7 @@ mod tests {
 
     #[test]
     fn test_grounded_logic() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         let idx = 0;
 
         state.types[idx][0] = Type::Normal;
@@ -1059,7 +1059,7 @@ mod tests {
 
     #[test]
     fn test_effective_speed_paralysis() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         let idx = 0;
         state.stats[idx][5] = 100;
 
@@ -1071,7 +1071,7 @@ mod tests {
 
     #[test]
     fn test_effective_speed_tailwind() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         let idx = 0;
         state.stats[idx][5] = 100;
 
@@ -1089,7 +1089,7 @@ mod tests {
 
     #[test]
     fn test_effective_speed_weather_abilities() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         let idx = 0;
         state.stats[idx][5] = 100;
 
@@ -1111,7 +1111,7 @@ mod tests {
 
     #[test]
     fn test_effective_speed_items() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         let idx = 0;
         state.stats[idx][5] = 100;
 
@@ -1124,7 +1124,7 @@ mod tests {
 
     #[test]
     fn test_effective_speed_stacking() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         let idx = 0;
         state.stats[idx][5] = 100;
 
@@ -1136,7 +1136,7 @@ mod tests {
 
     #[test]
     fn test_turn_order_priority() {
-        let state = BattleState::new();
+        let state = BattleState::default();
 
         assert_eq!(state.compare_turn_order(0, 1, 6, 0), TurnOrder::First);
         assert_eq!(state.compare_turn_order(0, 0, 6, 1), TurnOrder::Second);
@@ -1144,7 +1144,7 @@ mod tests {
 
     #[test]
     fn test_turn_order_speed() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         state.stats[0][5] = 100;
         state.stats[6][5] = 80;
 
@@ -1154,7 +1154,7 @@ mod tests {
 
     #[test]
     fn test_turn_order_trick_room() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         state.stats[0][5] = 100;
         state.stats[6][5] = 80;
         state.trick_room = true;
@@ -1165,7 +1165,7 @@ mod tests {
 
     #[test]
     fn test_turn_order_tie() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         state.stats[0][5] = 100;
         state.stats[6][5] = 100;
 
@@ -1174,7 +1174,7 @@ mod tests {
 
     #[test]
     fn test_hazard_damage_stealth_rock() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         let idx = 0;
         state.max_hp[idx] = 100;
         state.hp[idx] = 100;
@@ -1190,7 +1190,7 @@ mod tests {
 
     #[test]
     fn test_hazard_damage_spikes() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         let idx = 0;
         state.max_hp[idx] = 100;
         state.hp[idx] = 100;
@@ -1210,7 +1210,7 @@ mod tests {
 
     #[test]
     fn test_toxic_spikes_absorption() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         let idx = 0;
         state.types[idx] = [Type::Poison, Type::Normal]; // Grounded Poison
         state.side_conditions[0].toxic_spikes_layers = 1;
@@ -1230,7 +1230,7 @@ mod tests {
 
     #[test]
     fn test_screen_modifier() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         let idx = 0;
         state.side_conditions[0].reflect_turns = 5;
 
@@ -1246,7 +1246,7 @@ mod tests {
 
     #[test]
     fn test_apply_forme_change() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         let idx = 0;
 
         // Setup base: Charizard
@@ -1272,7 +1272,7 @@ mod tests {
 
     #[test]
     fn test_status_immunity_limber() {
-        let mut state = BattleState::new();
+        let mut state = BattleState::default();
         let idx = 0;
         state.species[idx] = SpeciesId::from_str("ditto").unwrap(); // Limber is Ditto's ability
         state.abilities[idx] = AbilityId::Limber;
