@@ -1,8 +1,8 @@
 //! Status-related ability implementations.
 
+use crate::abilities::hooks::{OnIgnoreStatusDamageReduction, OnModifyAttack};
+use crate::moves::{MoveCategory, MoveId};
 use crate::state::{BattleState, Status};
-use crate::abilities::hooks::{OnModifyAttack, OnIgnoreStatusDamageReduction};
-use crate::moves::{MoveId, MoveCategory};
 
 // ============================================================================
 // Guts: 1.5x Attack if statused, ignore Burn reduction

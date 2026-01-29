@@ -11,8 +11,7 @@ use std::path::Path;
 /// Generate Nature enum with inline stat modifier calculation
 pub fn generate(out_dir: &Path, data_dir: &Path) {
     let json = fs::read_to_string(data_dir.join("natures.json")).expect("natures.json");
-    let natures: BTreeMap<String, NatureData> =
-        serde_json::from_str(&json).expect("parse natures");
+    let natures: BTreeMap<String, NatureData> = serde_json::from_str(&json).expect("parse natures");
 
     // Stats affected by natures (HP is never affected)
     let stats = ["atk", "def", "spa", "spd", "spe"];

@@ -1,6 +1,6 @@
 use crate::damage::context::DamageContext;
 use crate::damage::generations::GenMechanics;
-use crate::moves::{MoveId, MoveFlags};
+use crate::moves::{MoveFlags, MoveId};
 
 /// Check if a move has variable base power (often 0 in data).
 pub fn is_variable_power(move_id: MoveId) -> bool {

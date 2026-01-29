@@ -7,8 +7,8 @@
 include!(concat!(env!("OUT_DIR"), "/moves.rs"));
 
 pub mod hooks;
-pub mod registry;
 pub mod implementations;
+pub mod registry;
 
 pub use hooks::MoveHooks;
 pub use registry::MOVE_REGISTRY;

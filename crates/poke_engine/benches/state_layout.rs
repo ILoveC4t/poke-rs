@@ -1,8 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use poke_engine::state::BattleState;
 use poke_engine::damage::{calculate_damage, Gen9};
-use poke_engine::moves::MoveId;
 use poke_engine::entities::PokemonConfig;
+use poke_engine::moves::MoveId;
+use poke_engine::state::BattleState;
 const BATCH_INNER: usize = 1_000;
 
 fn create_benchmark_state() -> (BattleState, MoveId) {
@@ -24,8 +24,14 @@ fn create_benchmark_state() -> (BattleState, MoveId) {
 
 fn benchmark_state_size() {
     // Report actual size (not part of the noisy timing suite)
-    println!("BattleState size: {} bytes", std::mem::size_of::<BattleState>());
-    println!("Fits in L1 cache line (64B): {}", std::mem::size_of::<BattleState>() <= 64);
+    println!(
+        "BattleState size: {} bytes",
+        std::mem::size_of::<BattleState>()
+    );
+    println!(
+        "Fits in L1 cache line (64B): {}",
+        std::mem::size_of::<BattleState>() <= 64
+    );
 }
 
 fn benchmark_state_clone(c: &mut Criterion) {
@@ -52,7 +58,7 @@ fn benchmark_damage_calc(c: &mut Criterion) {
                     0, // attacker
                     6, // defender (player 1, slot 0)
                     move_id,
-                    false
+                    false,
                 );
             }
         })

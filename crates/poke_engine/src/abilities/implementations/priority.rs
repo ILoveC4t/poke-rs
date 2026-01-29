@@ -1,5 +1,5 @@
+use crate::moves::{MoveCategory, MoveFlags, MoveId};
 use crate::state::BattleState;
-use crate::moves::{MoveId, MoveCategory, MoveFlags};
 use crate::types::Type;
 
 pub fn prankster(_state: &BattleState, _idx: usize, move_id: MoveId, base: i8) -> i8 {

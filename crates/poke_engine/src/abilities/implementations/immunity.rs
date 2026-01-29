@@ -7,11 +7,7 @@ use crate::state::{BattleState, Status};
 use crate::types::Type;
 
 /// Levitate: Immune to Ground moves (if not grounded)
-pub fn levitate(
-    state: &BattleState,
-    defender: usize,
-    move_type: Type,
-) -> bool {
+pub fn levitate(state: &BattleState, defender: usize, move_type: Type) -> bool {
     // Note: is_grounded(defender) returns false if Levitate is active AND not negated.
     // However, if Iron Ball / Gravity is active, is_grounded returns true.
     // So if grounded, Levitate fails.
@@ -20,91 +16,52 @@ pub fn levitate(
 }
 
 /// Flash Fire: Immune to Fire moves
-pub fn flash_fire(
-    _state: &BattleState,
-    _defender: usize,
-    move_type: Type,
-) -> bool {
+pub fn flash_fire(_state: &BattleState, _defender: usize, move_type: Type) -> bool {
     move_type == Type::Fire
 }
 
 /// Volt Absorb: Immune to Electric moves
-pub fn volt_absorb(
-    _state: &BattleState,
-    _defender: usize,
-    move_type: Type,
-) -> bool {
+pub fn volt_absorb(_state: &BattleState, _defender: usize, move_type: Type) -> bool {
     move_type == Type::Electric
 }
 
 /// Water Absorb: Immune to Water moves
-pub fn water_absorb(
-    _state: &BattleState,
-    _defender: usize,
-    move_type: Type,
-) -> bool {
+pub fn water_absorb(_state: &BattleState, _defender: usize, move_type: Type) -> bool {
     move_type == Type::Water
 }
 
 /// Storm Drain: Immune to Water moves
-pub fn storm_drain(
-    _state: &BattleState,
-    _defender: usize,
-    move_type: Type,
-) -> bool {
+pub fn storm_drain(_state: &BattleState, _defender: usize, move_type: Type) -> bool {
     move_type == Type::Water
 }
 
 /// Lightning Rod: Immune to Electric moves
-pub fn lightning_rod(
-    _state: &BattleState,
-    _defender: usize,
-    move_type: Type,
-) -> bool {
+pub fn lightning_rod(_state: &BattleState, _defender: usize, move_type: Type) -> bool {
     move_type == Type::Electric
 }
 
 /// Sap Sipper: Immune to Grass moves
-pub fn sap_sipper(
-    _state: &BattleState,
-    _defender: usize,
-    move_type: Type,
-) -> bool {
+pub fn sap_sipper(_state: &BattleState, _defender: usize, move_type: Type) -> bool {
     move_type == Type::Grass
 }
 
 /// Motor Drive: Immune to Electric moves
-pub fn motor_drive(
-    _state: &BattleState,
-    _defender: usize,
-    move_type: Type,
-) -> bool {
+pub fn motor_drive(_state: &BattleState, _defender: usize, move_type: Type) -> bool {
     move_type == Type::Electric
 }
 
 /// Dry Skin: Immune to Water moves
-pub fn dry_skin(
-    _state: &BattleState,
-    _defender: usize,
-    move_type: Type,
-) -> bool {
+pub fn dry_skin(_state: &BattleState, _defender: usize, move_type: Type) -> bool {
     move_type == Type::Water
 }
 
 /// Earth Eater: Immune to Ground moves
-pub fn earth_eater(
-    _state: &BattleState,
-    _defender: usize,
-    move_type: Type,
-) -> bool {
+pub fn earth_eater(_state: &BattleState, _defender: usize, move_type: Type) -> bool {
     move_type == Type::Ground
 }
 
 /// Levitate: Grounding check (returns Some(false) = ungrounded)
-pub fn levitate_grounding(
-    _state: &BattleState,
-    _entity: usize,
-) -> Option<bool> {
+pub fn levitate_grounding(_state: &BattleState, _entity: usize) -> Option<bool> {
     Some(false)
 }
 

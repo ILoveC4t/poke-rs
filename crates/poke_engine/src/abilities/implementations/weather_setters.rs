@@ -1,6 +1,6 @@
-use crate::state::BattleState;
 use crate::abilities::hooks::AbilityHooks;
-use crate::abilities::weather::{Weather, Terrain};
+use crate::abilities::weather::{Terrain, Weather};
+use crate::state::BattleState;
 
 pub fn drizzle(state: &mut BattleState, _idx: usize) {
     AbilityHooks::set_weather(state, Weather::Rain, 5);

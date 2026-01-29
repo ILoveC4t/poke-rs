@@ -3,9 +3,9 @@
 //! Split into attacker modifiers (OnAttackerFinalMod) and defender modifiers (OnDefenderFinalMod).
 //! Order: Attacker mods apply first, then defender mods.
 
-use crate::state::BattleState;
-use crate::moves::MoveCategory;
 use crate::damage::{apply_modifier, Modifier};
+use crate::moves::MoveCategory;
+use crate::state::BattleState;
 use crate::types::Type;
 
 // =============================================================================
@@ -145,9 +145,9 @@ pub fn ice_scales(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::moves::MoveCategory;
     use crate::state::BattleState;
     use crate::types::Type;
-    use crate::moves::MoveCategory;
 
     #[test]
     fn test_fluffy() {
@@ -157,33 +157,56 @@ mod tests {
 
         // Case 1: Non-Fire, Contact (0.5x)
         let damage = fluffy(
-            &state, 0, 1, 4,
-            Type::Normal, MoveCategory::Physical, true, // is_contact = true
-            base_damage
+            &state,
+            0,
+            1,
+            4,
+            Type::Normal,
+            MoveCategory::Physical,
+            true, // is_contact = true
+            base_damage,
         );
         assert_eq!(damage, 50, "Fluffy should halve contact damage");
 
         // Case 2: Fire, Non-Contact (2x)
         let damage = fluffy(
-            &state, 0, 1, 4,
-            Type::Fire, MoveCategory::Special, false, // is_contact = false
-            base_damage
+            &state,
+            0,
+            1,
+            4,
+            Type::Fire,
+            MoveCategory::Special,
+            false, // is_contact = false
+            base_damage,
         );
         assert_eq!(damage, 200, "Fluffy should double fire damage");
 
         // Case 3: Fire, Contact (0.5x * 2x = 1x)
         let damage = fluffy(
-            &state, 0, 1, 4,
-            Type::Fire, MoveCategory::Physical, true, // is_contact = true
-            base_damage
+            &state,
+            0,
+            1,
+            4,
+            Type::Fire,
+            MoveCategory::Physical,
+            true, // is_contact = true
+            base_damage,
         );
-        assert_eq!(damage, 100, "Fluffy should be neutral for Fire Contact moves");
+        assert_eq!(
+            damage, 100,
+            "Fluffy should be neutral for Fire Contact moves"
+        );
 
         // Case 4: Non-Fire, Non-Contact (1x)
         let damage = fluffy(
-            &state, 0, 1, 4,
-            Type::Normal, MoveCategory::Special, false,
-            base_damage
+            &state,
+            0,
+            1,
+            4,
+            Type::Normal,
+            MoveCategory::Special,
+            false,
+            base_damage,
         );
         assert_eq!(damage, 100, "Fluffy should not affect other moves");
     }
@@ -197,19 +220,32 @@ mod tests {
         // Case 1: Full HP (0.5x)
         state.hp[defender] = 100;
         let damage = multiscale(
-            &state, 0, defender, 4,
-            Type::Normal, MoveCategory::Physical, false,
-            100
+            &state,
+            0,
+            defender,
+            4,
+            Type::Normal,
+            MoveCategory::Physical,
+            false,
+            100,
         );
         assert_eq!(damage, 50, "Multiscale should halve damage at full HP");
 
         // Case 2: Not Full HP (1x)
         state.hp[defender] = 99;
         let damage = multiscale(
-            &state, 0, defender, 4,
-            Type::Normal, MoveCategory::Physical, false,
-            100
+            &state,
+            0,
+            defender,
+            4,
+            Type::Normal,
+            MoveCategory::Physical,
+            false,
+            100,
         );
-        assert_eq!(damage, 100, "Multiscale should not affect damage when not at full HP");
+        assert_eq!(
+            damage, 100,
+            "Multiscale should not affect damage when not at full HP"
+        );
     }
 }

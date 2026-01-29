@@ -6,11 +6,11 @@
 use crate::abilities::AbilityId;
 use crate::entities::Gender;
 use crate::items::ItemId;
-use crate::moves::{MoveId, MoveCategory};
+use crate::moves::{MoveCategory, MoveId};
 use crate::natures::NatureId;
-use crate::species::{SpeciesId, Species};
+use crate::species::{Species, SpeciesId};
 use crate::terrains::TerrainId;
-use crate::types::{Type, type_effectiveness};
+use crate::types::{type_effectiveness, Type};
 
 /// Maximum team size per player
 pub const MAX_TEAM_SIZE: usize = 6;
@@ -119,7 +119,7 @@ pub struct SideConditions {
 
     // Hazards (layer count, 0 = none)
     pub stealth_rock: bool,
-    pub spikes_layers: u8,      // 0-3
+    pub spikes_layers: u8,       // 0-3
     pub toxic_spikes_layers: u8, // 0-2
     pub sticky_web: bool,
 
@@ -144,11 +144,11 @@ pub enum Hazard {
 // ============================================================================
 
 /// Core battle state in Struct-of-Arrays layout.
-/// 
+///
 /// Entity indices:
 /// - 0-5: Player 1's team (index 0 = slot 1, etc.)
 /// - 6-11: Player 2's team (index 6 = slot 1, etc.)
-/// 
+///
 /// This struct is `Copy` to allow cheap cloning for AI search trees.
 #[derive(Clone, Copy, Debug)]
 pub struct BattleState {
@@ -158,61 +158,61 @@ pub struct BattleState {
     /// Currently active Pokémon index for each player [player1, player2]
     /// For singles: one active per side. For doubles, this would be [2] per side.
     pub active: [u8; 2],
-    
+
     /// Number of Pokémon on each team (for variable team sizes)
     pub team_sizes: [u8; 2],
-    
+
     // ------------------------------------------------------------------------
     // Per-entity components (SoA layout)
     // ------------------------------------------------------------------------
     /// Species ID for each entity
     pub species: [SpeciesId; MAX_ENTITIES],
-    
+
     /// Current HP
     pub hp: [u16; MAX_ENTITIES],
-    
+
     /// Maximum HP
     pub max_hp: [u16; MAX_ENTITIES],
-    
+
     /// Current stats [HP, Atk, Def, SpA, SpD, Spe] (calculated at spawn)
     pub stats: [[u16; 6]; MAX_ENTITIES],
-    
+
     /// Stat boosts [Atk, Def, SpA, SpD, Spe, Acc, Eva] (-6 to +6)
     pub boosts: [[i8; BOOST_STATS]; MAX_ENTITIES],
-    
+
     /// Primary type (can change via moves like Soak or abilities like Protean)
     pub types: [[Type; 2]; MAX_ENTITIES],
-    
+
     /// Ability
     pub abilities: [AbilityId; MAX_ENTITIES],
-    
+
     /// Held item (None represented as ItemId::default())
     pub items: [ItemId; MAX_ENTITIES],
-    
+
     /// Move IDs (4 moves per entity)
     pub moves: [[MoveId; MAX_MOVES]; MAX_ENTITIES],
-    
+
     /// Current PP for each move
     pub pp: [[u8; MAX_MOVES]; MAX_ENTITIES],
-    
+
     /// Max PP for each move
     pub max_pp: [[u8; MAX_MOVES]; MAX_ENTITIES],
-    
+
     /// Major status condition
     pub status: [Status; MAX_ENTITIES],
-    
+
     /// Volatile status flags
     pub volatiles: [Volatiles; MAX_ENTITIES],
-    
+
     /// Sleep/Toxic counters (repurposed per status)
     pub status_counter: [u8; MAX_ENTITIES],
-    
+
     /// Level (needed for damage calc)
     pub level: [u8; MAX_ENTITIES],
 
     /// Happiness (0-255). Used for Return/Frustration.
     pub happiness: [u8; MAX_ENTITIES],
-    
+
     /// Nature (stored for potential recalculation)
     pub nature: [NatureId; MAX_ENTITIES],
 
@@ -230,48 +230,48 @@ pub struct BattleState {
 
     /// Transformed/Mega Evolved flag
     pub transformed: [bool; MAX_ENTITIES],
-    
+
     // ------------------------------------------------------------------------
     // Side-wide state
     // ------------------------------------------------------------------------
     /// Side conditions for each player
     pub side_conditions: [SideConditions; 2],
-    
+
     // ------------------------------------------------------------------------
     // Battle-wide state
     // ------------------------------------------------------------------------
     /// Current turn number
     pub turn: u16,
-    
+
     /// Weather (0 = none, then encoded weather types)
     /// FIXME: Define Weather enum
     pub weather: u8,
-    
+
     /// Weather turns remaining (0 = permanent)
     pub weather_turns: u8,
-    
+
     /// Terrain (0 = none, then encoded terrain types)
     /// FIXME: Define Terrain enum  
     pub terrain: u8,
-    
+
     /// Terrain turns remaining
     pub terrain_turns: u8,
-    
+
     /// Trick Room active
     pub trick_room: bool,
-    
+
     /// Trick Room turns remaining
     pub trick_room_turns: u8,
-    
+
     /// Gravity active
     pub gravity: bool,
-    
+
     /// Gravity turns remaining
     pub gravity_turns: u8,
 
     /// Battle Format (Singles, Doubles)
     pub format: BattleFormat,
-    
+
     /// Generation number (1-9, default 9)
     /// Used by hooks to implement generation-specific behavior.
     pub generation: u8,
@@ -297,7 +297,7 @@ impl BattleState {
         Self {
             active: [0, 6], // First Pokémon of each team
             team_sizes: [0, 0],
-            
+
             species: [SpeciesId(0); MAX_ENTITIES],
             hp: [0; MAX_ENTITIES],
             max_hp: [0; MAX_ENTITIES],
@@ -320,9 +320,9 @@ impl BattleState {
             weight: [0; MAX_ENTITIES],
             gender: [Gender::Genderless; MAX_ENTITIES],
             transformed: [false; MAX_ENTITIES],
-            
+
             side_conditions: [SideConditions::default(); 2],
-            
+
             turn: 0,
             weather: 0,
             weather_turns: 0,
@@ -336,7 +336,7 @@ impl BattleState {
             generation: 9, // Default to Gen 9
         }
     }
-    
+
     /// Get the entity index for a player's team slot
     /// Player 0: indices 0-5, Player 1: indices 6-11
     #[inline]
@@ -345,23 +345,27 @@ impl BattleState {
         debug_assert!(slot < MAX_TEAM_SIZE);
         player * MAX_TEAM_SIZE + slot
     }
-    
+
     /// Get the active entity index for a player
     #[inline]
     pub const fn active_index(&self, player: usize) -> usize {
         self.active[player] as usize
     }
-    
+
     /// Check if an entity is fainted
     #[inline]
     pub const fn is_fainted(&self, index: usize) -> bool {
         self.hp[index] == 0
     }
-    
+
     /// Get the side (player index) of an entity
     #[inline]
     pub const fn get_side(&self, index: usize) -> usize {
-        if index < MAX_TEAM_SIZE { 0 } else { 1 }
+        if index < MAX_TEAM_SIZE {
+            0
+        } else {
+            1
+        }
     }
 
     /// Check if doubles format
@@ -376,12 +380,12 @@ impl BattleState {
         let base = self.stats[index][5]; // Speed is stat index 5
         let boost = self.boosts[index][4]; // Speed is boost index 4
         let mut speed = apply_stat_boost(base, boost) as u32;
-        
+
         // Paralysis: 0.5x (Gen 7+)
         if self.status[index].contains(Status::PARALYSIS) {
             speed /= 2;
         }
-        
+
         // Weather and Terrain Abilities (2x)
         // Ability modifiers (via hook system)
         let ability_id = self.abilities[index];
@@ -390,13 +394,13 @@ impl BattleState {
                 speed = hook(self, index, speed as u16) as u32;
             }
         }
-        
+
         // Tailwind: 2x speed for the side
         let side = self.get_side(index);
         if self.side_conditions[side].tailwind_turns > 0 {
             speed *= 2;
         }
-        
+
         // Item modifiers
         // Item modifiers (via hook system)
         let item = self.items[index];
@@ -405,10 +409,10 @@ impl BattleState {
                 speed = hook(self, index, speed as u16) as u32;
             }
         }
-        
+
         speed.min(u16::MAX as u32) as u16
     }
-    
+
     /// Get effective stat with boost applied
     #[inline]
     pub fn effective_stat(&self, index: usize, stat_index: usize) -> u16 {
@@ -443,7 +447,8 @@ impl BattleState {
         }
 
         // 2. Ungrounded Checks (Volatiles)
-        if volatiles.contains(Volatiles::MAGNET_RISE) || volatiles.contains(Volatiles::TELEKINESIS) {
+        if volatiles.contains(Volatiles::MAGNET_RISE) || volatiles.contains(Volatiles::TELEKINESIS)
+        {
             return false;
         }
 
@@ -508,7 +513,9 @@ impl BattleState {
 
         // Update types
         self.types[entity_idx][0] = forme_data.primary_type();
-        self.types[entity_idx][1] = forme_data.secondary_type().unwrap_or(forme_data.primary_type());
+        self.types[entity_idx][1] = forme_data
+            .secondary_type()
+            .unwrap_or(forme_data.primary_type());
 
         // Recalculate stats with new base stats (HP stays, others recalculated)
         self.recalculate_stats(entity_idx, forme_data);
@@ -600,7 +607,9 @@ impl BattleState {
     pub fn apply_stat_change(&mut self, entity_idx: usize, stat: usize, delta: i8) {
         // stat: 0=HP(invalid), 1=Atk, ..., 5=Spe, 6=Acc, 7=Eva
         // boosts array is 0-6 corresponding to Atk-Eva
-        if stat == 0 || stat > BOOST_STATS { return; }
+        if stat == 0 || stat > BOOST_STATS {
+            return;
+        }
 
         let boost_idx = stat - 1;
         let current = self.boosts[entity_idx][boost_idx];
@@ -613,7 +622,7 @@ impl BattleState {
         if self.status[entity_idx] != Status::NONE {
             return false;
         }
-        
+
         // Ability Immunity Check
         let ability_id = self.abilities[entity_idx];
         if let Some(Some(hooks)) = crate::abilities::ABILITY_REGISTRY.get(ability_id as usize) {
@@ -623,11 +632,11 @@ impl BattleState {
                 }
             }
         }
-        
+
         // TODO: Item immunity checks (e.g. Safety Goggles vs Powder, or general immunity items?)
         // Currently items are usually specific to move types (powder) or conditions.
         // But Flame Orb/Toxic Orb force status.
-        
+
         self.status[entity_idx] = status;
         // Reset status counter (sleep turns, toxic count)
         self.status_counter[entity_idx] = 0;
@@ -640,7 +649,7 @@ impl BattleState {
             // Usually 1-3 turns in modern gens.
             // For now, simple logic or 0 and increment.
             // Let's set to 0 and handle sleep turn logic elsewhere (or randomize here if we had RNG).
-            // Since we don't have RNG passed in here easily (state shouldn't hold RNG maybe?), 
+            // Since we don't have RNG passed in here easily (state shouldn't hold RNG maybe?),
             // we'll assume caller handles specific counters if needed, or default 0.
             // Actually, for AI rollouts, deterministic is better.
             self.status_counter[entity_idx] = 2; // Default 2 turns
@@ -657,17 +666,25 @@ impl BattleState {
 
         // Aurora Veil covers both physical and special
         if conditions.aurora_veil_turns > 0 {
-            return if self.is_doubles() { 2732 } else { 2048 };  // 2/3 or 1/2
+            return if self.is_doubles() { 2732 } else { 2048 }; // 2/3 or 1/2
         }
 
         match category {
             MoveCategory::Physical if conditions.reflect_turns > 0 => {
-                if self.is_doubles() { 2732 } else { 2048 }
+                if self.is_doubles() {
+                    2732
+                } else {
+                    2048
+                }
             }
             MoveCategory::Special if conditions.light_screen_turns > 0 => {
-                if self.is_doubles() { 2732 } else { 2048 }
+                if self.is_doubles() {
+                    2732
+                } else {
+                    2048
+                }
             }
-            _ => 4096,  // No reduction
+            _ => 4096, // No reduction
         }
     }
 
@@ -681,7 +698,15 @@ impl BattleState {
 
         // Stealth Rock: Type effectiveness based damage (1/8 neutral)
         if conditions.stealth_rock && !self.is_immune_to_hazard(entity_idx, Hazard::StealthRock) {
-            let eff = type_effectiveness(Type::Rock, pokemon_types[0], if pokemon_types[1] != pokemon_types[0] { Some(pokemon_types[1]) } else { None });
+            let eff = type_effectiveness(
+                Type::Rock,
+                pokemon_types[0],
+                if pokemon_types[1] != pokemon_types[0] {
+                    Some(pokemon_types[1])
+                } else {
+                    None
+                },
+            );
             // eff: 0=0x, 1=0.25x, 2=0.5x, 4=1x, 8=2x, 16=4x
             // Base is 1/8 of max HP.
             // 1x -> 1/8 = 0.125
@@ -736,7 +761,10 @@ impl BattleState {
             }
 
             // Sticky Web: -1 Speed to grounded Pokémon
-            if conditions.sticky_web && self.is_grounded(entity_idx) && !self.is_immune_to_hazard(entity_idx, Hazard::StickyWeb) {
+            if conditions.sticky_web
+                && self.is_grounded(entity_idx)
+                && !self.is_immune_to_hazard(entity_idx, Hazard::StickyWeb)
+            {
                 self.apply_stat_change(entity_idx, 5, -1);
             }
         }
@@ -762,7 +790,7 @@ impl BattleState {
     pub fn modify_weight(&mut self, entity_idx: usize, delta_hectograms: i16) {
         let current = self.weight[entity_idx] as i16;
         let new_weight = current + delta_hectograms;
-        self.weight[entity_idx] = new_weight.max(1) as u16;  // Min 0.1kg
+        self.weight[entity_idx] = new_weight.max(1) as u16; // Min 0.1kg
     }
 }
 
@@ -863,7 +891,7 @@ impl BattleState {
     ) -> TurnOrder {
         let bracket1 = PriorityBracket::from_priority(priority1);
         let bracket2 = PriorityBracket::from_priority(priority2);
-        
+
         // Higher priority (lower enum value) goes first
         if bracket1 < bracket2 {
             return TurnOrder::First;
@@ -871,11 +899,11 @@ impl BattleState {
         if bracket2 < bracket1 {
             return TurnOrder::Second;
         }
-        
+
         // Same priority bracket: compare speeds
         let speed1 = self.effective_speed(entity1);
         let speed2 = self.effective_speed(entity2);
-        
+
         // Trick Room: slower goes first
         if self.trick_room {
             if speed1 < speed2 {
@@ -893,7 +921,7 @@ impl BattleState {
                 return TurnOrder::Second;
             }
         }
-        
+
         // Speed tie
         TurnOrder::Tie
     }
@@ -902,13 +930,13 @@ impl BattleState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_state_is_copy() {
         fn assert_copy<T: Copy>() {}
         assert_copy::<BattleState>();
     }
-    
+
     #[test]
     fn test_entity_index() {
         assert_eq!(BattleState::entity_index(0, 0), 0);
@@ -916,7 +944,7 @@ mod tests {
         assert_eq!(BattleState::entity_index(1, 0), 6);
         assert_eq!(BattleState::entity_index(1, 5), 11);
     }
-    
+
     #[test]
     fn test_stat_boost() {
         assert_eq!(apply_stat_boost(100, 0), 100);
@@ -1034,135 +1062,114 @@ mod tests {
         let mut state = BattleState::new();
         let idx = 0;
         state.stats[idx][5] = 100;
-        
+
         assert_eq!(state.effective_speed(idx), 100);
-        
+
         state.status[idx] = Status::PARALYSIS;
         assert_eq!(state.effective_speed(idx), 50);
     }
-    
+
     #[test]
     fn test_effective_speed_tailwind() {
         let mut state = BattleState::new();
         let idx = 0;
         state.stats[idx][5] = 100;
-        
+
         state.side_conditions[0].tailwind_turns = 3;
         assert_eq!(state.effective_speed(idx), 200);
-        
+
         state.side_conditions[0] = SideConditions::default();
         state.side_conditions[1].tailwind_turns = 3;
         assert_eq!(state.effective_speed(idx), 100);
-        
+
         let idx2 = 6;
         state.stats[idx2][5] = 100;
         assert_eq!(state.effective_speed(idx2), 200);
     }
-    
+
     #[test]
     fn test_effective_speed_weather_abilities() {
         let mut state = BattleState::new();
         let idx = 0;
         state.stats[idx][5] = 100;
-        
+
         state.abilities[idx] = AbilityId::Swiftswim;
         state.weather = 2; // Rain
         assert_eq!(state.effective_speed(idx), 200);
-        
+
         state.weather = 0;
         assert_eq!(state.effective_speed(idx), 100);
-        
+
         state.abilities[idx] = AbilityId::Chlorophyll;
         state.weather = 1; // Sun
         assert_eq!(state.effective_speed(idx), 200);
-        
+
         state.abilities[idx] = AbilityId::Sandrush;
         state.weather = 3; // Sand
         assert_eq!(state.effective_speed(idx), 200);
     }
-    
+
     #[test]
     fn test_effective_speed_items() {
         let mut state = BattleState::new();
         let idx = 0;
         state.stats[idx][5] = 100;
-        
+
         state.items[idx] = ItemId::Choicescarf;
         assert_eq!(state.effective_speed(idx), 150);
-        
+
         state.items[idx] = ItemId::Ironball;
         assert_eq!(state.effective_speed(idx), 50);
     }
-    
+
     #[test]
     fn test_effective_speed_stacking() {
         let mut state = BattleState::new();
         let idx = 0;
         state.stats[idx][5] = 100;
-        
+
         state.boosts[idx][4] = 1; // 150
         state.side_conditions[0].tailwind_turns = 3; // 300
         state.items[idx] = ItemId::Choicescarf; // 450
         assert_eq!(state.effective_speed(idx), 450);
     }
-    
+
     #[test]
     fn test_turn_order_priority() {
         let state = BattleState::new();
-        
-        assert_eq!(
-            state.compare_turn_order(0, 1, 6, 0),
-            TurnOrder::First
-        );
-        assert_eq!(
-            state.compare_turn_order(0, 0, 6, 1),
-            TurnOrder::Second
-        );
+
+        assert_eq!(state.compare_turn_order(0, 1, 6, 0), TurnOrder::First);
+        assert_eq!(state.compare_turn_order(0, 0, 6, 1), TurnOrder::Second);
     }
-    
+
     #[test]
     fn test_turn_order_speed() {
         let mut state = BattleState::new();
         state.stats[0][5] = 100;
         state.stats[6][5] = 80;
-        
-        assert_eq!(
-            state.compare_turn_order(0, 0, 6, 0),
-            TurnOrder::First
-        );
-        assert_eq!(
-            state.compare_turn_order(6, 0, 0, 0),
-            TurnOrder::Second
-        );
+
+        assert_eq!(state.compare_turn_order(0, 0, 6, 0), TurnOrder::First);
+        assert_eq!(state.compare_turn_order(6, 0, 0, 0), TurnOrder::Second);
     }
-    
+
     #[test]
     fn test_turn_order_trick_room() {
         let mut state = BattleState::new();
         state.stats[0][5] = 100;
         state.stats[6][5] = 80;
         state.trick_room = true;
-        
-        assert_eq!(
-            state.compare_turn_order(0, 0, 6, 0),
-            TurnOrder::Second
-        );
-        assert_eq!(
-            state.compare_turn_order(6, 0, 0, 0),
-            TurnOrder::First
-        );
+
+        assert_eq!(state.compare_turn_order(0, 0, 6, 0), TurnOrder::Second);
+        assert_eq!(state.compare_turn_order(6, 0, 0, 0), TurnOrder::First);
     }
-    
+
     #[test]
     fn test_turn_order_tie() {
         let mut state = BattleState::new();
         state.stats[0][5] = 100;
         state.stats[6][5] = 100;
-        
-        assert_eq!(
-            state.compare_turn_order(0, 0, 6, 0),
-            TurnOrder::Tie
-        );
+
+        assert_eq!(state.compare_turn_order(0, 0, 6, 0), TurnOrder::Tie);
     }
 
     #[test]
@@ -1210,8 +1217,15 @@ mod tests {
 
         state.apply_entry_hazards(idx);
 
-        assert_eq!(state.side_conditions[0].toxic_spikes_layers, 0, "Poison type should absorb Toxic Spikes");
-        assert_eq!(state.status[idx], Status::NONE, "Absorbing shouldn't poison");
+        assert_eq!(
+            state.side_conditions[0].toxic_spikes_layers, 0,
+            "Poison type should absorb Toxic Spikes"
+        );
+        assert_eq!(
+            state.status[idx],
+            Status::NONE,
+            "Absorbing shouldn't poison"
+        );
     }
 
     #[test]
@@ -1266,7 +1280,7 @@ mod tests {
 
         // Try to paralyze
         let result = state.set_status(idx, Status::PARALYSIS);
-        
+
         assert_eq!(result, false, "Limber should prevent Paralysis");
         assert_eq!(state.status[idx], Status::NONE, "Status should remain NONE");
 

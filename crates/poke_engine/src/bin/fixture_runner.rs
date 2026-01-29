@@ -1,13 +1,13 @@
-use std::io::{self, BufRead};
-use serde::{Deserialize, Serialize};
-use poke_engine::state::{BattleState, Status};
-use poke_engine::entities::PokemonConfig;
-use poke_engine::damage::{calculate_damage, DamageResult, Generation};
-use poke_engine::moves::MoveId;
-use poke_engine::items::ItemId;
 use poke_engine::abilities::AbilityId;
+use poke_engine::damage::{calculate_damage, DamageResult, Generation};
+use poke_engine::entities::PokemonConfig;
+use poke_engine::items::ItemId;
+use poke_engine::moves::MoveId;
 use poke_engine::natures::NatureId;
+use poke_engine::state::{BattleState, Status};
 use poke_engine::terrains::TerrainId;
+use serde::{Deserialize, Serialize};
+use std::io::{self, BufRead};
 
 #[derive(Serialize)]
 struct Output {
@@ -78,12 +78,24 @@ struct StatsOptions {
 fn resolve_ivs(stats: Option<StatsOptions>) -> [u8; 6] {
     let mut ivs = [31; 6];
     if let Some(s) = stats {
-        if let Some(v) = s.hp { ivs[0] = v; }
-        if let Some(v) = s.atk { ivs[1] = v; }
-        if let Some(v) = s.def { ivs[2] = v; }
-        if let Some(v) = s.spa { ivs[3] = v; }
-        if let Some(v) = s.spd { ivs[4] = v; }
-        if let Some(v) = s.spe { ivs[5] = v; }
+        if let Some(v) = s.hp {
+            ivs[0] = v;
+        }
+        if let Some(v) = s.atk {
+            ivs[1] = v;
+        }
+        if let Some(v) = s.def {
+            ivs[2] = v;
+        }
+        if let Some(v) = s.spa {
+            ivs[3] = v;
+        }
+        if let Some(v) = s.spd {
+            ivs[4] = v;
+        }
+        if let Some(v) = s.spe {
+            ivs[5] = v;
+        }
     }
     ivs
 }
@@ -91,12 +103,24 @@ fn resolve_ivs(stats: Option<StatsOptions>) -> [u8; 6] {
 fn resolve_evs(stats: Option<StatsOptions>) -> [u8; 6] {
     let mut evs = [0; 6];
     if let Some(s) = stats {
-        if let Some(v) = s.hp { evs[0] = v; }
-        if let Some(v) = s.atk { evs[1] = v; }
-        if let Some(v) = s.def { evs[2] = v; }
-        if let Some(v) = s.spa { evs[3] = v; }
-        if let Some(v) = s.spd { evs[4] = v; }
-        if let Some(v) = s.spe { evs[5] = v; }
+        if let Some(v) = s.hp {
+            evs[0] = v;
+        }
+        if let Some(v) = s.atk {
+            evs[1] = v;
+        }
+        if let Some(v) = s.def {
+            evs[2] = v;
+        }
+        if let Some(v) = s.spa {
+            evs[3] = v;
+        }
+        if let Some(v) = s.spd {
+            evs[4] = v;
+        }
+        if let Some(v) = s.spe {
+            evs[5] = v;
+        }
     }
     evs
 }
@@ -140,11 +164,10 @@ struct PokemonData {
 
 fn setup_pokemon(state: &mut BattleState, player: usize, data: &PokemonData) {
     // Basic config
-    let mut config = PokemonConfig::from_str(&data.name.to_lowercase())
-        .unwrap_or_else(|| {
-             // Fallback to Pikachu if unknown (shouldn't happen in valid tests)
-             PokemonConfig::from_str("pikachu").unwrap()
-        });
+    let mut config = PokemonConfig::from_str(&data.name.to_lowercase()).unwrap_or_else(|| {
+        // Fallback to Pikachu if unknown (shouldn't happen in valid tests)
+        PokemonConfig::from_str("pikachu").unwrap()
+    });
 
     // Level
     if let Some(lvl) = data.level {
@@ -176,7 +199,10 @@ fn setup_pokemon(state: &mut BattleState, player: usize, data: &PokemonData) {
 
     // Ability
     if let Some(ability_name) = &data.ability {
-        let clean_name = ability_name.to_lowercase().replace(" ", "").replace("-", "");
+        let clean_name = ability_name
+            .to_lowercase()
+            .replace(" ", "")
+            .replace("-", "");
         if let Some(ability) = AbilityId::from_str(&clean_name) {
             config = config.ability(ability);
         }
@@ -220,7 +246,9 @@ fn main() {
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let line = line.unwrap();
-        if line.trim().is_empty() { continue; }
+        if line.trim().is_empty() {
+            continue;
+        }
 
         let fixture: Fixture = match serde_json::from_str(&line) {
             Ok(f) => f,
@@ -239,7 +267,12 @@ fn main() {
         setup_pokemon(&mut state, 1, &fixture.defender);
 
         // Parse Move
-        let move_clean = fixture.move_data.name.to_lowercase().replace(" ", "").replace("-", "");
+        let move_clean = fixture
+            .move_data
+            .name
+            .to_lowercase()
+            .replace(" ", "")
+            .replace("-", "");
         let move_id = MoveId::from_str(&move_clean).unwrap_or(MoveId::default());
 
         // Field Settings
@@ -276,7 +309,7 @@ fn main() {
         eprintln!("DEBUG: Attacker ability: {:?}", state.abilities[0]);
         eprintln!("DEBUG: Attacker item: {:?}", state.items[0]);
         eprintln!("DEBUG: Defender types: {:?}", state.types[6]);
-        
+
         // Calculate
         let gen = Generation::from_num(fixture.gen);
         let result = calculate_damage(

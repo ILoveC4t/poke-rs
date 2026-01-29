@@ -8,7 +8,12 @@ use crate::models::MoveData;
 /// Handles keys starting with digits by prefixing with underscore.
 pub fn to_valid_ident(key: &str) -> String {
     let pascal = key.to_pascal_case();
-    if pascal.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false) {
+    if pascal
+        .chars()
+        .next()
+        .map(|c| c.is_ascii_digit())
+        .unwrap_or(false)
+    {
         format!("_{}", pascal)
     } else {
         pascal

@@ -425,14 +425,34 @@ mod tests {
 
         // Gen 3 with STAB
         let gen3_rolls = Gen3Pipeline.compute_final_damage(
-            100, 4, true, stab_15x, false, false, false,
-            MoveCategory::Physical, false, Modifier::ONE, &identity, &identity,
+            100,
+            4,
+            true,
+            stab_15x,
+            false,
+            false,
+            false,
+            MoveCategory::Physical,
+            false,
+            Modifier::ONE,
+            &identity,
+            &identity,
         );
 
         // Gen 5 with STAB
         let gen5_rolls = Gen5PlusPipeline.compute_final_damage(
-            100, 4, true, stab_15x, false, false, false,
-            MoveCategory::Physical, false, Modifier::ONE, &identity, &identity,
+            100,
+            4,
+            true,
+            stab_15x,
+            false,
+            false,
+            false,
+            MoveCategory::Physical,
+            false,
+            Modifier::ONE,
+            &identity,
+            &identity,
         );
 
         // Both should have STAB applied, but order differs

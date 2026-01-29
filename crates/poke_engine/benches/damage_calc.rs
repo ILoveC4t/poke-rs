@@ -5,16 +5,14 @@
 //! Run with:
 //!   cargo bench --package poke_engine --bench damage_calc
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 const BATCH_INNER: usize = 1_000;
-use poke_engine::{
-    calculate_damage, BattleState, Gen9, MoveId, PokemonConfig,
-};
+use poke_engine::{calculate_damage, BattleState, Gen9, MoveId, PokemonConfig};
 
 /// Set up a typical singles battle scenario
 fn setup_singles_battle() -> (BattleState, MoveId) {
     let mut state = BattleState::new();
-    
+
     // Attacker: Garchomp with typical competitive set
     if let Some(config) = PokemonConfig::from_str("garchomp") {
         config
@@ -22,7 +20,7 @@ fn setup_singles_battle() -> (BattleState, MoveId) {
             .evs([0, 252, 0, 0, 4, 252])
             .spawn(&mut state, 0, 0);
     }
-    
+
     // Defender: Tyranitar
     if let Some(config) = PokemonConfig::from_str("tyranitar") {
         config
@@ -30,9 +28,9 @@ fn setup_singles_battle() -> (BattleState, MoveId) {
             .evs([252, 0, 128, 0, 128, 0])
             .spawn(&mut state, 1, 0);
     }
-    
+
     let earthquake = MoveId::from_str("earthquake").expect("earthquake exists");
-    
+
     (state, earthquake)
 }
 
@@ -40,7 +38,7 @@ fn setup_singles_battle() -> (BattleState, MoveId) {
 #[allow(dead_code)]
 fn setup_doubles_battle() -> BattleState {
     let mut state = BattleState::new();
-    
+
     // Player 1
     let pokemon_p1 = ["flutter mane", "iron hands", "amoonguss", "landorus"];
     for (slot, species) in pokemon_p1.iter().enumerate() {
@@ -48,7 +46,7 @@ fn setup_doubles_battle() -> BattleState {
             config.level(50).spawn(&mut state, 0, slot);
         }
     }
-    
+
     // Player 2
     let pokemon_p2 = ["rillaboom", "incineroar", "urshifu", "tornadus"];
     for (slot, species) in pokemon_p2.iter().enumerate() {
@@ -56,13 +54,13 @@ fn setup_doubles_battle() -> BattleState {
             config.level(50).spawn(&mut state, 1, slot);
         }
     }
-    
+
     state
 }
 
 fn bench_single_damage_calc(c: &mut Criterion) {
     let (state, move_id) = setup_singles_battle();
-    
+
     c.bench_function("damage_calc_single", |b| {
         b.iter(|| {
             for _ in 0..BATCH_INNER {
@@ -81,9 +79,9 @@ fn bench_single_damage_calc(c: &mut Criterion) {
 
 fn bench_damage_calc_with_crit(c: &mut Criterion) {
     let (state, move_id) = setup_singles_battle();
-    
+
     let mut group = c.benchmark_group("damage_calc_crit");
-    
+
     group.bench_function("non_crit", |b| {
         b.iter(|| {
             for _ in 0..(BATCH_INNER / 2) {
@@ -91,7 +89,7 @@ fn bench_damage_calc_with_crit(c: &mut Criterion) {
             }
         })
     });
-    
+
     group.bench_function("crit", |b| {
         b.iter(|| {
             for _ in 0..(BATCH_INNER / 2) {
@@ -99,15 +97,15 @@ fn bench_damage_calc_with_crit(c: &mut Criterion) {
             }
         })
     });
-    
+
     group.finish();
 }
 
 fn bench_damage_calc_throughput(c: &mut Criterion) {
     let (state, move_id) = setup_singles_battle();
-    
+
     let mut group = c.benchmark_group("damage_calc_throughput");
-    
+
     for batch_size in [100, 1000, 10000].iter() {
         group.throughput(Throughput::Elements(*batch_size as u64));
         group.bench_with_input(
@@ -122,30 +120,28 @@ fn bench_damage_calc_throughput(c: &mut Criterion) {
             },
         );
     }
-    
+
     group.finish();
 }
 
 fn bench_multiple_moves(c: &mut Criterion) {
     let mut state = BattleState::new();
-    
+
     // Pikachu with full moveset
     if let Some(config) = PokemonConfig::from_str("pikachu") {
-        config
-            .level(50)
-            .spawn(&mut state, 0, 0);
+        config.level(50).spawn(&mut state, 0, 0);
     }
-    
+
     // Bulbasaur as defender
     if let Some(config) = PokemonConfig::from_str("bulbasaur") {
         config.level(50).spawn(&mut state, 1, 0);
     }
-    
+
     let moves: Vec<MoveId> = ["thunderbolt", "voltswitch", "irontail", "quickattack"]
         .iter()
         .filter_map(|m| MoveId::from_str(m))
         .collect();
-    
+
     c.bench_function("damage_calc_4moves", |b| {
         b.iter(|| {
             for _ in 0..(BATCH_INNER / 10) {
@@ -160,7 +156,7 @@ fn bench_multiple_moves(c: &mut Criterion) {
 fn bench_ai_rollout_simulation(c: &mut Criterion) {
     // Simulate an AI evaluating many board states
     let (base_state, move_id) = setup_singles_battle();
-    
+
     c.bench_function("ai_rollout_100_states", |b| {
         b.iter(|| {
             // Keep the original 100-state rollout, but repeat the whole rollout

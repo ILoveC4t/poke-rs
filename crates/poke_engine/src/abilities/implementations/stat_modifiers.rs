@@ -2,9 +2,9 @@
 //!
 //! Called via `OnModifyAttack` or `OnModifyDefense` during stat calculation.
 
-use crate::state::{BattleState, Status};
-use crate::moves::{MoveCategory, MoveId};
 use crate::damage::{apply_modifier, Modifier};
+use crate::moves::{MoveCategory, MoveId};
+use crate::state::{BattleState, Status};
 
 /// Hustle: 1.5x Attack for physical moves (accuracy penalty handled elsewhere)
 pub fn hustle(
@@ -183,7 +183,6 @@ pub fn quark_drive(
         attack
     }
 }
-
 
 // =============================================================================
 // Defense modifiers
