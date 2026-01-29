@@ -594,9 +594,7 @@ fn test_damage_calculations() {
                     skipped += 1;
                 } else {
                     failed += 1;
-                    if true {
-                        errors.push(format!("[{}] {}: {}", case.id, case.test_name, e));
-                    }
+                    errors.push(format!("[{}] {}: {}", case.id, case.test_name, e));
                 }
             }
         }
