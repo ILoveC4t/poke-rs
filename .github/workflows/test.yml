@@ -89,7 +89,7 @@ jobs:
           COMMENT_BODY: ${{ steps.comment.outputs.body }}
         with:
           script: |
-            const script = require('./.github/scripts/post_pr_comment.js')
+            const script = require('./.github/scripts/post_pr_comment.cjs')
             await script({github, context})
 
       - name: Fail on regressions
