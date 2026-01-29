@@ -19,7 +19,7 @@ fn test_pixilate() {
 
     // Defender: Dragonite (Dragon/Flying)
     let defender = 6;
-    state.species[defender] = SpeciesId::from_str("dragonite").unwrap_or(SpeciesId(149));
+    state.species[defender] = SpeciesId::from_str("dragonite").unwrap_or_else(|| SpeciesId(149));
     state.types[defender] = [Type::Dragon, Type::Flying];
     state.stats[defender][2] = 100; // Def
 
@@ -75,7 +75,7 @@ fn test_analytic() {
 
     // Attacker: Magnezone with Analytic
     let attacker = 0;
-    state.species[attacker] = SpeciesId::from_str("magnezone").unwrap_or(SpeciesId(462));
+    state.species[attacker] = SpeciesId::from_str("magnezone").unwrap_or_else(|| SpeciesId(462));
     state.types[attacker] = [Type::Electric, Type::Steel];
     state.abilities[attacker] = AbilityId::Analytic;
     state.stats[attacker][3] = 100; // SpA

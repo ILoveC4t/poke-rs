@@ -14,7 +14,7 @@ fn test_venoshock() {
     state.types[0] = [Type::Poison, Type::Poison];
     state.stats[0][3] = 100; // SpA
 
-    state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+    state.species[0] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
     state.types[6] = [Type::Normal, Type::Normal];
     state.stats[6][4] = 100; // SpD
 
@@ -59,7 +59,7 @@ fn test_hex() {
     let mut state = BattleState::new();
     let gen = Gen9;
 
-    state.species[0] = SpeciesId::from_str("gengar").unwrap_or(SpeciesId(94));
+    state.species[0] = SpeciesId::from_str("gengar").unwrap_or_else(|| SpeciesId(94));
     state.types[0] = [Type::Ghost, Type::Poison];
     state.stats[0][3] = 100; // SpA
 
@@ -98,7 +98,7 @@ fn test_brine() {
     let mut state = BattleState::new();
     let gen = Gen9;
 
-    state.species[0] = SpeciesId::from_str("squirtle").unwrap_or(SpeciesId(7));
+    state.species[0] = SpeciesId::from_str("squirtle").unwrap_or_else(|| SpeciesId(7));
     state.types[0] = [Type::Water, Type::Water];
     state.stats[0][3] = 100; // SpA
 

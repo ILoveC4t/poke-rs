@@ -20,7 +20,7 @@ mod tests {
         state.level[0] = 50;
 
         // Fallback to Rattata's National Dex ID if name lookup fails
-        state.species[6] = SpeciesId::from_str("rattata").unwrap_or(SpeciesId(19));
+        state.species[6] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
         state.stats[6][2] = 100; // 100 Def
         state.level[6] = 50;
 

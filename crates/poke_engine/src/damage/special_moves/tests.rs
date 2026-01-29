@@ -48,7 +48,7 @@ fn test_base_power_modifiers() {
     let gen = Gen9;
 
     // Eruption: HP-based
-    state.species[0] = SpeciesId::from_str("typhlosion").unwrap_or(SpeciesId(157));
+    state.species[0] = SpeciesId::from_str("typhlosion").unwrap_or_else(|| SpeciesId(157));
     state.hp[0] = 150; // Full HP
     state.max_hp[0] = 150;
     
