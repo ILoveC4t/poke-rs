@@ -221,6 +221,20 @@ mod tests {
             result_with.min,
             result_without.min
         );
+
+        // Base (90 BP) = 41.
+        // SE (2x) -> 82.
+        // Neuroforce (1.25x) -> 102.
+        // Min Roll (0.85) -> 86.
+
+        // Without Neuroforce: 41 * 2 * 0.85 = 69.
+
+        // Numeric check: Neuroforce should increase min damage above 80 for this scenario
+        assert!(
+            result_with.min > 80,
+            "Neuroforce should boost super effective damage to be > 80 (got {})",
+            result_with.min
+        );
     }
 
     #[test]
@@ -543,18 +557,6 @@ mod tests {
             result.max < 25,
             "Quark Drive Speed boost should not affect damage (got {})",
             result.max
-        );
-        // Base (90 BP) = 41.
-        // SE (2x) -> 82.
-        // Neuroforce (1.25x) -> 102.
-        // Min Roll (0.85) -> 86.
-
-        // Without Neuroforce: 41 * 2 * 0.85 = 69.
-
-        assert!(
-            result.min > 80,
-            "Neuroforce should boost super effective damage (got {})",
-            result.min
         );
     }
 }

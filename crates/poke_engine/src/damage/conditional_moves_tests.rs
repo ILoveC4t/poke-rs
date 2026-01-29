@@ -14,7 +14,7 @@ fn test_venoshock() {
     state.types[0] = [Type::Poison, Type::Poison];
     state.stats[0][3] = 100; // SpA
 
-    state.species[0] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
+    state.species[6] = SpeciesId::from_str("rattata").unwrap_or_else(|| SpeciesId(19));
     state.types[6] = [Type::Normal, Type::Normal];
     state.stats[6][4] = 100; // SpD
 
