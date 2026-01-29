@@ -18,6 +18,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: true
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -46,23 +48,12 @@ jobs:
             exit 1
           fi
 
-      - name: Commit baseline
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          # Check if there are changes
-          if git diff --quiet .baseline/test_results.json; then
-            echo "No changes to baseline"
-            exit 0
-          fi
-          
-          # Get summary for commit message
-          PASSED=$(jq -r '.cargo_test.passed' .baseline/test_results.json)
-          FAILED=$(jq -r '.cargo_test.failed' .baseline/test_results.json)
-          
-          git add .baseline/test_results.json
-          git commit -m "chore(baseline): update test baseline [skip ci]" \
-                     -m "Tests: ${PASSED} passed, ${FAILED} failed" \
-                     -m "Triggered by: ${{ github.sha }}"
-          git push
+      - name: Upload baseline artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test_results
+          path: .baseline/test_results.json
+          retention-days: 365
+
+      - name: Baseline uploaded
+        run: echo "Baseline artifact uploaded: .baseline/test_results.json (retention 365 days)"
