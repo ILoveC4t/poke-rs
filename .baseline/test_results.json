@@ -1,13 +1,13 @@
 {
-  "timestamp": "1769704067",
-  "timestamp_human": "2026-01-29T16:27:47Z",
-  "duration_seconds": 14.787524145999999,
+  "timestamp": "1769704808",
+  "timestamp_human": "2026-01-29T16:40:08Z",
+  "duration_seconds": 16.17161831,
   "status": "FAILURE",
   "cargo_test": {
-    "passed": 468,
+    "passed": 469,
     "failed": 101,
     "ignored": 11,
-    "total": 580
+    "total": 581
   },
   "fixture_results": {
     "passed": 333,
