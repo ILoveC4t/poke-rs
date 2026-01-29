@@ -1,22 +1,20 @@
-use super::weather::{Terrain, Weather};
-use crate::moves::{Move, MoveCategory, MoveId};
 use crate::state::BattleState;
-use crate::state::Hazard;
+use crate::moves::{MoveId, MoveCategory, Move};
 use crate::types::Type;
+use super::weather::{Weather, Terrain};
+use crate::state::Hazard;
 
 /// Called when a Pokemon switches in (after hazards)
 pub type OnSwitchIn = fn(state: &mut BattleState, switched_idx: usize);
 
 /// Called during turn ordering to modify move priority
-pub type OnModifyPriority =
-    fn(state: &BattleState, attacker: usize, move_id: MoveId, base_priority: i8) -> i8;
+pub type OnModifyPriority = fn(state: &BattleState, attacker: usize, move_id: MoveId, base_priority: i8) -> i8;
 
 /// Called immediately before a move is executed
 pub type OnBeforeMove = fn(state: &mut BattleState, attacker: usize, move_id: MoveId);
 
 /// Called during damage calculation to modify damage (legacy, prefer new hooks)
-pub type OnModifyDamage =
-    fn(state: &BattleState, attacker: usize, defender: usize, damage: u16) -> u16;
+pub type OnModifyDamage = fn(state: &BattleState, attacker: usize, defender: usize, damage: u16) -> u16;
 
 /// Called after damage has been dealt
 pub type OnAfterDamage = fn(state: &mut BattleState, attacker: usize, defender: usize, damage: u16);
@@ -80,28 +78,49 @@ pub type OnDefenderFinalMod = fn(
 
 /// Called to check type immunity (Levitate, Flash Fire, etc.)
 /// Returns true if the ability grants immunity.
-pub type OnTypeImmunity = fn(state: &BattleState, defender: usize, move_type: Type) -> bool;
+pub type OnTypeImmunity = fn(
+    state: &BattleState,
+    defender: usize,
+    move_type: Type,
+) -> bool;
 
 /// Called during speed calculation to modify effective speed.
 /// Used by Chlorophyll, Swift Swim, Sand Rush, Slush Rush, Surge Surfer.
-pub type OnModifySpeed = fn(state: &BattleState, entity: usize, speed: u16) -> u16;
+pub type OnModifySpeed = fn(
+    state: &BattleState,
+    entity: usize,
+    speed: u16,
+) -> u16;
 
 /// Called to check if an entity is grounded (can override default logic)
 /// Returns Some(true/false) to override, None to use default calculation
-pub type OnCheckGrounded = fn(state: &BattleState, entity: usize) -> Option<bool>;
+pub type OnCheckGrounded = fn(
+    state: &BattleState,
+    entity: usize,
+) -> Option<bool>;
 
 /// Called to check hazard immunity (Magic Guard, Heavy-Duty Boots, etc.)
 /// Returns true if the entity is immune to entry hazards matches
-pub type OnHazardImmunity = fn(state: &BattleState, entity: usize, hazard: Hazard) -> bool;
+pub type OnHazardImmunity = fn(
+    state: &BattleState,
+    entity: usize,
+    hazard: Hazard,
+) -> bool;
 
 /// Called to check if status damage reduction should be ignored (e.g. Guts ignoring Burn attack drop)
-pub type OnIgnoreStatusDamageReduction =
-    fn(state: &BattleState, entity: usize, status: crate::state::Status) -> bool;
+pub type OnIgnoreStatusDamageReduction = fn(
+    state: &BattleState,
+    entity: usize,
+    status: crate::state::Status,
+) -> bool;
 
 /// Called when checking for status immunity.
 /// Returns true if the Pokémon is immune to the status.
-pub type OnStatusImmunity =
-    fn(state: &BattleState, entity: usize, status: crate::state::Status) -> bool;
+pub type OnStatusImmunity = fn(
+    state: &BattleState,
+    entity: usize,
+    status: crate::state::Status,
+) -> bool;
 
 // ============================================================================
 // AbilityHooks Struct
