@@ -3,9 +3,9 @@
 //! Split into attacker modifiers (OnAttackerFinalMod) and defender modifiers (OnDefenderFinalMod).
 //! Order: Attacker mods apply first, then defender mods.
 
-use crate::damage::{apply_modifier, Modifier};
-use crate::moves::{Move, MoveCategory, MoveFlags};
 use crate::state::BattleState;
+use crate::moves::{Move, MoveCategory, MoveFlags};
+use crate::damage::{apply_modifier, Modifier};
 use crate::types::Type;
 
 // =============================================================================
@@ -161,10 +161,10 @@ pub fn punk_rock(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::moves::{Move, MoveCategory, MoveFlags};
     use crate::state::BattleState;
-    use crate::terrains::TerrainId;
     use crate::types::Type;
+    use crate::moves::{Move, MoveCategory, MoveFlags};
+    use crate::terrains::TerrainId;
 
     fn make_test_move(flags: MoveFlags) -> Move {
         Move {
@@ -189,59 +189,36 @@ mod tests {
         // Case 1: Non-Fire, Contact (0.5x)
         let contact_move = make_test_move(MoveFlags::CONTACT);
         let damage = fluffy(
-            &state,
-            0,
-            1,
-            4,
-            Type::Normal,
-            MoveCategory::Physical,
-            &contact_move,
-            base_damage,
+            &state, 0, 1, 4,
+            Type::Normal, MoveCategory::Physical, &contact_move,
+            base_damage
         );
         assert_eq!(damage, 50, "Fluffy should halve contact damage");
 
         // Case 2: Fire, Non-Contact (2x)
         let fire_move = make_test_move(MoveFlags::empty());
         let damage = fluffy(
-            &state,
-            0,
-            1,
-            4,
-            Type::Fire,
-            MoveCategory::Special,
-            &fire_move,
-            base_damage,
+            &state, 0, 1, 4,
+            Type::Fire, MoveCategory::Special, &fire_move,
+            base_damage
         );
         assert_eq!(damage, 200, "Fluffy should double fire damage");
 
         // Case 3: Fire, Contact (0.5x * 2x = 1x)
         let fire_contact_move = make_test_move(MoveFlags::CONTACT);
         let damage = fluffy(
-            &state,
-            0,
-            1,
-            4,
-            Type::Fire,
-            MoveCategory::Physical,
-            &fire_contact_move,
-            base_damage,
+            &state, 0, 1, 4,
+            Type::Fire, MoveCategory::Physical, &fire_contact_move,
+            base_damage
         );
-        assert_eq!(
-            damage, 100,
-            "Fluffy should be neutral for Fire Contact moves"
-        );
+        assert_eq!(damage, 100, "Fluffy should be neutral for Fire Contact moves");
 
         // Case 4: Non-Fire, Non-Contact (1x)
         let non_contact_move = make_test_move(MoveFlags::empty());
         let damage = fluffy(
-            &state,
-            0,
-            1,
-            4,
-            Type::Normal,
-            MoveCategory::Special,
-            &non_contact_move,
-            base_damage,
+            &state, 0, 1, 4,
+            Type::Normal, MoveCategory::Special, &non_contact_move,
+            base_damage
         );
         assert_eq!(damage, 100, "Fluffy should not affect other moves");
     }
@@ -256,33 +233,20 @@ mod tests {
         // Case 1: Full HP (0.5x)
         state.hp[defender] = 100;
         let damage = multiscale(
-            &state,
-            0,
-            defender,
-            4,
-            Type::Normal,
-            MoveCategory::Physical,
-            &dummy_move,
-            100,
+            &state, 0, defender, 4,
+            Type::Normal, MoveCategory::Physical, &dummy_move,
+            100
         );
         assert_eq!(damage, 50, "Multiscale should halve damage at full HP");
 
         // Case 2: Not Full HP (1x)
         state.hp[defender] = 99;
         let damage = multiscale(
-            &state,
-            0,
-            defender,
-            4,
-            Type::Normal,
-            MoveCategory::Physical,
-            &dummy_move,
-            100,
+            &state, 0, defender, 4,
+            Type::Normal, MoveCategory::Physical, &dummy_move,
+            100
         );
-        assert_eq!(
-            damage, 100,
-            "Multiscale should not affect damage when not at full HP"
-        );
+        assert_eq!(damage, 100, "Multiscale should not affect damage when not at full HP");
     }
 
     #[test]
@@ -293,28 +257,18 @@ mod tests {
         // Case 1: Sound move (0.5x)
         let sound_move = make_test_move(MoveFlags::SOUND);
         let damage = punk_rock(
-            &state,
-            0,
-            1,
-            4,
-            Type::Normal,
-            MoveCategory::Special,
-            &sound_move,
-            base_damage,
+            &state, 0, 1, 4,
+            Type::Normal, MoveCategory::Special, &sound_move,
+            base_damage
         );
         assert_eq!(damage, 50, "Punk Rock should halve sound damage");
 
         // Case 2: Non-sound move (1x)
         let normal_move = make_test_move(MoveFlags::empty());
         let damage = punk_rock(
-            &state,
-            0,
-            1,
-            4,
-            Type::Normal,
-            MoveCategory::Physical,
-            &normal_move,
-            base_damage,
+            &state, 0, 1, 4,
+            Type::Normal, MoveCategory::Physical, &normal_move,
+            base_damage
         );
         assert_eq!(damage, 100, "Punk Rock should not affect non-sound moves");
     }
