@@ -2,6 +2,14 @@ use crate::moves::MoveId;
 use crate::state::BattleState;
 use crate::types::Type;
 
+fn fixed_damage_night_shade(defender_types: [Type; 2], level: u16) -> Option<u16> {
+    if defender_types[0] == Type::Normal || defender_types[1] == Type::Normal {
+        Some(0)
+    } else {
+        Some(level)
+    }
+}
+
 /// Check if a move deals fixed damage (not affected by stats/type).
 ///
 /// Returns `Some(damage)` for fixed damage moves, `None` otherwise.
@@ -22,14 +30,7 @@ pub fn get_fixed_damage(
         // Level-based fixed damage
         // ====================================================================
         
-        "Night Shade" => {
-            // Ghost-type move, Normal-types are immune
-            if defender_types[0] == Type::Normal || defender_types[1] == Type::Normal {
-                Some(0)
-            } else {
-                Some(level)
-            }
-        }
+        "Night Shade" => fixed_damage_night_shade(defender_types, level),
         "Seismic Toss" => {
             // Fighting-type move, Ghost-types are immune
             if defender_types[0] == Type::Ghost || defender_types[1] == Type::Ghost {

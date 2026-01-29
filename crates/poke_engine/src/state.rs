@@ -688,6 +688,18 @@ impl BattleState {
         }
     }
 
+    fn stealth_rock_factor(eff: u8) -> u16 {
+        match eff {
+            0 => 0,
+            1 => 512,
+            2 => 1024,
+            4 => 2048,
+            8 => 4096,
+            16 => 8192,
+            _ => 4096,
+        }
+    }
+
     /// Apply entry hazard damage when a Pokémon switches in
     /// Returns damage dealt (0 if immune or no hazards)
     pub fn apply_entry_hazards(&mut self, entity_idx: usize) -> u16 {
@@ -707,15 +719,7 @@ impl BattleState {
                     None
                 },
             );
-            // eff: 0=0x, 1=0.25x, 2=0.5x, 4=1x, 8=2x, 16=4x
-            // Base is 1/8 of max HP.
-            // 1x -> 1/8 = 0.125
-            // 2x -> 1/4 = 0.25
-            // 4x -> 1/2 = 0.5
-            // 0.5x -> 1/16 = 0.0625
-            // 0.25x -> 1/32 = 0.03125
-
-            let factor = match eff {
+            let factor = Self::stealth_rock_factor(eff);
                 16 => 2, // 1/2
                 8 => 4,  // 1/4
                 4 => 8,  // 1/8

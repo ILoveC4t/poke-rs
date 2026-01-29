@@ -17,29 +17,6 @@ pub enum Category {
     Gen1,
     Gen2,
     Gen3,
-    Gen4,
-    Gen5,
-    Gen6,
-    Gen7,
-    Gen8,
-    Gen9,
-
-    /// Feature categories
-    Abilities,
-    Items,
-    Moves,
-    Weather,
-    Terrain,
-    Screens,
-    MultiHit,
-    Critical,
-    Status,
-    TypeEffectiveness,
-    Tera,
-    ZMoves,
-    Dynamax,
-}
-
 impl Category {
     /// Get all categories that apply to a test case.
     pub fn categorize(case: &DamageTestCase) -> Vec<Category> {
@@ -62,12 +39,82 @@ impl Category {
         let test_name_lower = case.test_name.to_lowercase();
         let id_lower = case.id.to_lowercase();
 
+        cats.extend(Self::categorize_features(case, &test_name_lower, &id_lower));
+
+        cats
+    }
+
+    fn categorize_features(case: &DamageTestCase, test_name_lower: &str, id_lower: &str) -> Vec<Category> {
+        let mut cats = vec![];
+
         // Abilities
-        if has_ability_keywords(&test_name_lower, &id_lower) {
+        if has_ability_keywords(test_name_lower, id_lower) {
             cats.push(Category::Abilities);
         }
 
         // Items
+        if has_item_keywords(test_name_lower, id_lower) {
+            cats.push(Category::Items);
+        }
+
+        // Moves
+        if has_move_keywords(test_name_lower, id_lower) {
+            cats.push(Category::Moves);
+        }
+
+        // Weather
+        if has_weather_keywords(test_name_lower, id_lower) {
+            cats.push(Category::Weather);
+        }
+
+        // Terrain
+        if has_terrain_keywords(test_name_lower, id_lower) {
+            cats.push(Category::Terrain);
+        }
+
+        // Screens
+        if has_screens_keywords(test_name_lower, id_lower) {
+            cats.push(Category::Screens);
+        }
+
+        // MultiHit
+        if case.num_hits > 1 {
+            cats.push(Category::MultiHit);
+        }
+
+        // Critical
+        if case.is_critical {
+            cats.push(Category::Critical);
+        }
+
+        // Status
+        if case.status.is_some() {
+            cats.push(Category::Status);
+        }
+
+        // TypeEffectiveness
+        if case.type_effectiveness != TypeEffectiveness::Normal {
+            cats.push(Category::TypeEffectiveness);
+        }
+
+        // Tera
+        if case.tera_toggled {
+            cats.push(Category::Tera);
+        }
+
+        // ZMoves
+        if case.z_move {
+            cats.push(Category::ZMoves);
+        }
+
+        // Dynamax
+        if case.dynamax {
+            cats.push(Category::Dynamax);
+        }
+
+        cats
+    }
+}
         if has_item_keywords(&test_name_lower, &id_lower) {
             cats.push(Category::Items);
         }
