@@ -508,7 +508,7 @@ impl BattleState {
 
         // Update types
         self.types[entity_idx][0] = forme_data.primary_type();
-        self.types[entity_idx][1] = forme_data.secondary_type().unwrap_or(forme_data.primary_type());
+        self.types[entity_idx][1] = forme_data.secondary_type().unwrap_or_else(|| forme_data.primary_type());
 
         // Recalculate stats with new base stats (HP stays, others recalculated)
         self.recalculate_stats(entity_idx, forme_data);
