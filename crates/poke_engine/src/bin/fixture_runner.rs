@@ -191,7 +191,9 @@ fn setup_pokemon(state: &mut BattleState, player: usize, data: &PokemonData) {
 
     // Item
     if let Some(item_name) = &data.item {
-        let clean_name = item_name.to_lowercase().replace(|c: char| matches!(c, ' ' | '-'), "");
+        let clean_name = item_name
+            .to_lowercase()
+            .replace(|c: char| matches!(c, ' ' | '-'), "");
         if let Some(item) = ItemId::from_str(&clean_name) {
             config = config.item(item);
         }
@@ -199,7 +201,9 @@ fn setup_pokemon(state: &mut BattleState, player: usize, data: &PokemonData) {
 
     // Ability
     if let Some(ability_name) = &data.ability {
-        let clean_name = ability_name.to_lowercase().replace(|c: char| matches!(c, ' ' | '-'), "");
+        let clean_name = ability_name
+            .to_lowercase()
+            .replace(|c: char| matches!(c, ' ' | '-'), "");
         if let Some(ability) = AbilityId::from_str(&clean_name) {
             config = config.ability(ability);
         }
@@ -264,7 +268,11 @@ fn main() {
         setup_pokemon(&mut state, 1, &fixture.defender);
 
         // Parse Move
-        let move_clean = fixture.move_data.name.to_lowercase().replace(|c: char| matches!(c, ' ' | '-'), "");
+        let move_clean = fixture
+            .move_data
+            .name
+            .to_lowercase()
+            .replace(|c: char| matches!(c, ' ' | '-'), "");
         let move_id = MoveId::from_str(&move_clean).unwrap_or_default();
 
         // Field Settings
