@@ -8,3 +8,4 @@ pub mod immunity;
 pub mod speed;
 pub mod status;
 pub mod multitype;
+pub mod parental_bond;

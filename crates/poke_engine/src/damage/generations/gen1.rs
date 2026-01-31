@@ -218,6 +218,7 @@ impl GenMechanics for Gen1 {
             effectiveness: ctx.effectiveness,
             is_crit: ctx.is_crit,
             final_base_power: ctx.base_power,
+            multi_hit_rolls: None,
         }
     }
 }

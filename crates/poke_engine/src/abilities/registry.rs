@@ -1,6 +1,6 @@
 use crate::abilities::hooks::AbilityHooks;
 use crate::abilities::implementations::{
-    damage_modifiers, final_modifiers, immunity, intimidate, multitype, priority, speed,
+    damage_modifiers, final_modifiers, immunity, intimidate, multitype, parental_bond, priority, speed,
     stat_modifiers, status, weather_setters,
 };
 use crate::abilities::AbilityId;
@@ -74,7 +74,16 @@ pub static ABILITY_REGISTRY: [Option<AbilityHooks>; AbilityId::COUNT] = {
     });
 
     // =========================================================================
+    // Multi-hit Modifiers
+    // =========================================================================
+    registry[AbilityId::Parentalbond as usize] = Some(AbilityHooks {
+        on_modify_multi_hit: Some(parental_bond::parental_bond),
+        ..AbilityHooks::NONE
+    });
+
+    // =========================================================================
     // Base Power Modifiers (OnModifyBasePower)
+
     // =========================================================================
     registry[AbilityId::Technician as usize] = Some(AbilityHooks {
         on_modify_base_power: Some(damage_modifiers::technician),
