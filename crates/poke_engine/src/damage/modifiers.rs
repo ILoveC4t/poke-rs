@@ -658,7 +658,7 @@ pub fn compute_final_damage<G: GenMechanics>(
     let is_sb = is_screen_breaker(ctx.move_id);
     let has_physical_screen = ctx.has_screen(ctx.category == MoveCategory::Physical);
     let has_screen = !ctx.is_crit && !is_sb && has_physical_screen;
-    
+
     let screen_mod = if has_screen {
         Modifier::new(ctx.state.get_screen_modifier(ctx.defender, ctx.category))
     } else {
