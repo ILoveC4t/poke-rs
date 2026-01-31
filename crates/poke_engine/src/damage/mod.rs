@@ -111,7 +111,6 @@ impl DamageResult {
     }
 }
 
-
 /// Check if a move deals fixed damage (not affected by stats/type).
 ///
 /// Returns `Some(damage)` for fixed damage moves, `None` otherwise.
@@ -185,7 +184,7 @@ pub fn calculate_damage_with_overrides<G: GenMechanics>(
                     // For fixed damage, we ignore the modifier value and just add duplicate hits
                     let mut extra_hits = Vec::new();
                     for _ in modifiers {
-                         extra_hits.push([fixed_damage; 16]);
+                        extra_hits.push([fixed_damage; 16]);
                     }
                     multi_hit_rolls = Some(extra_hits);
                 }
@@ -202,7 +201,6 @@ pub fn calculate_damage_with_overrides<G: GenMechanics>(
             multi_hit_rolls,
         };
     }
-
 
     // Power 0 moves with no special handling deal no damage
     if move_data.power == 0 && !special_moves::is_variable_power(move_id) {

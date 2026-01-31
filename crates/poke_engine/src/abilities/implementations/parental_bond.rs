@@ -39,11 +39,11 @@ pub fn parental_bond(
     // However, if we return Modifier::ONE here, `calculate_damage` might think it's 1.0x BP.
     // Standard moves (Gen 7+): 0.25x BP.
     // Standard moves (Gen 6): 0.5x BP.
-    
+
     // Check if it is a fixed damage move?
     // The runner handles fixed damage separately.
     // But this hook is just "What are the modifiers for extra hits?"
-    
+
     let gen = state.generation;
     let modifier = if gen <= 6 {
         Modifier::HALF // 0.5x

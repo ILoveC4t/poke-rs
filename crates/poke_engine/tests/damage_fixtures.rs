@@ -394,7 +394,6 @@ fn verify_rolls(actual: &[u16; 16], expected: &[u16], context: &str) -> Result<(
     Ok(())
 }
 
-
 fn get_base_power_override(case: &DamageTestCase) -> Option<u16> {
     // First check for explicit move overrides (e.g., basePower: 75)
     if let Some(ref overrides) = case.move_data.overrides {
@@ -589,7 +588,11 @@ fn run_damage_test(case: &DamageTestCase) -> Result<(), String> {
                 // Determine actual rolls for this hit
                 // i starts at 1. multi_hit_rolls index starts at 0.
                 if i - 1 < multi_hit_rolls.len() {
-                    verify_rolls(&multi_hit_rolls[i - 1], expected_roll, &format!("Hit {}", i + 1))?;
+                    verify_rolls(
+                        &multi_hit_rolls[i - 1],
+                        expected_roll,
+                        &format!("Hit {}", i + 1),
+                    )?;
                 } else {
                     return Err(format!("Missing expected hit {}", i + 1).into());
                 }
@@ -601,7 +604,6 @@ fn run_damage_test(case: &DamageTestCase) -> Result<(), String> {
 
     Ok(())
 }
-
 
 // ============================================================================
 // Harness

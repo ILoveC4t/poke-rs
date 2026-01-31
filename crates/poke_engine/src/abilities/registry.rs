@@ -1,7 +1,7 @@
 use crate::abilities::hooks::AbilityHooks;
 use crate::abilities::implementations::{
-    damage_modifiers, final_modifiers, immunity, intimidate, multitype, parental_bond, priority, speed,
-    stat_modifiers, status, weather_setters,
+    damage_modifiers, final_modifiers, immunity, intimidate, multitype, parental_bond, priority,
+    speed, stat_modifiers, status, weather_setters,
 };
 use crate::abilities::AbilityId;
 
