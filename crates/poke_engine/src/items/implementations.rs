@@ -392,6 +392,42 @@ pub fn on_modify_bp_pixie_plate(_state: &BattleState, _attacker: usize, _defende
 }
 
 // ============================================================================
+// Metronome Item (consecutive move bonus)
+// ============================================================================
+
+/// Metronome: Boosts damage of consecutively used moves.
+///
+/// Scaling: 1.0x base, +0.2x per consecutive use of the same move, up to 2.0x.
+/// The multiplier is applied to base power.
+///
+/// Edge cases handled by state tracking:
+/// - Reset on switching moves
+/// - Reset on move failure/Protect block
+/// - Reset on switch-out
+/// - Uses effective move (after Sleep Talk, Copycat, etc.)
+pub fn on_modify_bp_metronome(
+    state: &BattleState,
+    attacker: usize,
+    _defender: usize,
+    move_data: &Move,
+    _move_type: Type,
+    bp: u16,
+) -> u16 {
+    // Only apply to damaging moves with base power > 0
+    if bp == 0 || move_data.power == 0 {
+        return bp;
+    }
+
+    let multiplier = state.metronome_multiplier(attacker);
+    if multiplier == 4096 {
+        return bp; // No boost (1.0x)
+    }
+
+    // Apply multiplier using the same rounding as other modifiers
+    apply_modifier(bp.into(), Modifier::new(multiplier)).max(1) as u16
+}
+
+// ============================================================================
 // Speed Modifiers
 // ============================================================================
 

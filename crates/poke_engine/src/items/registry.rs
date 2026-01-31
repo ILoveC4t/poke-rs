@@ -70,6 +70,15 @@ pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
     });
 
     // =========================================================================
+    // Metronome (Consecutive Move Bonus)
+    // =========================================================================
+
+    registry[ItemId::Metronome as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_metronome),
+        ..ItemHooks::NONE
+    });
+
+    // =========================================================================
     // Type-Boosting Items (OnModifyBasePower)
     // =========================================================================
 
