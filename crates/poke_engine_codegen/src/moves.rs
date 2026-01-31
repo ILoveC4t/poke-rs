@@ -27,10 +27,12 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
 
     let count = valid_moves.len();
 
-    // 1. Collect Flags
+    // 1. Collect Flags and Targets
     let mut flag_names = BTreeSet::new();
+    let mut target_names = BTreeSet::new();
 
     let breaks_screens_moves = ["Brick Break", "Psychic Fangs", "Raging Bull"];
+
     let variable_power_moves = [
         "Eruption",
         "Water Spout",
@@ -71,8 +73,17 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
         if variable_power_moves.contains(&data.name.as_str()) {
             flag_names.insert("VariablePower".to_string());
         }
+
+        if data.ohko.is_some() {
+            flag_names.insert("Ohko".to_string());
+        }
+
+        if let Some(target) = &data.target {
+            target_names.insert(target.clone());
+        }
     }
     let flag_count = flag_names.len();
+
     let use_u64 = flag_count > 32;
     let flags_repr = if use_u64 { quote!(u64) } else { quote!(u32) };
 
@@ -89,6 +100,19 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
                 quote! { #v }
             };
             quote! { const #ident = #val; }
+        })
+        .collect();
+
+    let target_variants: Vec<TokenStream> = target_names
+        .iter()
+        .map(|name| {
+            let s = to_valid_ident(name);
+            let ident = if s == "Self" {
+                format_ident!("User")
+            } else {
+                format_ident!("{}", s)
+            };
+            quote! { #ident }
         })
         .collect();
 
@@ -125,6 +149,32 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
             let pp = data.pp.unwrap_or(0);
             let priority = data.priority.unwrap_or(0);
 
+            let target_str = data.target.as_deref().unwrap_or("Normal");
+            let target_ident_str = to_valid_ident(target_str);
+            let target_ident = if target_ident_str == "Self" {
+                format_ident!("User")
+            } else {
+                format_ident!("{}", target_ident_str)
+            };
+
+            let (min_hits, max_hits) = match &data.multihit {
+                Some(serde_json::Value::Number(n)) => {
+                    let v = n.as_u64().unwrap_or(1) as u8;
+                    (v, v)
+                }
+                Some(serde_json::Value::Array(arr)) => {
+                    if arr.len() >= 2 {
+                        (
+                            arr[0].as_u64().unwrap_or(1) as u8,
+                            arr[1].as_u64().unwrap_or(1) as u8,
+                        )
+                    } else {
+                        (1, 1)
+                    }
+                }
+                _ => (0, 0), // 0,0 indicates standard single hit (handled by default logic)
+            };
+
             // Flags
             let mut flag_bits = 0u64;
             for (flag_key, _) in &data.flags {
@@ -146,6 +196,12 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
             // Inject HasSecondaryEffects flag bit
             if has_secondary_effects(data) {
                 if let Some(pos) = flag_names.iter().position(|x| x == "HasSecondaryEffects") {
+                    flag_bits |= 1 << pos;
+                }
+            }
+
+            if data.ohko.is_some() {
+                if let Some(pos) = flag_names.iter().position(|x| x == "Ohko") {
                     flag_bits |= 1 << pos;
                 }
             }
@@ -188,6 +244,8 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
                     priority: #priority,
                     flags: MoveFlags::from_bits_truncate(#flag_bits_lit),
                     terrain: #terrain_ident,
+                    target: MoveTarget::#target_ident,
+                    multihit: (#min_hits, #max_hits),
                 }
             }
         })
@@ -229,6 +287,12 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
             }
         }
 
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub enum MoveTarget {
+            #(#target_variants),*
+        }
+
+
         /// Static move data
         #[derive(Clone, Copy, Debug)]
         pub struct Move {
@@ -241,7 +305,10 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
             pub priority: i8,
             pub flags: MoveFlags,
             pub terrain: TerrainId,
+            pub target: MoveTarget,
+            pub multihit: (u8, u8),
         }
+
 
         impl MoveId {
             /// Total number of moves

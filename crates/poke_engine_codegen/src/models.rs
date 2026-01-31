@@ -89,6 +89,11 @@ pub struct MoveData {
     pub secondaries: Option<serde_json::Value>,
     #[serde(rename = "hasSheerForce")]
     pub has_sheer_force: Option<bool>,
+
+    pub ohko: Option<serde_json::Value>, // can be true or string "Ice"
+
+    pub target: Option<String>,
+    pub multihit: Option<serde_json::Value>,
 }
 
 #[derive(Deserialize)]

@@ -103,6 +103,16 @@ pub type OnIgnoreStatusDamageReduction =
 pub type OnStatusImmunity =
     fn(state: &BattleState, entity: usize, status: crate::state::Status) -> bool;
 
+/// Called to check if a move hits multiple times.
+/// Returns modifiers for additional hits (e.g. Parental Bond returns [Modifier::QUARTER]).
+/// Empty list means no extra hits. None means ability doesn't affect hits.
+pub type OnModifyMultiHit = fn(
+    state: &BattleState,
+    attacker: usize,
+    defender: usize,
+    move_id: MoveId,
+) -> Option<Vec<crate::damage::Modifier>>;
+
 // ============================================================================
 // AbilityHooks Struct
 // ============================================================================
@@ -129,6 +139,8 @@ pub struct AbilityHooks {
     pub on_hazard_immunity: Option<OnHazardImmunity>,
     pub on_ignore_status_damage_reduction: Option<OnIgnoreStatusDamageReduction>,
     pub on_status_immunity: Option<OnStatusImmunity>,
+    // Multi-hit hooks
+    pub on_modify_multi_hit: Option<OnModifyMultiHit>,
 }
 
 impl AbilityHooks {
@@ -151,6 +163,7 @@ impl AbilityHooks {
         on_hazard_immunity: None,
         on_ignore_status_damage_reduction: None,
         on_status_immunity: None,
+        on_modify_multi_hit: None,
     };
 
     /// Helper to set weather

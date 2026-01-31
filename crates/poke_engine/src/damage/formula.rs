@@ -253,50 +253,61 @@ pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageR
     // Gen 5+: adds +2 in base formula
     // Gen 3-4: adds +2 after burn/screens/spread/weather, before crit
     let level = ctx.state.level[ctx.attacker] as u32;
-    let adds_two_now = ctx.gen.adds_two_in_base_damage();
-    let mut base_damage = get_base_damage(
-        level,
-        ctx.base_power as u32,
-        attack as u32,
-        defense as u32,
-        adds_two_now,
-    );
+    let adds_two_default = ctx.gen.adds_two_in_base_damage();
 
-    // Phase 4: Apply pre-random modifiers
-    // Gen 3-4 order: burn → screens → spread → weather → +2 → crit
-    // Gen 5+ order:  spread → weather → (crit later)
-    // Note: Terrain is applied in compute_base_power (base power modifier, not damage)
+    // Helper to calculate damage for a specific Base Power.
+    // This allows re-calculating correct damage for multi-hit abilities like Parental Bond
+    // which modify the Base Power of subsequent hits.
+    // Returns (base_damage_before_random, rolls)
+    let calculate_hit =
+        |ctx: &mut DamageContext<G>, bp: u32, atk: u16, def: u16| -> (u32, [u16; 16]) {
+            let mut base_damage =
+                get_base_damage(level, bp, atk as u32, def as u32, adds_two_default);
 
-    // Gen 3-4: Apply burn and screens BEFORE spread/weather
-    modifiers::apply_burn_mod_early(&ctx, &mut base_damage);
-    modifiers::apply_screen_mod_early(&ctx, &mut base_damage);
+            // Apply pre-random modifiers
+            modifiers::apply_burn_mod_early(ctx, &mut base_damage);
+            modifiers::apply_screen_mod_early(ctx, &mut base_damage);
 
-    modifiers::apply_spread_mod(&mut ctx, &mut base_damage);
-    modifiers::apply_weather_mod_damage(&mut ctx, &mut base_damage);
-    // Terrain is applied in compute_base_power, not here (matches Smogon bpMods)
+            modifiers::apply_spread_mod(ctx, &mut base_damage);
+            modifiers::apply_weather_mod_damage(ctx, &mut base_damage);
 
-    // Gen 3-4: Add +2 after burn/screens/spread/weather but before crit
-    if !adds_two_now {
-        // Physical moves have minimum 1 before +2 in Gen 3
-        if G::GEN == 3 && ctx.category == crate::moves::MoveCategory::Physical {
-            base_damage = base_damage.max(1);
+            if !adds_two_default {
+                if G::GEN == 3 && ctx.category == crate::moves::MoveCategory::Physical {
+                    base_damage = base_damage.max(1);
+                }
+                base_damage += 2;
+            }
+
+            modifiers::apply_crit_mod(ctx, &mut base_damage);
+            modifiers::apply_move_final_damage_mod(ctx, &mut base_damage);
+
+            let rolls = modifiers::compute_final_damage(ctx, base_damage);
+            (base_damage, rolls)
+        };
+
+    // Main hit
+    let bp = ctx.base_power as u32;
+    let (base_damage, rolls) = calculate_hit(&mut ctx, bp, attack, defense);
+
+    // Check for multi-hit capability (Parental Bond)
+    let mut multi_hit_rolls = None;
+    if let Some(Some(hooks)) =
+        crate::abilities::ABILITY_REGISTRY.get(ctx.state.abilities[ctx.attacker] as usize)
+    {
+        if let Some(hook) = hooks.on_modify_multi_hit {
+            if let Some(modifiers) = hook(ctx.state, ctx.attacker, ctx.defender, ctx.move_id) {
+                let mut hits = Vec::new();
+                // The hook returns modifiers for *additional* hits.
+                // For accurate rounding we scale the pre-random base_damage and then run the final
+                // pipeline (random roll, STAB, effectiveness, burn, screens) on the scaled base.
+                for modifier in modifiers {
+                    let scaled_base = apply_modifier(base_damage, modifier);
+                    hits.push(modifiers::compute_final_damage(&mut ctx, scaled_base));
+                }
+                multi_hit_rolls = Some(hits);
+            }
         }
-        base_damage += 2;
     }
-
-    modifiers::apply_crit_mod(&mut ctx, &mut base_damage);
-
-    // Gen 3 Weather Ball: Apply damage doubling after crit, before STAB/effectiveness
-    // Called via move hook to respect architecture
-    modifiers::apply_move_final_damage_mod(&ctx, &mut base_damage);
-
-    // Phase 5: Generate all 16 damage rolls
-    // Gen 3-4: STAB → effectiveness → random (random is LAST)
-    // Gen 5+: random → STAB → effectiveness → burn → screens (random is FIRST)
-    let rolls = modifiers::compute_final_damage(&ctx, base_damage);
-
-    // TODO: Parental Bond requires fixture runner changes to support multi-hit output format
-    // The fixture expects [[first_hit_rolls], [second_hit_rolls]], not combined totals
 
     DamageResult {
         rolls,
@@ -305,6 +316,7 @@ pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageR
         effectiveness: ctx.effectiveness,
         is_crit: ctx.is_crit,
         final_base_power: ctx.base_power,
+        multi_hit_rolls,
     }
 }
 

@@ -90,6 +90,10 @@ pub struct DamageResult {
 
     /// Base power after modifications
     pub final_base_power: u16,
+
+    /// Rolls for additional hits (if any).
+    /// Used for abilities like Parental Bond.
+    pub multi_hit_rolls: Option<Vec<[u16; 16]>>,
 }
 
 impl DamageResult {
@@ -102,6 +106,7 @@ impl DamageResult {
             effectiveness: 0,
             is_crit: false,
             final_base_power: 0,
+            multi_hit_rolls: None,
         }
     }
 }
@@ -162,9 +167,30 @@ pub fn calculate_damage_with_overrides<G: GenMechanics>(
         return DamageResult::zero();
     }
 
-    // Check for fixed damage moves first
     if let Some(fixed_damage) = special_moves::get_fixed_damage(move_id, state, attacker, defender)
     {
+        // TODO: Handle Parental Bond for fixed damage (requires checking hook here)
+        // For now, we return single hit for fixed damage to pass existing tests that don't check multi-hit fixed damage,
+        // or let them fail if they expect 2 hits.
+        // Explicitly, fixtures gen6-Parental-Bond... expect 2 hits for Seismic Toss.
+        // So we MUST handle it here.
+
+        let mut multi_hit_rolls = None;
+        if let Some(Some(hooks)) =
+            crate::abilities::ABILITY_REGISTRY.get(state.abilities[attacker] as usize)
+        {
+            if let Some(hook) = hooks.on_modify_multi_hit {
+                if let Some(modifiers) = hook(state, attacker, defender, move_id) {
+                    // For fixed damage, we ignore the modifier value and just add duplicate hits
+                    let mut extra_hits = Vec::new();
+                    for _ in modifiers {
+                        extra_hits.push([fixed_damage; 16]);
+                    }
+                    multi_hit_rolls = Some(extra_hits);
+                }
+            }
+        }
+
         return DamageResult {
             rolls: [fixed_damage; 16],
             min: fixed_damage,
@@ -172,6 +198,7 @@ pub fn calculate_damage_with_overrides<G: GenMechanics>(
             effectiveness: 4, // Neutral
             is_crit: false,
             final_base_power: 0,
+            multi_hit_rolls,
         };
     }
 

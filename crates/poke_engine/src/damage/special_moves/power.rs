@@ -1,9 +1,13 @@
 use crate::damage::context::DamageContext;
 use crate::damage::generations::GenMechanics;
-use crate::moves::{MoveId, MoveFlags};
+use crate::moves::{MoveFlags, MoveId};
 
 /// Check if a move has variable base power (often 0 in data).
 pub fn is_variable_power(move_id: MoveId) -> bool {
+    // Frustration and Return are variable power but might lack the flag in old data
+    if matches!(move_id, MoveId::Frustration | MoveId::Return) {
+        return true;
+    }
     move_id.data().flags.contains(MoveFlags::VARIABLE_POWER)
 }
 

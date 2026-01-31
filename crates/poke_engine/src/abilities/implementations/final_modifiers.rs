@@ -161,7 +161,7 @@ pub fn punk_rock(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::moves::{Move, MoveCategory, MoveFlags};
+    use crate::moves::{Move, MoveCategory, MoveFlags, MoveTarget};
     use crate::state::BattleState;
     use crate::terrains::TerrainId;
     use crate::types::Type;
@@ -177,6 +177,8 @@ mod tests {
             priority: 0,
             flags,
             terrain: TerrainId::None,
+            target: MoveTarget::Normal,
+            multihit: (0, 0),
         }
     }
 
