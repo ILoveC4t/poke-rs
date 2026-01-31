@@ -1,6 +1,6 @@
-use crate::items::ItemId;
 use crate::items::hooks::ItemHooks;
 use crate::items::implementations::*;
+use crate::items::ItemId;
 
 pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
     let mut registry: [Option<ItemHooks>; ItemId::COUNT] = [None; ItemId::COUNT];
@@ -271,4 +271,3 @@ pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
 
     registry
 };
-

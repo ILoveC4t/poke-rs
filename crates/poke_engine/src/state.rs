@@ -814,8 +814,9 @@ impl BattleState {
         if success {
             if self.last_move[entity_idx] == effective_move {
                 // Same move used consecutively - increment (capped at 5 for 2.0x max)
-                self.consecutive_move_count[entity_idx] =
-                    self.consecutive_move_count[entity_idx].saturating_add(1).min(5);
+                self.consecutive_move_count[entity_idx] = self.consecutive_move_count[entity_idx]
+                    .saturating_add(1)
+                    .min(5);
             } else {
                 // Different move - reset tracking to this new move
                 self.last_move[entity_idx] = effective_move;
