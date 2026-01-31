@@ -1,6 +1,6 @@
-use crate::items::ItemId;
 use crate::items::hooks::ItemHooks;
 use crate::items::implementations::*;
+use crate::items::ItemId;
 
 pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
     let mut registry: [Option<ItemHooks>; ItemId::COUNT] = [None; ItemId::COUNT];
@@ -66,6 +66,15 @@ pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
 
     registry[ItemId::Expertbelt as usize] = Some(ItemHooks {
         on_attacker_final_mod: Some(on_attacker_final_mod_expert_belt),
+        ..ItemHooks::NONE
+    });
+
+    // =========================================================================
+    // Metronome (Consecutive Move Bonus)
+    // =========================================================================
+
+    registry[ItemId::Metronome as usize] = Some(ItemHooks {
+        on_modify_base_power: Some(on_modify_bp_metronome),
         ..ItemHooks::NONE
     });
 
@@ -262,4 +271,3 @@ pub static ITEM_REGISTRY: [Option<ItemHooks>; ItemId::COUNT] = {
 
     registry
 };
-

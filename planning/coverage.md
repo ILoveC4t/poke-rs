@@ -8,8 +8,12 @@ This document tracks implemented vs missing Pokémon mechanics in `poke-rs`.
 
 | Category | Pass | Fail | Notes |
 |----------|------|------|-------|
-| **Fixtures** | 331 | 101 | Smogon damage-calc scraped tests |
-| **Cargo Tests** | 116 | 10 | Unit + integration tests |
+| **Fixtures** | 345 | 79 | Smogon damage-calc scraped tests |
+| **Cargo Tests** | 470 | 100 | Unit + integration tests |
+
+### Recent Fixes
+- **Raging Bull & Screens**: Fixed tests 430, 431 by clearing unintended `Intimidate` boosts from test setup. Fixtures requiring clean slate stats must ensure previous `OnSwitchIn` effects are cleared.
+- **Test Runner**: Updated `damage_fixtures.rs` to zero out boosts if not explicitly defined in the fixture JSON.
 
 ---
 
@@ -30,11 +34,11 @@ This document tracks implemented vs missing Pokémon mechanics in `poke-rs`.
 | Soul Dew | 1.5x SpA/SpD for Lati@s (Gen 7+) | `on_modify_attack` |
 | Assault Vest | 1.5x SpD | `on_modify_defense` |
 | Eviolite | 1.5x Def/SpD for NFE | `on_modify_defense` |
+| Metronome | 1.0-2.0x scaling (+0.2x/use) | `on_modify_base_power` |
 
 ### ❌ Missing
 | Item | Effect | Blocker |
 |------|--------|---------|
-| Metronome (item) | 1.0-2.0x scaling | Needs `consecutive_move_count` in state |
 | Berry resist types | 0.5x on SE | Complex condition logic |
 
 ---
@@ -52,14 +56,14 @@ This document tracks implemented vs missing Pokémon mechanics in `poke-rs`.
 | Scrappy / Mind's Eye | Hit Ghost with Normal/Fighting |
 | Levitate | Ground immunity |
 | Filter / Solid Rock / Prism Armor | 0.75x on SE |
+| Multiscale / Shadow Shield | 0.5x at full HP |
+| Fluffy | 0.5x contact, 2x Fire |
+| Punk Rock | 0.5x sound |
+| Ice Scales | 0.5x Special |
 
 ### ❌ Missing
 | Ability | Effect | Priority |
 |---------|--------|----------|
-| Multiscale / Shadow Shield | 0.5x at full HP | High |
-| Fluffy | 0.5x contact, 2x Fire | Medium |
-| Punk Rock | 0.5x sound | Medium |
-| Ice Scales | 0.5x Special | Medium |
 | Neuroforce | 1.25x on SE | Low |
 | Sniper | 1.5x on crit | Low |
 
@@ -94,13 +98,12 @@ This document tracks implemented vs missing Pokémon mechanics in `poke-rs`.
 - Status boost: Facade
 - Struggle (typeless)
 - Weather Ball (type/power change)
+- Flying Press (Dual-type)
 
 ### ❌ Missing
 | Mechanic | Examples |
 |----------|----------|
-| Weather Ball type/power | Weather Ball |
 | Terrain Pulse | Terrain Pulse |
-| Flying Press | Dual-type (Fighting + Flying) |
 
 ---
 
