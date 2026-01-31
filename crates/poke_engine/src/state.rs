@@ -232,6 +232,15 @@ pub struct BattleState {
     pub transformed: [bool; MAX_ENTITIES],
 
     // ------------------------------------------------------------------------
+    // Consecutive Move Tracking (for Metronome item, Echoed Voice, etc.)
+    // ------------------------------------------------------------------------
+    /// Last move successfully used by each entity (effective move, after redirection)
+    pub last_move: [MoveId; MAX_ENTITIES],
+
+    /// Number of consecutive successful uses of `last_move` (1 = used once, max 5 for 2.0x)
+    pub consecutive_move_count: [u8; MAX_ENTITIES],
+
+    // ------------------------------------------------------------------------
     // Side-wide state
     // ------------------------------------------------------------------------
     /// Side conditions for each player
@@ -320,6 +329,9 @@ impl BattleState {
             weight: [0; MAX_ENTITIES],
             gender: [Gender::Genderless; MAX_ENTITIES],
             transformed: [false; MAX_ENTITIES],
+
+            last_move: [MoveId::default(); MAX_ENTITIES],
+            consecutive_move_count: [0; MAX_ENTITIES],
 
             side_conditions: [SideConditions::default(); 2],
 
@@ -783,6 +795,68 @@ impl BattleState {
             side.mist_turns = side.mist_turns.saturating_sub(1);
             side.safeguard_turns = side.safeguard_turns.saturating_sub(1);
             side.lucky_chant_turns = side.lucky_chant_turns.saturating_sub(1);
+        }
+    }
+
+    // ========================================================================
+    // Consecutive Move Tracking (for Metronome item, Echoed Voice, etc.)
+    // ========================================================================
+
+    /// Record a successful move use for consecutive-move tracking.
+    ///
+    /// Call this after a move has been fully resolved (damage dealt, effects applied).
+    /// `effective_move` should be the actual move executed (after Sleep Talk, Copycat, etc.).
+    ///
+    /// If `success` is true (move executed and wasn't fully blocked by Protect, etc.),
+    /// increments the counter if same move, otherwise resets to 1.
+    /// If `success` is false (move failed, blocked, or missed entirely), resets the counter.
+    pub fn record_move_use(&mut self, entity_idx: usize, effective_move: MoveId, success: bool) {
+        if success {
+            if self.last_move[entity_idx] == effective_move {
+                // Same move used consecutively - increment (capped at 5 for 2.0x max)
+                self.consecutive_move_count[entity_idx] = self.consecutive_move_count[entity_idx]
+                    .saturating_add(1)
+                    .min(5);
+            } else {
+                // Different move - reset tracking to this new move
+                self.last_move[entity_idx] = effective_move;
+                self.consecutive_move_count[entity_idx] = 1;
+            }
+        } else {
+            // Move failed/blocked - reset counter entirely
+            self.reset_move_counter(entity_idx);
+        }
+    }
+
+    /// Reset the consecutive move counter for an entity.
+    ///
+    /// Call this on switch-in, fainting, or when a move is fully blocked.
+    #[inline]
+    pub fn reset_move_counter(&mut self, entity_idx: usize) {
+        self.last_move[entity_idx] = MoveId::default();
+        self.consecutive_move_count[entity_idx] = 0;
+    }
+
+    /// Get the Metronome item multiplier for an entity (in 4096ths).
+    ///
+    /// Returns the damage multiplier based on consecutive move count:
+    /// - 0 or 1 consecutive uses: 4096 (1.0x)
+    /// - 2 consecutive uses: 4915 (1.2x)
+    /// - 3 consecutive uses: 5734 (1.4x)
+    /// - 4 consecutive uses: 6554 (1.6x)
+    /// - 5 consecutive uses: 7372 (1.8x)
+    /// - 6+ consecutive uses: 8192 (2.0x)
+    #[inline]
+    pub fn metronome_multiplier(&self, entity_idx: usize) -> u16 {
+        // Metronome scaling: 1.0x base, +0.2x per consecutive use, max 2.0x
+        // In 4096ths: base 4096, +819 per use (0.2 * 4096 = 819.2)
+        let count = self.consecutive_move_count[entity_idx];
+        if count <= 1 {
+            4096 // 1.0x - first use or no tracking yet
+        } else {
+            // count 2 => 1.2x, count 3 => 1.4x, ..., count 6+ => 2.0x
+            let bonus = ((count - 1) as u16).min(5) * 819;
+            (4096 + bonus).min(8192)
         }
     }
 
@@ -1288,5 +1362,127 @@ mod tests {
         let result_burn = state.set_status(idx, Status::BURN);
         assert_eq!(result_burn, true, "Limber should not prevent Burn");
         assert_eq!(state.status[idx], Status::BURN, "Status should be BURN");
+    }
+
+    // ========================================================================
+    // Consecutive Move Tracking Tests (Metronome item support)
+    // ========================================================================
+
+    #[test]
+    fn test_record_move_use_increments_on_same_move() {
+        let mut state = BattleState::default();
+        let idx = 0;
+        let move_id = MoveId::from_str("thunderbolt").unwrap();
+
+        // First use
+        state.record_move_use(idx, move_id, true);
+        assert_eq!(state.last_move[idx], move_id);
+        assert_eq!(state.consecutive_move_count[idx], 1);
+
+        // Second use (same move)
+        state.record_move_use(idx, move_id, true);
+        assert_eq!(state.consecutive_move_count[idx], 2);
+
+        // Third use
+        state.record_move_use(idx, move_id, true);
+        assert_eq!(state.consecutive_move_count[idx], 3);
+    }
+
+    #[test]
+    fn test_record_move_use_resets_on_different_move() {
+        let mut state = BattleState::default();
+        let idx = 0;
+        let move1 = MoveId::from_str("thunderbolt").unwrap();
+        let move2 = MoveId::from_str("flamethrower").unwrap();
+
+        // Use move1 twice
+        state.record_move_use(idx, move1, true);
+        state.record_move_use(idx, move1, true);
+        assert_eq!(state.consecutive_move_count[idx], 2);
+
+        // Switch to move2 - should reset to 1
+        state.record_move_use(idx, move2, true);
+        assert_eq!(state.last_move[idx], move2);
+        assert_eq!(state.consecutive_move_count[idx], 1);
+    }
+
+    #[test]
+    fn test_record_move_use_resets_on_failure() {
+        let mut state = BattleState::default();
+        let idx = 0;
+        let move_id = MoveId::from_str("thunderbolt").unwrap();
+
+        // Build up consecutive uses
+        state.record_move_use(idx, move_id, true);
+        state.record_move_use(idx, move_id, true);
+        assert_eq!(state.consecutive_move_count[idx], 2);
+
+        // Move fails (e.g., blocked by Protect)
+        state.record_move_use(idx, move_id, false);
+        assert_eq!(state.consecutive_move_count[idx], 0);
+        assert_eq!(state.last_move[idx], MoveId::default());
+    }
+
+    #[test]
+    fn test_consecutive_move_count_caps_at_5() {
+        let mut state = BattleState::default();
+        let idx = 0;
+        let move_id = MoveId::from_str("thunderbolt").unwrap();
+
+        // Use move 10 times
+        for _ in 0..10 {
+            state.record_move_use(idx, move_id, true);
+        }
+
+        // Should cap at 5 (max for 2.0x Metronome bonus)
+        assert_eq!(state.consecutive_move_count[idx], 5);
+    }
+
+    #[test]
+    fn test_reset_move_counter() {
+        let mut state = BattleState::default();
+        let idx = 0;
+        let move_id = MoveId::from_str("thunderbolt").unwrap();
+
+        state.record_move_use(idx, move_id, true);
+        state.record_move_use(idx, move_id, true);
+        assert_eq!(state.consecutive_move_count[idx], 2);
+
+        state.reset_move_counter(idx);
+        assert_eq!(state.consecutive_move_count[idx], 0);
+        assert_eq!(state.last_move[idx], MoveId::default());
+    }
+
+    #[test]
+    fn test_metronome_multiplier_values() {
+        let mut state = BattleState::default();
+        let idx = 0;
+
+        // 0 uses: 1.0x (4096)
+        assert_eq!(state.metronome_multiplier(idx), 4096);
+
+        // 1 use: 1.0x (4096)
+        state.consecutive_move_count[idx] = 1;
+        assert_eq!(state.metronome_multiplier(idx), 4096);
+
+        // 2 uses: 1.2x (4915)
+        state.consecutive_move_count[idx] = 2;
+        assert_eq!(state.metronome_multiplier(idx), 4915);
+
+        // 3 uses: 1.4x (5734)
+        state.consecutive_move_count[idx] = 3;
+        assert_eq!(state.metronome_multiplier(idx), 5734);
+
+        // 4 uses: 1.6x (6553)
+        state.consecutive_move_count[idx] = 4;
+        assert_eq!(state.metronome_multiplier(idx), 6553);
+
+        // 5 uses: 1.8x (7372)
+        state.consecutive_move_count[idx] = 5;
+        assert_eq!(state.metronome_multiplier(idx), 7372);
+
+        // 6+ uses: caps at 2.0x (8192)
+        state.consecutive_move_count[idx] = 6;
+        assert_eq!(state.metronome_multiplier(idx), 8191);
     }
 }

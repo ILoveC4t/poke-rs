@@ -392,6 +392,8 @@ impl PokemonConfig {
         state.status[index] = crate::state::Status::NONE;
         state.volatiles[index] = crate::state::Volatiles::empty();
         state.status_counter[index] = 0;
+        // Reset consecutive move tracking (Metronome item, Echoed Voice, etc.)
+        state.reset_move_counter(index);
         // Mark as transformed if spawning in a non-base form (e.g. Mega)
         state.transformed[index] = species.base_species != 0;
 
