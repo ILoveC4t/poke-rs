@@ -21,6 +21,7 @@
 - **Move logic:** Implement hooks in `crates/poke_engine/src/moves/implementations.rs` and register in `moves/registry.rs`.
 - **Type immunity overrides:** Use `OnTypeImmunity` hook in `abilities/implementations/immunity.rs`.
 - **Status/State:** Use `BattleState::set_status` which respects immunity hooks.
+- **Test Fixture Hygiene:** Smogon fixtures assume a "blank slate" (no prior ability activations). When spawning Pokemon in `damage_fixtures.rs`, ability hooks like `Intimidate` or `Drought` run immediately. If the fixture doesn't account for them (e.g. Raging Bull breaking screens shouldn't have -1 Atk from Intimidate), the test setup must proactively clear `state.boosts`, `weather`, etc.
 - **Note:** The ability/move/item registries are fully wired. Always prefer adding a new hook type over adding hardcoded logic to `modifiers.rs` or `state.rs`.
 
 # TEST ARCHITECTURE

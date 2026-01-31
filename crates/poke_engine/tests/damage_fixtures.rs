@@ -8,7 +8,7 @@ use poke_engine::damage::calculate_damage_with_overrides;
 use poke_engine::damage::generations::{Generation, Terrain, Weather};
 use poke_engine::entities::PokemonConfig;
 use poke_engine::items::ItemId;
-use poke_engine::moves::MoveId;
+use poke_engine::moves::{MoveFlags, MoveId};
 use poke_engine::natures::NatureId;
 use poke_engine::state::BattleState;
 
@@ -115,6 +115,13 @@ pub struct MoveData {
     #[serde(rename = "isCrit")]
     pub is_crit: Option<bool>,
     pub hits: Option<u8>,
+    pub overrides: Option<MoveOverrides>,
+}
+
+#[derive(Deserialize, Debug, Default, Clone)]
+pub struct MoveOverrides {
+    #[serde(rename = "basePower")]
+    pub base_power: Option<u16>,
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]
@@ -228,6 +235,11 @@ fn spawn_pokemon(
         state.boosts[entity_idx][2] = boosts.spa.unwrap_or_default();
         state.boosts[entity_idx][3] = boosts.spd.unwrap_or_default();
         state.boosts[entity_idx][4] = boosts.spe.unwrap_or_default();
+    } else {
+        // Explicitly clear boosts because spawn() might have triggered abilities (e.g. Intimidate)
+        // that shouldn't persist if the fixture doesn't specify boosts.
+        let entity_idx = BattleState::entity_index(player, slot);
+        state.boosts[entity_idx] = [0; 7];
     }
 
     if let Some(ref status_str) = data.status {
@@ -327,6 +339,20 @@ fn parse_expected_damage(value: &serde_json::Value) -> Vec<u16> {
     }
 }
 
+fn get_base_power_override(case: &DamageTestCase) -> Option<u16> {
+    // First check for explicit move overrides (e.g., basePower: 75)
+    if let Some(ref overrides) = case.move_data.overrides {
+        if let Some(bp) = overrides.base_power {
+            return Some(bp);
+        }
+    }
+    // Then check for Z-move base power from description
+    if case.move_data.use_z != Some(true) {
+        return None;
+    }
+    extract_base_power_from_desc(&case.expected.desc)
+}
+
 fn z_move_base_power(case: &DamageTestCase) -> Option<u16> {
     if case.move_data.use_z != Some(true) {
         return None;
@@ -355,6 +381,18 @@ fn run_damage_test(case: &DamageTestCase) -> Result<(), String> {
 
     spawn_pokemon(&case.defender, &mut state, 1, 0)
         .map_err(|e| format!("Defender spawn failed: {}", e))?;
+
+    // Fix: Clear boosts if not explicitly provided.
+    // This is necessary because spawn_pokemon() triggers "OnSwitchIn" abilities like Intimidate,
+    // which can modify stats of the opponent. Smogon fixtures assume static state unless specified.
+    if case.attacker.boosts.is_none() {
+        let idx = BattleState::entity_index(0, 0);
+        state.boosts[idx] = [0; 7];
+    }
+    if case.defender.boosts.is_none() {
+        let idx = BattleState::entity_index(1, 0);
+        state.boosts[idx] = [0; 7];
+    }
 
     apply_field(&case.field, &mut state);
     state.generation = case.gen;
@@ -385,7 +423,7 @@ fn run_damage_test(case: &DamageTestCase) -> Result<(), String> {
     let attacker_idx = 0;
     let defender_idx = 6;
 
-    let base_power_override = z_move_base_power(case);
+    let base_power_override = get_base_power_override(case);
     let result = match gen {
         Generation::Gen9(g) => calculate_damage_with_overrides(
             g,

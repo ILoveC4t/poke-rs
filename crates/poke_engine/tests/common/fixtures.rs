@@ -79,6 +79,14 @@ pub struct MoveData {
     #[serde(rename = "isCrit")]
     pub is_crit: Option<bool>,
     pub hits: Option<u8>,
+    pub overrides: Option<MoveOverrides>,
+}
+
+/// Move property overrides from fixture.
+#[derive(Deserialize, Debug, Default, Clone)]
+pub struct MoveOverrides {
+    #[serde(rename = "basePower")]
+    pub base_power: Option<u16>,
 }
 
 /// Field conditions from fixture.

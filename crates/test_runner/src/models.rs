@@ -9,7 +9,7 @@ pub struct TestSummary {
     pub cargo_test: CargoTestResult,
     pub fixture_results: FixtureResults,
     pub failures: Vec<FailureInfo>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub warnings: Vec<String>,
 }
 

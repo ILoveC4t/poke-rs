@@ -551,6 +551,11 @@ pub fn apply_screen_mod_early<G: GenMechanics>(ctx: &DamageContext<'_, G>, base_
         return;
     }
 
+    #[cfg(debug_assertions)]
+    if ctx.move_id.data().name.contains("Raging") {
+        eprintln!("DEBUG apply_screen_mod_early: Gen 3-4 path for Raging Bull!");
+    }
+
     if ctx.is_crit || is_screen_breaker(ctx.move_id) {
         return;
     }
@@ -650,9 +655,10 @@ pub fn compute_final_damage<G: GenMechanics>(
     let is_burned = ctx.is_burned();
     let ignore_burn = should_ignore_status_damage_reduction(ctx, Status::BURN);
 
-    let has_screen = !ctx.is_crit
-        && !is_screen_breaker(ctx.move_id)
-        && ctx.has_screen(ctx.category == MoveCategory::Physical);
+    let is_sb = is_screen_breaker(ctx.move_id);
+    let has_physical_screen = ctx.has_screen(ctx.category == MoveCategory::Physical);
+    let has_screen = !ctx.is_crit && !is_sb && has_physical_screen;
+    
     let screen_mod = if has_screen {
         Modifier::new(ctx.state.get_screen_modifier(ctx.defender, ctx.category))
     } else {
