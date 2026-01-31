@@ -259,35 +259,31 @@ pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageR
     // This allows re-calculating correct damage for multi-hit abilities like Parental Bond
     // which modify the Base Power of subsequent hits.
     // Returns (base_damage_before_random, rolls)
-    let calculate_hit = |ctx: &mut DamageContext<G>, bp: u32, atk: u16, def: u16| -> (u32, [u16; 16]) {
-        let mut base_damage = get_base_damage(
-            level,
-            bp,
-            atk as u32,
-            def as u32,
-            adds_two_default,
-        );
+    let calculate_hit =
+        |ctx: &mut DamageContext<G>, bp: u32, atk: u16, def: u16| -> (u32, [u16; 16]) {
+            let mut base_damage =
+                get_base_damage(level, bp, atk as u32, def as u32, adds_two_default);
 
-        // Apply pre-random modifiers
-        modifiers::apply_burn_mod_early(ctx, &mut base_damage);
-        modifiers::apply_screen_mod_early(ctx, &mut base_damage);
+            // Apply pre-random modifiers
+            modifiers::apply_burn_mod_early(ctx, &mut base_damage);
+            modifiers::apply_screen_mod_early(ctx, &mut base_damage);
 
-        modifiers::apply_spread_mod(ctx, &mut base_damage);
-        modifiers::apply_weather_mod_damage(ctx, &mut base_damage);
+            modifiers::apply_spread_mod(ctx, &mut base_damage);
+            modifiers::apply_weather_mod_damage(ctx, &mut base_damage);
 
-        if !adds_two_default {
-            if G::GEN == 3 && ctx.category == crate::moves::MoveCategory::Physical {
-                base_damage = base_damage.max(1);
+            if !adds_two_default {
+                if G::GEN == 3 && ctx.category == crate::moves::MoveCategory::Physical {
+                    base_damage = base_damage.max(1);
+                }
+                base_damage += 2;
             }
-            base_damage += 2;
-        }
 
-        modifiers::apply_crit_mod(ctx, &mut base_damage);
-        modifiers::apply_move_final_damage_mod(ctx, &mut base_damage);
+            modifiers::apply_crit_mod(ctx, &mut base_damage);
+            modifiers::apply_move_final_damage_mod(ctx, &mut base_damage);
 
-        let rolls = modifiers::compute_final_damage(ctx, base_damage);
-        (base_damage, rolls)
-    };
+            let rolls = modifiers::compute_final_damage(ctx, base_damage);
+            (base_damage, rolls)
+        };
 
     // Main hit
     let bp = ctx.base_power as u32;
@@ -295,19 +291,21 @@ pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageR
 
     // Check for multi-hit capability (Parental Bond)
     let mut multi_hit_rolls = None;
-    if let Some(Some(hooks)) = crate::abilities::ABILITY_REGISTRY.get(ctx.state.abilities[ctx.attacker] as usize) {
+    if let Some(Some(hooks)) =
+        crate::abilities::ABILITY_REGISTRY.get(ctx.state.abilities[ctx.attacker] as usize)
+    {
         if let Some(hook) = hooks.on_modify_multi_hit {
-             if let Some(modifiers) = hook(ctx.state, ctx.attacker, ctx.defender, ctx.move_id) {
-                  let mut hits = Vec::new();
-                  // The hook returns modifiers for *additional* hits.
-                  // For accurate rounding we scale the pre-random base_damage and then run the final
-                  // pipeline (random roll, STAB, effectiveness, burn, screens) on the scaled base.
-                  for modifier in modifiers {
-                      let scaled_base = apply_modifier(base_damage, modifier);
-                      hits.push(modifiers::compute_final_damage(&mut ctx, scaled_base));
-                  }
-                  multi_hit_rolls = Some(hits);
-             }
+            if let Some(modifiers) = hook(ctx.state, ctx.attacker, ctx.defender, ctx.move_id) {
+                let mut hits = Vec::new();
+                // The hook returns modifiers for *additional* hits.
+                // For accurate rounding we scale the pre-random base_damage and then run the final
+                // pipeline (random roll, STAB, effectiveness, burn, screens) on the scaled base.
+                for modifier in modifiers {
+                    let scaled_base = apply_modifier(base_damage, modifier);
+                    hits.push(modifiers::compute_final_damage(&mut ctx, scaled_base));
+                }
+                multi_hit_rolls = Some(hits);
+            }
         }
     }
 
@@ -321,7 +319,6 @@ pub fn calculate_standard<G: GenMechanics>(mut ctx: DamageContext<G>) -> DamageR
         multi_hit_rolls,
     }
 }
-
 
 #[cfg(test)]
 mod tests {

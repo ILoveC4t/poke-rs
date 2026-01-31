@@ -166,7 +166,6 @@ impl AbilityHooks {
         on_modify_multi_hit: None,
     };
 
-
     /// Helper to set weather
     pub fn set_weather(state: &mut BattleState, weather: Weather, turns: u8) {
         state.weather = weather as u8;

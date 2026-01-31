@@ -81,7 +81,6 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
         if let Some(target) = &data.target {
             target_names.insert(target.clone());
         }
-
     }
     let flag_count = flag_names.len();
 
@@ -116,7 +115,6 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
             quote! { #ident }
         })
         .collect();
-
 
     // 2. Generate Enum Variants
     let variants: Vec<TokenStream> = valid_moves
@@ -250,7 +248,6 @@ pub fn generate(out_dir: &Path, data_dir: &Path) {
                     multihit: (#min_hits, #max_hits),
                 }
             }
-
         })
         .collect();
 

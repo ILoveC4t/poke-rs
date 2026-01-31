@@ -96,7 +96,6 @@ pub struct MoveData {
     pub multihit: Option<serde_json::Value>,
 }
 
-
 #[derive(Deserialize)]
 pub struct Fling {
     #[serde(rename = "basePower")]
