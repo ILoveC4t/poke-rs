@@ -45,8 +45,18 @@ impl Category {
     pub fn categorize(case: &DamageTestCase) -> Vec<Category> {
         let mut cats = vec![];
 
-        // Generation
-        match case.gen {
+        Self::categorize_generation(case.gen, &mut cats);
+
+        let test_name_lower = case.test_name.to_lowercase();
+        let id_lower = case.id.to_lowercase();
+
+        Self::categorize_features(&test_name_lower, &id_lower, &mut cats);
+
+        cats
+    }
+
+    fn categorize_generation(gen: u32, cats: &mut Vec<Category>) {
+        match gen {
             1 => cats.push(Category::Gen1),
             2 => cats.push(Category::Gen2),
             3 => cats.push(Category::Gen3),
@@ -58,16 +68,16 @@ impl Category {
             9 => cats.push(Category::Gen9),
             _ => {}
         }
+    }
 
-        let test_name_lower = case.test_name.to_lowercase();
-        let id_lower = case.id.to_lowercase();
-
+    fn categorize_features(test_name_lower: &str, id_lower: &str, cats: &mut Vec<Category>) {
         // Abilities
-        if has_ability_keywords(&test_name_lower, &id_lower) {
+        if has_ability_keywords(test_name_lower, id_lower) {
             cats.push(Category::Abilities);
         }
 
         // Items
+    }
         if has_item_keywords(&test_name_lower, &id_lower) {
             cats.push(Category::Items);
         }

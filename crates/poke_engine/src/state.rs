@@ -700,12 +700,8 @@ impl BattleState {
         }
     }
 
-    /// Apply entry hazard damage when a Pokémon switches in
-    /// Returns damage dealt (0 if immune or no hazards)
-    pub fn apply_entry_hazards(&mut self, entity_idx: usize) -> u16 {
-        let side = self.get_side(entity_idx);
-        let conditions = self.side_conditions[side]; // Copy since it's Copy
-        let pokemon_types = self.types[entity_idx];
+    /// Calculate damage from entry hazards for a Pokémon switching in
+    fn calculate_entry_hazard_damage(&self, entity_idx: usize, conditions: SideConditions, pokemon_types: [Type; 2]) -> u16 {
         let mut total_damage = 0u16;
 
         // Stealth Rock: Type effectiveness based damage (1/8 neutral)
