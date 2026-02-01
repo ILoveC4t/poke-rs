@@ -334,7 +334,7 @@ fn parse_expected_damage(value: &serde_json::Value) -> Vec<Vec<u16>> {
             vec![vec![n.as_u64().unwrap_or_default() as u16]]
         }
         serde_json::Value::Array(arr) => {
-            if let Some(serde_json::Value::Array(_)) = arr.first() {
+            if matches!(arr.first(), Some(serde_json::Value::Array(_))) {
                 // Nested array (multi-hit)
                 arr.iter()
                     .filter_map(|v| {
@@ -614,7 +614,7 @@ fn main() {
 
     // Load test cases - path is relative to workspace root (where cargo test is run from)
     let path = "../../tests/fixtures/damage-calc/damage.json";
-    let file = File::open(path).expect(&format!("Failed to open damage.json at {}", path));
+    let file = File::open(path).unwrap_or_else(|_| panic!("Failed to open damage.json at {}", path));
     let reader = BufReader::new(file);
     let fixture: DamageFixture =
         serde_json::from_reader(reader).expect("Failed to parse damage.json");
